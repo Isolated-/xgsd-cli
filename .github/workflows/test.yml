@@ -1,8 +1,16 @@
 name: tests
 on:
   push:
-    branches-ignore: [main]
-  workflow_dispatch:
+    branches:
+      - main
+      - staging
+      - dev
+      - 'feature/*'
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - '**'
 
 jobs:
   unit-tests:
