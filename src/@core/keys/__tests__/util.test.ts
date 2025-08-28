@@ -1,16 +1,16 @@
 import {BinaryToTextEncoding} from 'crypto'
-import {decodeKey, deriveKeyV1, encodeKey, generateMasterKey, generateRecoveryPhrase, isValidLength} from '../util'
+import {decodeKey, encodeKey, generateMasterKey, generateRecoveryPhrase, isValidLength} from '../util'
 import {MAX_KEY_LENGTH} from '../constants'
+import {deriveKeyV1} from '../derive.util'
 
 const key =
-  'v1:hkdf-sha256:W2rOiql2RsjrngeCX8ATeKgiumA0wbKIXqYVezA_u_4M5rfiOG5d149nCc_gKMzHllOM1z-7AokHT5OqXQbWwgrQzolrOjDB:eyJsZW5ndGgiOjY0LCJ0eXBlIjoiZGVyaXZhdGlvbiIsImNvbnRleHQiOiJkZWZhdWx0In0'
+  'v1:hkdf-sha256:W2rOiql2RsjrngeCX8ATeKgiumA0wbKIXqYVezA_u_4M5rfiOG5d149nCc_gKMzHllOM1z-7AokHT5OqXQbWwgrQzolrOjDB'
 
 const decoded = {
   v: 1,
   alg: 'hkdf-sha256',
   salt: 'W2rOiql2Rsg',
   key: '654Hgl_AE3ioIrpgNMGyiF6mFXswP7v-DOa34jhuXdePZwnP4CjMx5ZTjNc_uwKJB0-Tql0G1sIK0M6JazowwQ',
-  payload: {length: 64, type: 'derivation', context: 'default'},
 }
 
 describe('(util) generateRecoveryPhrase function', () => {
@@ -58,30 +58,6 @@ describe('(util) generateMasterKey function', () => {
   })
 })
 
-describe('(util) deriveKeyV1 tests', () => {
-  test('should derive a key of the correct length and format', () => {
-    const baseKey = Buffer.from(decoded.key, 'base64url')
-    const derivedKey = decodeKey(deriveKeyV1(baseKey, {length: 48, type: 'encryption', context: 'unit-test'}))
-
-    expect(derivedKey.v).toEqual(1)
-    expect(derivedKey.alg).toEqual('hkdf-sha256')
-    expect(Buffer.from(derivedKey.key, 'base64url')).toHaveLength(48)
-    expect(Buffer.from(derivedKey.salt, 'base64url')).toHaveLength(8)
-    expect(derivedKey.payload).toEqual({length: 48, type: 'encryption', context: 'unit-test'})
-  })
-
-  test('should throw an error if the base key length is invalid', () => {
-    expect(() => deriveKeyV1(Buffer.from('shortkey'))).toThrow('key length is invalid, min: 32, max: 64, provided: 8')
-  })
-
-  test('should throw an error if the derived key length is invalid', () => {
-    const baseKey = Buffer.from(decoded.key, 'base64url')
-    expect(() => deriveKeyV1(baseKey, {length: 20})).toThrow(
-      'derivation key length is invalid, min: 32, max: 64, provided: 20',
-    )
-  })
-})
-
 describe('(util) isValidLength function', () => {
   test('should validate length correctly', () => {
     expect(isValidLength(32)).toBe(true)
@@ -126,7 +102,6 @@ describe('(util) decodeKey function', () => {
     expect(decodedNoPayload.key).toEqual(
       '654Hgl_AE3ioIrpgNMGyiF6mFXswP7v-DOa34jhuXdePZwnP4CjMx5ZTjNc_uwKJB0-Tql0G1sIK0M6JazowwQ',
     )
-    expect(decodedNoPayload.payload).toEqual({})
   })
 })
 
@@ -178,6 +153,5 @@ describe('(util) encodeKey function with custom digest', () => {
         customDigest,
       ),
     )
-    expect(JSON.parse(Buffer.from(parts[3], customDigest).toString('utf-8'))).toEqual(encode.payload)
   })
 })

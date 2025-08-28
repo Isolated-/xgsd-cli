@@ -23,6 +23,7 @@ export const generateRecoveryPhrase = (strength: number = DEFAULT_PHRASE_LENGTH)
 
 export interface MasterKeyOpts {
   length: number
+  salt?: Buffer
   hash?: 'sha128' | 'sha256' | 'sha512'
   alg?: 'pbkdf2' | 'argon2' | 'hkdf'
 }
@@ -73,7 +74,7 @@ export const toRawKey = (key: string): Buffer => {
 export const decodeKey = (
   key: string,
   digest: BinaryToTextEncoding = 'base64url',
-): {v: number; alg: string; salt: string; key: string; payload: Record<string, unknown>} => {
+): {v: number; alg: string; salt: string; key: string} => {
   const parts = key.split(':')
   if (parts.length < 3 || parts[0][0] !== 'v') {
     throw new Error('invalid key format')
@@ -83,9 +84,7 @@ export const decodeKey = (
   const iv = raw.subarray(0, HKDF_IV_LENGTH)
   const keyBytes = raw.subarray(HKDF_IV_LENGTH)
 
-  const payload = parts[3] ? JSON.parse(Buffer.from(parts[3], digest).toString('utf-8')) : {}
-
-  if (!isValidLength(keyBytes, {length: payload.length})) {
+  if (!isValidLength(keyBytes)) {
     throw new Error('key length does not match payload length, possible corruption')
   }
 
@@ -94,7 +93,6 @@ export const decodeKey = (
     alg: parts[1],
     salt: iv.toString(digest),
     key: keyBytes.toString(digest),
-    payload,
   }
 }
 
@@ -104,13 +102,9 @@ export const encodeKey = (key: Buffer, iv: Buffer, opts?: Partial<IKeyOpts>): st
     throw new Error(`key length is invalid, expected ${options.length}, provided: ${key.length}`)
   }
 
-  const payload = Buffer.from(
-    JSON.stringify({length: options.length, type: options.type, ...options.payload, context: options.context}),
-    'utf-8',
-  ).toString(options.digest)
   const final = Buffer.concat([iv, key])
 
-  return `v${options.version}:${options.alg}:${final.toString(options.digest)}:${payload}` // e.g. v1:iv+key
+  return `v${options.version}:${options.alg}:${final.toString(options.digest)}` // e.g. v1:iv+key
 }
 
 export const deriveKey = (from: Buffer | string, path: string = '', length: number = MAX_KEY_LENGTH): string => {
@@ -136,7 +130,7 @@ export const deriveKey = (from: Buffer | string, path: string = '', length: numb
  *  @param opts
  *  @returns {string} The derived key in the format iv:key (both base64url encoded, or by opts.digest)
  */
-export const deriveKeyV1 = (from: Buffer, opts?: PartialKeyOpts): string => {
+export const deriveKeyV1 = (from: Buffer, opts?: PartialKeyOpts & {salt?: Buffer}): string => {
   const options = {...KEY_DEFAULT_OPTS, ...opts}
   const invalid = `key length is invalid, min: ${MIN_KEY_LENGTH}, max: ${MAX_KEY_LENGTH}, provided: `
 
@@ -144,17 +138,17 @@ export const deriveKeyV1 = (from: Buffer, opts?: PartialKeyOpts): string => {
     throw new Error(invalid + from.length)
   }
 
-  const iv = randomBytes(HKDF_IV_LENGTH)
+  const salt = options.salt || randomBytes(HKDF_IV_LENGTH)
 
   const info = Buffer.from(`${options.type}:${options.context}:${options.version}`)
   const length = options.length
-  const key = Buffer.from(hkdfSync('sha256', from, iv, info, length))
+  const key = Buffer.from(hkdfSync('sha256', from, salt, info, length))
 
   if (!isValidLength(key)) {
     throw new Error('derivation ' + invalid + key.length)
   }
 
-  return encodeKey(key, iv, options)
+  return encodeKey(key, salt, options)
 }
 
 export const isValidLength = (value: Buffer | number | string, opts?: Partial<IKeyOpts>): boolean => {

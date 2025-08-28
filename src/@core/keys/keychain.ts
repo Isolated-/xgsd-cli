@@ -3,22 +3,33 @@ import {IKeyStore} from './interfaces'
 import {IKeyOpts, PartialKeyOpts} from './interfaces/key-opts.interface'
 import {IKey} from './interfaces/key.interface'
 import {
-  decodeKey,
   deriveKey,
-  deriveKeyV1,
   encodeKey,
   generateRecoveryPhrase as generateMnemonic,
   generateMasterKey as generateStandardKey,
-  toRawKey,
 } from './util'
+import {decodeString} from './util/format.util'
 
 export class KeyChain implements IKey {
   protected readonly opts: IKeyOpts
   protected mnemonic?: string
+  protected isMaster?: boolean
   protected _keyBytes?: Buffer
 
-  constructor(opts?: IKeyOpts) {
+  constructor(opts?: PartialKeyOpts, key?: Buffer) {
     this.opts = {...KEY_DEFAULT_OPTS, ...opts}
+    this._keyBytes = key
+  }
+
+  public static fromImportString(key: string, opts?: PartialKeyOpts): KeyChain {
+    const decoded = decodeString(key)
+
+    const buffer = Buffer.from(decoded.key, opts?.digest || 'base64url')
+    return this.fromRawKey(buffer, opts)
+  }
+
+  public static fromRawKey(key: Buffer, opts?: PartialKeyOpts): KeyChain {
+    return new KeyChain(opts, key)
   }
 
   setMasterKey(key: string): KeyChain {
@@ -27,11 +38,11 @@ export class KeyChain implements IKey {
   }
 
   async isMasterKey(): Promise<boolean> {
-    return !!this.mnemonic
+    return !!this.isMaster
   }
 
   async isInitialised(): Promise<boolean> {
-    return false
+    return !!this._keyBytes
   }
 
   async select(version: number, opts?: PartialKeyOpts): Promise<string> {
@@ -42,10 +53,17 @@ export class KeyChain implements IKey {
       throw new Error('key is not initialised')
     }
 
-    const derived = deriveKey(this._keyBytes, path)
-    this._keyBytes = undefined
+    const derived = deriveKey(this._keyBytes, path, 64)
 
     return derived
+  }
+
+  export(): string {
+    if (!this._keyBytes) {
+      throw new Error('key is not initialised')
+    }
+
+    return encodeKey(this._keyBytes, Buffer.alloc(0), this.opts)
   }
 
   async generateRecoveryPhrase(words: number = 24, delim: string = '-'): Promise<string> {
@@ -55,7 +73,9 @@ export class KeyChain implements IKey {
   }
 
   async generateMasterKey(passphrase: string, mnemonic: string, delim: string = '-'): Promise<string> {
-    const masterKey = await generateStandardKey(passphrase, mnemonic.split(delim).join(' '), {alg: 'argon2'})
+    const masterKey = await generateStandardKey(passphrase, mnemonic.split(delim).join(' '))
+    this._keyBytes = masterKey
+    this.isMaster = true
     return Buffer.from(masterKey).toString('hex')
   }
 }

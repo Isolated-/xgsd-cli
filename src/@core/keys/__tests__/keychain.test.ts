@@ -11,6 +11,14 @@ describe('keychain tests', () => {
     .split('-')
     .join(' ')
 
+  test('should create a keychain instance from import string', async () => {
+    const importString =
+      'v1:hkdf-sha256:s0clEaLJ178ROhL822Yx1hRrKZc2WEc672T6ePnku3dsu-ZMRnml_ZCTbCVHAZ-IMJOV5y4tRGdtP4qdHOebiw'
+
+    expect(KeyChain.fromImportString(importString)).toBeInstanceOf(KeyChain)
+    expect(await KeyChain.fromImportString(importString).isInitialised()).toBe(true)
+  })
+
   describe('should generate and recover master keys', () => {
     test('should recover a master key from a recovery phrase', async () => {
       const passphrase = 'passphrase'
@@ -23,6 +31,18 @@ describe('keychain tests', () => {
       const keyChain = new KeyChain()
       const recoveredKey = await keyChain.generateMasterKey(passphrase, mnemonic.split(' ').join('-'))
       expect(recoveredKey).toBe(key)
+    })
+  })
+
+  describe('should select (derive) a key from master', () => {
+    test('should derive a child key from master', async () => {
+      const keyChain = new KeyChain()
+      keyChain.setMasterKey(key)
+
+      const child1 = await keyChain.select(1)
+      expect(child1).toBe(
+        'e51345b48c514d866d0fd78cb8f1d93d04ae3b0b6a426996f2a789b117f28ba73a4974e80f14408773ab576d35afd9f0d9e7e153bbacb44003f95edc794ac871',
+      )
     })
   })
 })
