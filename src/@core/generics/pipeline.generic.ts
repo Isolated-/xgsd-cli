@@ -1,12 +1,12 @@
 import EventEmitter2 from 'eventemitter2'
-import {IAction, RunResult} from './action.generic'
+import {IAction, RunnerResult} from './runner.generic'
 import {IPipe} from './pipe.generic'
 
 export type PipeableAction<T = unknown> = IAction<T> & IPipe<T>
 export type IPipelineStep<T = any> = {
   idx: number
   action: PipeableAction<T>
-  result: RunResult | null
+  result: RunnerResult | null
   error: boolean
   retry: boolean
   retries: number

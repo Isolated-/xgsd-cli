@@ -1,15 +1,15 @@
-import {ActionData, ActionError, IAction, IActionRuntime, RunContext} from '../../generics/action.generic'
+import {ActionData, ActionError, IAction, IRunner, RunnerContext} from '../../generics/runner.generic'
 import {IKey} from '../../keys/interfaces'
 import {ActionRuntime} from '../action.runtime'
 
 export class DeriveKeyFromMaster implements IAction<ActionData> {
   id: string = DeriveKeyFromMaster.name
 
-  constructor(protected readonly _runner?: IActionRuntime) {
+  constructor(protected readonly _runner?: IRunner) {
     this._runner = _runner ?? ActionRuntime.createWithAction(this)
   }
 
-  async run<R = {key: IKey}>(ctx: RunContext): Promise<R> {
+  async run<R = {key: IKey}>(ctx: RunnerContext): Promise<R> {
     if (!ctx.data) {
       throw new ActionError('No data available to derive key from master.')
     }

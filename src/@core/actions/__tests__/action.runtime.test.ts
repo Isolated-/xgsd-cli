@@ -1,4 +1,4 @@
-import {ActionData, ActionError, IAction, RunContext} from '../../generics/action.generic'
+import {ActionData, ActionError, IAction, RunnerContext} from '../../generics/runner.generic'
 import {ActionRuntime} from '../action.runtime'
 
 const mockSuccessAction = {

@@ -1,4 +1,4 @@
-import {IAction} from '../../../generics/action.generic'
+import {IAction} from '../../../generics/runner.generic'
 import {TransformPipe} from '../../../generics/pipe.generic'
 import {GenerateMasterKey} from '../../keys/generate-master-key.action'
 

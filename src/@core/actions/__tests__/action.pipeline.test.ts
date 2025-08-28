@@ -1,11 +1,11 @@
-import {ActionData, IAction, RunContext} from '../../generics/action.generic'
+import {ActionData, IAction, RunnerContext} from '../../generics/runner.generic'
 import {IPipe, PipeFn} from '../../generics/pipe.generic'
 import {IPipelineStep} from '../../generics/pipeline.generic'
 import {pipes} from '../action.pipeline'
 
 class TestAction implements IAction<ActionData> {
   id: string = 'test-action'
-  run<R = ActionData>(ctx: RunContext): Promise<R> {
+  run<R = ActionData>(ctx: RunnerContext): Promise<R> {
     throw new Error('Method not implemented.')
   }
 

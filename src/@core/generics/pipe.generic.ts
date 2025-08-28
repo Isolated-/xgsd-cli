@@ -1,5 +1,5 @@
 import {ActionRuntime} from '../actions/action.runtime'
-import {IAction} from './action.generic'
+import {IAction} from './runner.generic'
 import {IPipelineStep} from './pipeline.generic'
 
 export type PipeFn = (data: any, previous?: IPipelineStep<any> | null) => Promise<IPipelineStep<any> | null>

@@ -1,4 +1,4 @@
-import {IAction, RunContext, ActionError, RunResult, IActionRuntime} from '../../generics/action.generic'
+import {IAction, RunnerContext, ActionError, RunnerResult, IRunner} from '../../generics/runner.generic'
 import {IPipe, PipeFn} from '../../generics/pipe.generic'
 import {IPipelineStep} from '../../generics/pipeline.generic'
 import {IKey} from '../../keys/interfaces'
@@ -17,11 +17,11 @@ export type SaveKeyData = {
 export class SaveDerivedKey implements IAction<SaveKeyOpts> {
   id = SaveDerivedKey.name
 
-  constructor(protected readonly _runner?: IActionRuntime) {
+  constructor(protected readonly _runner?: IRunner) {
     this._runner = _runner ?? ActionRuntime.createWithAction(this)
   }
 
-  async run<SaveKeyData>(ctx: RunContext): Promise<SaveKeyData> {
+  async run<SaveKeyData>(ctx: RunnerContext): Promise<SaveKeyData> {
     if (!ctx.data) {
       throw new ActionError('No data available to save derived key.', 'KEY_SAVE_FAILED')
     }

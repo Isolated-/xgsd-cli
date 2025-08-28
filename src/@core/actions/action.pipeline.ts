@@ -1,5 +1,5 @@
 import {EventEmitter2} from 'eventemitter2'
-import {ActionError, IAction, IActionRuntime, RunResult} from '../generics/action.generic'
+import {ActionError, IAction, IRunner, RunnerResult} from '../generics/runner.generic'
 import {debug} from '../util/debug.util'
 import {IPipe} from '../generics/pipe.generic'
 import {IPipelineStep, IPipeline} from '../generics/pipeline.generic'
@@ -13,7 +13,7 @@ export const pipes = (...pipes: IPipe[]): Pipeline => {
   return Pipeline.build([...(pipes as any)])
 }
 
-export const runAction = async (action: IAction, runner?: IActionRuntime) => {}
+export const runAction = async (action: IAction, runner?: IRunner) => {}
 
 export class Pipeline<T = any> implements IPipeline<T> {
   event: EventEmitter2

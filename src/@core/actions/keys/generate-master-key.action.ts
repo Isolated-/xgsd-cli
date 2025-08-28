@@ -1,4 +1,4 @@
-import {ActionError, IAction, RunContext} from '../../generics/action.generic'
+import {ActionError, IAction, RunnerContext} from '../../generics/runner.generic'
 import {TransformPipe, IPipe, PipeFn} from '../../generics/pipe.generic'
 import {IPipelineStep} from '../../generics/pipeline.generic'
 import {IKey} from '../../keys/interfaces'
@@ -14,7 +14,7 @@ export type GenerateMasterKeyData = {
 export class GenerateMasterKey implements IAction<Record<string, any>> {
   id = 'generate-master-key'
 
-  async run<R = {key: IKey; phrase?: string}>(ctx: RunContext): Promise<R> {
+  async run<R = {key: IKey; phrase?: string}>(ctx: RunnerContext): Promise<R> {
     const {recoveryPhrase, passphrase, words} = ctx.data as GenerateMasterKeyData
 
     if (!passphrase) {

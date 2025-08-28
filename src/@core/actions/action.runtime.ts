@@ -1,14 +1,14 @@
 import {EventEmitter2} from 'eventemitter2'
-import {ActionData, ActionError, IAction, IActionRuntime, RunContext, RunResult} from '../generics/action.generic'
+import {ActionData, ActionError, IAction, IRunner, RunnerContext, RunnerResult} from '../generics/runner.generic'
 import {debug} from '../util/debug.util'
 
-export class ActionRuntime implements IActionRuntime {
+export class ActionRuntime implements IRunner {
   event: EventEmitter2
-  context: RunContext
+  context: RunnerContext
   action: IAction
   cancelled: boolean = false
 
-  private constructor(event: EventEmitter2, action: IAction, ctx?: Partial<RunContext>) {
+  private constructor(event: EventEmitter2, action: IAction, ctx?: Partial<RunnerContext>) {
     this.event = event
     this.context = {
       progress: 0,
@@ -30,13 +30,13 @@ export class ActionRuntime implements IActionRuntime {
     return this.context.errors?.map((e) => e.message.replace('Error: ', '')) || []
   }
 
-  static run(action: IAction, context?: RunContext): IActionRuntime {
+  static run(action: IAction, context?: RunnerContext): IRunner {
     const event = new EventEmitter2()
 
     return new ActionRuntime(event, action, context)
   }
 
-  static createWithAction(action: IAction<ActionData>, opts?: Partial<RunContext>): IActionRuntime {
+  static createWithAction(action: IAction<ActionData>, opts?: Partial<RunnerContext>): IRunner {
     const event = new EventEmitter2()
     const ctx = {
       progress: 0,
@@ -47,7 +47,7 @@ export class ActionRuntime implements IActionRuntime {
     return new ActionRuntime(event, action, ctx)
   }
 
-  async execute(data: ActionData): Promise<RunResult> {
+  async execute(data: ActionData): Promise<RunnerResult> {
     this.context = {...this.context, data}
     this.event.emit('start', this.context)
 
@@ -125,7 +125,7 @@ export class ActionRuntime implements IActionRuntime {
     this.cancelled = true
   }
 
-  async retry(max: number = 10, delay?: (attempt: number) => number): Promise<RunResult> {
+  async retry(max: number = 10, delay?: (attempt: number) => number): Promise<RunnerResult> {
     this.context.retries = this.context.retries! + 1
     this.context.max = max
 
