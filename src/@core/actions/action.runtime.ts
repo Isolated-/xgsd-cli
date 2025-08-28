@@ -29,6 +29,12 @@ export class ActionRuntime implements IActionRuntime {
     return this.context.errors?.map((e) => e.message.replace('Error: ', '')) || []
   }
 
+  static run(action: IAction<unknown>, context?: RunContext<unknown>): IActionRuntime<unknown> {
+    const event = new EventEmitter2()
+
+    return new ActionRuntime(event, action, context)
+  }
+
   static createWithAction(action: IAction<unknown>, opts?: Partial<RunContext<unknown>>): IActionRuntime<unknown> {
     const event = new EventEmitter2()
     const ctx = {

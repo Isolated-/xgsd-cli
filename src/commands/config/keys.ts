@@ -6,6 +6,11 @@ import {OsKeyStore} from '../../@core/keys/keystore'
 import {KeyManager} from '../../@core/keys/interfaces/key-manager.interface'
 import {IKeyOpts} from '../../@core/keys/interfaces'
 import {BinaryExportable} from '../../@core/generics/exportable.generic'
+import {ActionRuntime} from '../../@core/actions/action.runtime'
+import {GenerateMasterKey, generateMasterKeyActionRuntime} from '../../@core/actions/keys/generate-master-key.action'
+import {DeriveKeyFromMaster} from '../../@core/actions/keys/derive-key-from-master.action'
+import {ActionPipeline, Pipeline} from '../../@core/actions/action.pipeline'
+import {SaveKey} from '../../@core/actions/keys/save-key.action'
 
 export default class ConfigKeys extends Command {
   static override args = {
@@ -34,33 +39,23 @@ export default class ConfigKeys extends Command {
     context: string = 'default',
     version: number = 1,
   ): Promise<void> {
-    // generate recovery phrase if not provided
-    const recoveryPhrase = recovery || KeyChain.generateRecoveryPhrase(words, ' ', '-')
-
-    this.log('----  START RECOVERY PHRASE  ----')
-    this.log(recoveryPhrase)
-    this.log('----  END RECOVERY PHRASE    ----')
-
-    const masterKey = await KeyChain.fromRecoveryPhrase(passphrase, recoveryPhrase)
-
-    this.log('----  START MASTER KEY  ----')
-    if (!raw) {
-      this.log(masterKey.export())
-    } else {
-      this.log(masterKey.digest('hex'))
+    if (!passphrase) {
+      this.error('passphrase must be provided to continue with key generation.')
     }
-    this.log('----  END MASTER KEY    ----')
 
-    const deriveKey = await masterKey.select(5, {context, length: 32})
-    this.log('----  START DERIVED KEY  ----')
-    this.log(deriveKey.digest('base64url'))
-    this.log('----  END DERIVED KEY    ----')
+    const pipeline = Pipeline.build([new GenerateMasterKey(), new DeriveKeyFromMaster(), new SaveKey()])
 
-    const keyManager = new KeyManager({context, version} as IKeyOpts)
-    await keyManager.store(masterKey)
+    const results = await pipeline.run({
+      passphrase,
+      recovery,
+      words,
+      raw,
+      forced,
+      context,
+      version,
+    })
 
-    const signingResult = await keyManager.sign(Buffer.from('hello world'))
-    this.log(signingResult.signature.export())
+    console.log(results)
   }
 
   public async import(key: string): Promise<void> {
@@ -95,8 +90,6 @@ export default class ConfigKeys extends Command {
         }
         await this.import(args.extra)
         break
-      default:
-        this.error('Invalid operation. Available operations: generate')
     }
   }
 }

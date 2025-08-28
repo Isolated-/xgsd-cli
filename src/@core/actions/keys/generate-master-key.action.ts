@@ -1,13 +1,21 @@
-import {ActionError, IAction, IActionRuntime, RunContext, RunResult} from '../../generics/action.generic'
+import {
+  ActionError,
+  DefaultActionType,
+  IAction,
+  IActionRuntime,
+  RunContext,
+  RunResult,
+} from '../../generics/action.generic'
 import {IExportable} from '../../generics/exportable.generic'
 import {IKey} from '../../keys/interfaces'
 import {KeyChain} from '../../keys/keychain'
+import {PipelineTransformer} from '../action.pipeline'
 import {ActionRuntime} from '../action.runtime'
 
-export class GenerateMasterKey implements IAction {
+export class GenerateMasterKey implements IAction<Record<string, any>> {
   id = 'generate-master-key'
 
-  async run(ctx: RunContext): Promise<{key: IKey; phrase?: string}> {
+  async run<R = {key: IKey; phrase?: string}>(ctx: RunContext): Promise<R> {
     const {recoveryPhrase, passphrase, words} = ctx.data
 
     if (!passphrase) {
@@ -22,7 +30,7 @@ export class GenerateMasterKey implements IAction {
 
     const key = await KeyChain.fromRecoveryPhrase(passphrase, recovery)
 
-    return {key, phrase: recoveryPhrase ? undefined : recovery}
+    return {key, phrase: recoveryPhrase ? undefined : recovery} as R
   }
 
   cancel(): Promise<void> {

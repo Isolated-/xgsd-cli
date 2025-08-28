@@ -9,7 +9,7 @@ import {decodeString, encodeString} from '../util/format.util'
 import {BinaryExportable, IExportable} from '../../generics/exportable.generic'
 
 export interface IKeyManager {
-  sign(data: Buffer | string): Promise<{pubkey: IExportable<string>; signature: IExportable<string>}>
+  sign(data: Buffer | string): Promise<{signature: IExportable<string>}>
   verify(data: Buffer | string, signature: Buffer | string): Promise<boolean>
 }
 
@@ -55,20 +55,16 @@ export class KeyManager implements IKeyManager {
     return publicKey.export({format: format as any, type: 'spki'}).toString(this.options.digest)
   }
 
-  async sign(data: Buffer | string): Promise<{pubkey: IExportable<string>; signature: IExportable<string>}> {
+  async sign(data: string): Promise<{signature: IExportable<string>}> {
     if (!(await this._store.exists(this.options))) {
       throw new Error(`key not found in "${this.options.context}" context`)
     }
 
-    const keyChain = await this._store.load(this.options.context, this.options)
-    const signingKey = await keyChain.select(1, {...this.options, length: 32, type: 'signing'})
-
-    const privateKey = this.getPrivateKey(signingKey)
-    const signature = sign(null, Buffer.isBuffer(data) ? data : Buffer.from(data), privateKey)
+    const keyChain = (await this._store.load(this.options.context, this.options)) as KeyChain
+    const signature = await keyChain.sign(data, 'base64')
 
     return {
-      pubkey: new BinaryExportable(this.getPublicKey(privateKey, 'pem')),
-      signature: new BinaryExportable(signature.toString(this.options.digest)),
+      signature: new BinaryExportable(signature, {v: 1, alg: 'ed25519'}),
     }
   }
 
