@@ -1,4 +1,5 @@
-import {KEY_DEFAULT_OPTS, MAX_KEY_LENGTH} from './constants'
+import {BinaryToTextEncoding, createSign} from 'crypto'
+import {KEY_DEFAULT_OPTS, MAX_KEY_LENGTH, MIN_KEY_LENGTH} from './constants'
 import {IKeyStore} from './interfaces'
 import {IKeyOpts, PartialKeyOpts} from './interfaces/key-opts.interface'
 import {IKey} from './interfaces/key.interface'
@@ -12,13 +13,20 @@ import {decodeString} from './util/format.util'
 
 export class KeyChain implements IKey {
   protected readonly opts: IKeyOpts
-  protected mnemonic?: string
-  protected isMaster?: boolean
-  protected _keyBytes?: Buffer
+  protected _keyBytes!: Buffer
 
-  constructor(opts?: PartialKeyOpts, key?: Buffer) {
+  private constructor(key: Buffer, opts?: PartialKeyOpts) {
     this.opts = {...KEY_DEFAULT_OPTS, ...opts}
+
+    if (key.length < MIN_KEY_LENGTH || key.length > MAX_KEY_LENGTH) {
+      throw new Error(`key length must be between ${MIN_KEY_LENGTH} and ${MAX_KEY_LENGTH} bytes`)
+    }
+
     this._keyBytes = key
+  }
+
+  get isReady(): boolean {
+    return this._keyBytes && this._keyBytes.length > 0
   }
 
   public static fromImportString(key: string, opts?: PartialKeyOpts): KeyChain {
@@ -29,53 +37,62 @@ export class KeyChain implements IKey {
   }
 
   public static fromRawKey(key: Buffer, opts?: PartialKeyOpts): KeyChain {
-    return new KeyChain(opts, key)
+    return new KeyChain(key, opts)
   }
 
-  setMasterKey(key: string): KeyChain {
-    this._keyBytes = Buffer.from(key, 'hex')
-    return this
+  public static generateRecoveryPhrase(words: number = 24, from: string = ' ', to: string = '-'): string {
+    const bits = (words / 3) * 32
+    return generateMnemonic(bits).split(from).join(to)
   }
 
-  async isMasterKey(): Promise<boolean> {
-    return !!this.isMaster
+  public static async fromRecoveryPhrase(
+    passphrase: string,
+    recoveryPhrase: string,
+    opts?: PartialKeyOpts,
+  ): Promise<KeyChain> {
+    const options = {...KEY_DEFAULT_OPTS, ...opts}
+    const masterKey = await generateStandardKey(passphrase, recoveryPhrase.split('-').join(' '))
+    return this.fromRawKey(masterKey, options)
   }
 
-  async isInitialised(): Promise<boolean> {
-    return !!this._keyBytes
-  }
-
-  async select(version: number, opts?: PartialKeyOpts): Promise<string> {
+  async select(version: number, opts?: PartialKeyOpts): Promise<IKey> {
     const options = {...this.opts, ...opts}
     const path = `${version}:${options.type}:${options.context}`
 
-    if (!this._keyBytes) {
+    if (!this.isReady) {
       throw new Error('key is not initialised')
     }
 
-    const derived = deriveKey(this._keyBytes, path, 64)
+    const derived = deriveKey(this._keyBytes, path, options.length)
 
-    return derived
+    return KeyChain.fromRawKey(Buffer.from(derived, 'hex'), options)
+  }
+
+  sign(data: string | Buffer, encoding: BinaryToTextEncoding = 'hex'): string {
+    throw new Error('method not implemented')
+  }
+
+  verify(data: string | Buffer, signature: string, encoding?: BinaryToTextEncoding): boolean {
+    throw new Error('method not implemented')
+  }
+
+  zero(): void {
+    this._keyBytes = Buffer.alloc(0)
   }
 
   export(): string {
-    if (!this._keyBytes) {
+    if (!this.isReady) {
       throw new Error('key is not initialised')
     }
 
     return encodeKey(this._keyBytes, Buffer.alloc(0), this.opts)
   }
 
-  async generateRecoveryPhrase(words: number = 24, delim: string = '-'): Promise<string> {
-    // words should equal to entropy in bits i.e words 12 = 128 bits
-    const bits = (words / 3) * 32
-    return generateMnemonic(bits).split(' ').join(delim)
-  }
+  digest(encoding: BinaryToTextEncoding = 'hex'): string {
+    if (!this.isReady) {
+      throw new Error('key is not initialised')
+    }
 
-  async generateMasterKey(passphrase: string, mnemonic: string, delim: string = '-'): Promise<string> {
-    const masterKey = await generateStandardKey(passphrase, mnemonic.split(delim).join(' '))
-    this._keyBytes = masterKey
-    this.isMaster = true
-    return Buffer.from(masterKey).toString('hex')
+    return this._keyBytes.toString(encoding)
   }
 }

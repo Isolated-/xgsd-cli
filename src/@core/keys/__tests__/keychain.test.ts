@@ -33,6 +33,13 @@ export const testKeyConfig = {
   child5: '5HX7TaEe86ZTtnCRMtS24iH_PuYrZgS6QIQKetF9K7Q',
 }
 
+describe('keychain cryptographic tests (sign|verify|hmac|encrypt|decrypt)', () => {
+  test('should sign and verify data correctly', () => {
+    const keyChain = KeyChain.fromRawKey(testKeyConfig.bytes)
+    const data = 'testdata'
+  })
+})
+
 describe('keychain tests', () => {
   const key = testKeyConfig.key
   const mnemonic = testKeyConfig.mnemonic

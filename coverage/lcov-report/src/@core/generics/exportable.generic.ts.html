@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/@core/keys/constants.ts</title>
+    <title>Code coverage report for src/@core/generics/exportable.generic.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../../prettify.css" />
     <link rel="stylesheet" href="../../../base.css" />
@@ -19,7 +19,7 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/@core/keys</a> constants.ts</h1>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/@core/generics</a> exportable.generic.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
@@ -30,23 +30,23 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">87.5% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>7/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>5/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>9/9</span>
+                <span class='fraction'>8/8</span>
             </div>
         
             
@@ -86,51 +86,90 @@
 <a name='L21'></a><a href='#L21'>21</a>
 <a name='L22'></a><a href='#L22'>22</a>
 <a name='L23'></a><a href='#L23'>23</a>
-<a name='L24'></a><a href='#L24'>24</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import {IKeyOpts} from './interfaces/key-opts.interface'
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import {BinaryToTextEncoding} from 'crypto'
+import {decodeString, encodeString} from '../keys/util/format.util'
 &nbsp;
-export const MIN_KEY_LENGTH: number = 32
-export const MAX_KEY_LENGTH: number = 64
-export const DEFAULT_KEY_LENGTH: number = 64
+export type RawData = Buffer
 &nbsp;
-export const MIN_PBKDF2_ITERATIONS = 100000
-export const MAX_PBKDF2_ITERATIONS = 10000000
-export const DEFAULT_PBKDF2_ITERATIONS = 300000
+export interface IExportable&lt;T = unknown, Q = RawData&gt; {
+  raw(from?: BufferEncoding): Q
+  digest(digest?: BinaryToTextEncoding, from?: BufferEncoding): string
+  export&lt;R = T&gt;(v?: number, alg?: string): R
+}
 &nbsp;
-export const DEFAULT_PHRASE_LENGTH = 256
+export type BinaryExportableOpts = {
+  v?: number
+  alg?: string
+}
 &nbsp;
-export const HKDF_IV_LENGTH = 8 // bytes
+export class BinaryExportable implements IExportable&lt;string&gt; {
+  constructor(private readonly data: string, public readonly opts: BinaryExportableOpts = {}) {}
 &nbsp;
-export const KEY_DEFAULT_OPTS: IKeyOpts = {
-  type: 'derivation',
-  context: 'default',
-  alg: 'hkdf-sha256',
-  salt: Buffer.alloc(0),
-  version: 1,
-  digest: 'base64url',
-  length: MAX_KEY_LENGTH,
+  public static parseImportString(importString: string): BinaryExportable {
+    const decoded = decodeString(importString, 'base64url')
+    return new BinaryExportable(decoded.key, {v: decoded.v, alg: decoded.alg})
+  }
+&nbsp;
+  raw(from: BufferEncoding = <span class="branch-0 cbranch-no" title="branch not covered" >'base64url')</span>: RawData {
+    return Buffer.from(this.data, from)
+  }
+&nbsp;
+  digest(digest: BinaryToTextEncoding = 'base64url', from: BufferEncoding = 'base64url'): string {
+    return this.raw(from).toString(digest)
+  }
+&nbsp;
+  export&lt;R = string&gt;(v?: number, alg?: string): R {
+    return encodeString(this.data, v ?? this.opts.v, alg ?? this.opts.alg) as R
+  }
 }
 &nbsp;</pre></td></tr></table></pre>
 
