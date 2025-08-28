@@ -1,6 +1,6 @@
 {
   "name": "@xgsd/cli",
-  "description": "A CLI for interacting with xGSD APIs (WIP) - you probably don't need this",
+  "description": "A CLI for interacting with xGSD APIs (WIP) - you probably don't need this (built for ubuntu 22.04+)",
   "version": "0.0.0",
   "author": "@xgsd",
   "bin": {
@@ -10,7 +10,10 @@
   "dependencies": {
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
-    "@oclif/plugin-plugins": "^5"
+    "@oclif/plugin-plugins": "^5",
+    "argon2": "^0.44.0",
+    "bip39": "^3.1.0",
+    "keytar": "^7.9.0"
   },
   "devDependencies": {
     "@eslint/compat": "^1",

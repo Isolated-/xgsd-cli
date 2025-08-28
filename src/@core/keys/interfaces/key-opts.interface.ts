@@ -1,11 +1,13 @@
 import {BinaryToTextEncoding} from 'crypto'
 
+export type KeyType = 'derivation' | 'encryption' | 'signing' | 'hmac' | 'master'
+
 export interface IKeyOpts {
   /**
    * The type of key to select
    * @default "encryption"
    */
-  type: 'derivation' | 'encryption' | 'signing' | 'hmac'
+  type: KeyType
 
   /**
    * The algorithm to use for the key (defaults to "hkdf-sha256")

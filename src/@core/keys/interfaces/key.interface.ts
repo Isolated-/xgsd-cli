@@ -22,8 +22,8 @@ export interface IKey {
    * @param version The version of the key to select. (nothing to do with key versioning, just a parameter)
    * @param opts Additional options for key selection.
    */
-  select(version: number, opts?: IKeyOpts): Promise<Buffer | null>
+  select(version: number, opts?: IKeyOpts): Promise<string>
 
-  generateRecoveryPhrase(passphrase?: string): Promise<string>
-  generateMasterKey(passphrase?: string): Promise<IKey>
+  generateRecoveryPhrase(words?: number, delim?: string): Promise<string>
+  generateMasterKey(passphrase: string, mnemonic: string): Promise<string>
 }
