@@ -1,52 +1,26 @@
 import {EventEmitter2} from 'eventemitter2'
 import {ActionError, IAction, IActionRuntime, RunResult} from '../generics/action.generic'
-import {ActionRuntime} from './action.runtime'
+import {debug} from '../util/debug.util'
+import {IPipe} from '../generics/pipe.generic'
+import {IPipelineStep, IPipeline} from '../generics/pipeline.generic'
 
-export type PipelineTransformer<T = any> = (data: T) => T
-
-export type IActionPipelineItem = {
-  index: number
-  previous: IActionPipelineItem | null
-  next: IActionPipelineItem | null
-  runtime: IActionRuntime
-  transformer: PipelineTransformer
+/**
+ * Create a pipeline from a series of actions.
+ * @param pipes The actions to include in the pipeline.
+ * @returns A new pipeline instance.
+ */
+export const pipes = (...pipes: IPipe[]): Pipeline => {
+  return Pipeline.build([...(pipes as any)])
 }
 
-export interface IActionPipeline {
-  event: EventEmitter2
-  getResults(): RunResult<unknown>[]
-}
-
-export type IPipelineStep<T = any> = {
-  idx: number
-  action: IAction<T>
-  result: RunResult<T> | null
-  error: boolean
-  retry: boolean
-  retries: number
-  previous: IPipelineStep<T> | null
-  next: IPipelineStep<T> | null
-  dependencies: number[]
-  transformer: PipelineTransformer<T>
-}
-
-export interface IPipeline<T = any> {
-  event: EventEmitter2
-  run(input: T): Promise<IPipelineStep<T>[]>
-}
+export const runAction = async (action: IAction, runner?: IActionRuntime) => {}
 
 export class Pipeline<T = any> implements IPipeline<T> {
   event: EventEmitter2
+  steps: IPipelineStep<T>[] = []
 
-  steps: IPipelineStep<T>[]
-
-  private constructor(_steps: Partial<IPipelineStep<T>>[] = []) {
+  private constructor(_steps: any[] = []) {
     this.event = new EventEmitter2()
-
-    if (!_steps) {
-      _steps = []
-    }
-
     this.steps = _steps.map((s: any, index) => ({
       idx: s.idx ?? index,
       action: s.action,
@@ -57,38 +31,55 @@ export class Pipeline<T = any> implements IPipeline<T> {
       result: null,
       error: false,
       dependencies: s.dependencies ?? [],
-      transformer: s.transformer ?? ((data) => data),
     }))
+  }
+
+  details(index: number): IPipelineStep<T> {
+    return this.steps[index]
+  }
+
+  json(): string {
+    return JSON.stringify(this.steps)
   }
 
   async run(input: T): Promise<IPipelineStep<T>[]> {
     let results: IPipelineStep<T>[] = []
 
-    let runner: IActionRuntime<T>
-    let result: RunResult<T> | null
-    let previous: IPipelineStep | null = null
+    let data: any = input
+    let current: IPipelineStep = this.steps[0]
+
+    let ahead: IPipelineStep | null = null
+    let behind: IPipelineStep | null = null
 
     for (const [idx, step] of this.steps.entries()) {
-      runner = ActionRuntime.createWithAction(step.action as any) as IActionRuntime<T>
-      result = await runner.execute((previous as T) ?? input)
+      debug(`(run) [${idx}] ${step.action.id} (current: ${current?.action.id})`, Pipeline.name)
 
-      const next = this.steps[idx + 1] ?? null
-      const prev = this.steps[idx - 1] ?? null
-      const current = {...step, result, next, previous: prev}
-      previous = prev
+      const next = async (payload: any): Promise<IPipelineStep | null> => {
+        data = {...data, ...payload}
+        current.result = data
+        return ahead
+      }
 
-      results.push(current)
+      current = step
+      behind = this.steps.length < idx - 1 ? this.steps[idx - 1] : null
+      ahead = this.steps.length > idx + 1 ? this.steps[idx + 1] : null
+      ahead = (await step.action.pipe(data, behind, next)) as any
 
-      this.event.emit(`action`, current, previous)
+      results.push(step)
+
+      debug(`(run) [${idx}] ${step.action.id} (current: ${current?.action.id})`, Pipeline.name)
+      debug(`(run) [${idx}] ${step.action.id} (behind: ${behind?.action.id ?? 'none'})`, Pipeline.name)
+      debug(`(run) [${idx}] ${step.action.id} (ahead: ${ahead?.action.id ?? 'none'})`, Pipeline.name)
+
+      this.event.emit('step', current)
     }
 
-    this.event.emit(`pipeline`, results)
-
+    this.event.emit('pipeline', results)
     return results
   }
 
-  public static build(actions: IAction[]): Pipeline {
-    const _steps = actions.map((action, index) => ({
+  public static build(pipes: (IAction<any> & IPipe)[]): Pipeline {
+    const _steps = pipes.map((action, index) => ({
       idx: index,
       action,
       result: null,
@@ -100,57 +91,7 @@ export class Pipeline<T = any> implements IPipeline<T> {
       dependencies: [],
       transformer: (data: unknown) => data,
     }))
+
     return new Pipeline(_steps as any)
-  }
-}
-
-export class ActionPipeline {
-  head: IActionPipelineItem | null = null
-  private _results: RunResult<unknown>[] = []
-
-  constructor(private readonly runtimes: IActionRuntime[]) {
-    runtimes.reduce((prev: any, runtime, index) => {
-      const item: IActionPipelineItem = {
-        index,
-        previous: prev,
-        next: null,
-        runtime,
-        transformer: (data) => data,
-      }
-      if (prev) {
-        prev.next = item
-      } else {
-        this.head = item
-      }
-      return item
-    }, null)
-  }
-
-  getResults(): RunResult<unknown>[] {
-    return this._results
-  }
-
-  async execute(input: unknown): Promise<RunResult<unknown>[] | null> {
-    const current = this.head
-
-    if (!current) {
-      return this._results
-    }
-
-    try {
-      const result = await current.runtime.execute(input)
-      this._results.push(result)
-
-      if (!current.next) {
-        this.head = null
-      } else {
-        this.head = current.next
-      }
-
-      const transformed = current.transformer(result)
-      return this.execute(transformed)
-    } catch (error) {
-      throw new ActionError('pipeline execution failed', 'PIPELINE_EXECUTION_FAILED')
-    }
   }
 }

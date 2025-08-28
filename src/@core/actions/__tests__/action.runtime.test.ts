@@ -1,4 +1,4 @@
-import {ActionError, IAction, RunContext} from '../../generics/action.generic'
+import {ActionData, ActionError, IAction, RunContext} from '../../generics/action.generic'
 import {ActionRuntime} from '../action.runtime'
 
 const mockSuccessAction = {
@@ -48,7 +48,7 @@ describe('action runtime tests', () => {
   })
 
   test('should allow for cancellation', async () => {
-    const runtime = ActionRuntime.createWithAction(mockSuccessAction)
+    const runtime = ActionRuntime.createWithAction(mockSuccessAction, {max: 0})
     const cancelSpy = jest.spyOn(mockSuccessAction, 'cancel')
     await runtime.cancel()
     expect(cancelSpy).toHaveBeenCalled()

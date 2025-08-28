@@ -1,22 +1,21 @@
-import {
-  ActionError,
-  DefaultActionType,
-  IAction,
-  IActionRuntime,
-  RunContext,
-  RunResult,
-} from '../../generics/action.generic'
-import {IExportable} from '../../generics/exportable.generic'
+import {ActionError, IAction, RunContext} from '../../generics/action.generic'
+import {TransformPipe, IPipe, PipeFn} from '../../generics/pipe.generic'
+import {IPipelineStep} from '../../generics/pipeline.generic'
 import {IKey} from '../../keys/interfaces'
 import {KeyChain} from '../../keys/keychain'
-import {PipelineTransformer} from '../action.pipeline'
 import {ActionRuntime} from '../action.runtime'
+
+export type GenerateMasterKeyData = {
+  passphrase: string
+  recoveryPhrase?: string
+  words?: number
+}
 
 export class GenerateMasterKey implements IAction<Record<string, any>> {
   id = 'generate-master-key'
 
   async run<R = {key: IKey; phrase?: string}>(ctx: RunContext): Promise<R> {
-    const {recoveryPhrase, passphrase, words} = ctx.data
+    const {recoveryPhrase, passphrase, words} = ctx.data as GenerateMasterKeyData
 
     if (!passphrase) {
       throw new ActionError('missing required fields (passphrase)', 'KEY_GEN_FAILED')
@@ -37,10 +36,3 @@ export class GenerateMasterKey implements IAction<Record<string, any>> {
     return Promise.resolve()
   }
 }
-
-export const generateMasterKeyActionRuntime = () =>
-  ActionRuntime.createWithAction(new GenerateMasterKey()) as IActionRuntime<{
-    key: KeyChain | null
-    phrase?: string
-    passphrase?: string
-  }>

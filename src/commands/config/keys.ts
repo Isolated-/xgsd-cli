@@ -1,16 +1,10 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {KeyChain} from '../../@core/keys/keychain'
 import {decodeKey, toRawKey} from '../../@core/keys/util'
-import {decodeString} from '../../@core/keys/util/format.util'
-import {OsKeyStore} from '../../@core/keys/keystore'
-import {KeyManager} from '../../@core/keys/interfaces/key-manager.interface'
-import {IKeyOpts} from '../../@core/keys/interfaces'
-import {BinaryExportable} from '../../@core/generics/exportable.generic'
-import {ActionRuntime} from '../../@core/actions/action.runtime'
-import {GenerateMasterKey, generateMasterKeyActionRuntime} from '../../@core/actions/keys/generate-master-key.action'
-import {DeriveKeyFromMaster} from '../../@core/actions/keys/derive-key-from-master.action'
-import {ActionPipeline, Pipeline} from '../../@core/actions/action.pipeline'
-import {SaveKey} from '../../@core/actions/keys/save-key.action'
+import {pipes, Pipeline} from '../../@core/actions/action.pipeline'
+import {GenerateMasterKeyPipe} from '../../@core/actions/__pipes__/keys/generate-master-key.pipe'
+import {DeriveKeyPipe} from '../../@core/actions/__pipes__/keys/derive-key.pipe'
+import {UpdateKeyStorePipe} from '../../@core/actions/__pipes__/keys/save-derived-key.action'
 
 export default class ConfigKeys extends Command {
   static override args = {
@@ -43,9 +37,8 @@ export default class ConfigKeys extends Command {
       this.error('passphrase must be provided to continue with key generation.')
     }
 
-    const pipeline = Pipeline.build([new GenerateMasterKey(), new DeriveKeyFromMaster(), new SaveKey()])
-
-    const results = await pipeline.run({
+    const pipeline = pipes(new GenerateMasterKeyPipe(), new DeriveKeyPipe())
+    const result = await pipeline.run({
       passphrase,
       recovery,
       words,
@@ -55,7 +48,13 @@ export default class ConfigKeys extends Command {
       version,
     })
 
-    console.log(results)
+    console.log(result)
+
+    for (const one of result) {
+      if (one.error) {
+        this.error(`Failed at step ${one.idx}: ${one.action.id}`)
+      }
+    }
   }
 
   public async import(key: string): Promise<void> {

@@ -1,14 +1,14 @@
 import {EventEmitter2} from 'eventemitter2'
-import {ActionError, IAction, IActionRuntime, RunContext, RunResult} from '../generics/action.generic'
+import {ActionData, ActionError, IAction, IActionRuntime, RunContext, RunResult} from '../generics/action.generic'
 import {debug} from '../util/debug.util'
 
 export class ActionRuntime implements IActionRuntime {
   event: EventEmitter2
-  context: RunContext<unknown>
-  action: IAction<unknown>
+  context: RunContext
+  action: IAction
   cancelled: boolean = false
 
-  private constructor(event: EventEmitter2, action: IAction<unknown>, ctx?: Partial<RunContext<unknown>>) {
+  private constructor(event: EventEmitter2, action: IAction, ctx?: Partial<RunContext>) {
     this.event = event
     this.context = {
       progress: 0,
@@ -17,6 +17,7 @@ export class ActionRuntime implements IActionRuntime {
       max: 10,
       errors: [],
       update: () => {},
+      error: () => {},
       cancel: () => {},
       retry: async (max: number) => this.retry(max),
       ...ctx,
@@ -29,13 +30,13 @@ export class ActionRuntime implements IActionRuntime {
     return this.context.errors?.map((e) => e.message.replace('Error: ', '')) || []
   }
 
-  static run(action: IAction<unknown>, context?: RunContext<unknown>): IActionRuntime<unknown> {
+  static run(action: IAction, context?: RunContext): IActionRuntime {
     const event = new EventEmitter2()
 
     return new ActionRuntime(event, action, context)
   }
 
-  static createWithAction(action: IAction<unknown>, opts?: Partial<RunContext<unknown>>): IActionRuntime<unknown> {
+  static createWithAction(action: IAction<ActionData>, opts?: Partial<RunContext>): IActionRuntime {
     const event = new EventEmitter2()
     const ctx = {
       progress: 0,
@@ -46,7 +47,7 @@ export class ActionRuntime implements IActionRuntime {
     return new ActionRuntime(event, action, ctx)
   }
 
-  async execute(data: unknown): Promise<RunResult<unknown>> {
+  async execute(data: ActionData): Promise<RunResult> {
     this.context = {...this.context, data}
     this.event.emit('start', this.context)
 
@@ -75,12 +76,19 @@ export class ActionRuntime implements IActionRuntime {
       this.event.emit('progress', 'progress', this.context)
     }
 
+    const error = async (error: string, code: string) => {
+      this.context.errors = [...(this.context.errors ?? []), new ActionError(error, code)]
+      this.context.failed = true
+    }
+
     try {
-      const result = await this.action.run({
+      // call the internal action here
+      const result = (await this.action.run({
         ...this.context,
         data,
         update,
-      })
+        error,
+      })) as IAction<ActionData>
 
       const runResult = {
         success: !!result,
@@ -117,7 +125,7 @@ export class ActionRuntime implements IActionRuntime {
     this.cancelled = true
   }
 
-  async retry(max: number = 10, delay?: (attempt: number) => number): Promise<RunResult<unknown>> {
+  async retry(max: number = 10, delay?: (attempt: number) => number): Promise<RunResult> {
     this.context.retries = this.context.retries! + 1
     this.context.max = max
 
