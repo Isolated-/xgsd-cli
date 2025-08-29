@@ -1,6 +1,9 @@
-import {TransformFn, ValidateFn, StripFn} from '../generics/pipe.generic'
 import {RunnerContext, RunnerResult} from '../generics/runner.generic'
 import {Require} from './require.type'
+
+export type TransformFn<T extends SourceData = SourceData, R extends SourceData = T> = (data: T) => R
+export type ValidateFn<T extends SourceData = SourceData> = (data: T) => boolean
+export type StripFn<T extends SourceData = SourceData> = (data: T) => Partial<T>
 
 /**
  *  Represents a Step in its minimum form (just the pipe)
