@@ -18,7 +18,7 @@ const orchestrateStep = async <T extends SourceData = SourceData>(
   fn: RunFn<T, T>,
   index: number,
 ): Promise<void> => {
-  const previousOutput = config.steps[index - 1]?.output ?? config.input
+  const previousOutput = config.steps[index - 1]?.output || config.input
 
   let data = config.input
   if (config.mode === PipelineMode.Chained) {
@@ -33,9 +33,9 @@ const orchestrateStep = async <T extends SourceData = SourceData>(
   })
 
   // update step config
+  config.steps[index].input = data ?? null
   config.steps[index].errorMessage = result.errors && result.errors.length > 0 ? result.errors[0].message : null
   config.steps[index].errors = result.errors || []
-  config.steps[index].input = data!
   config.steps[index].run = result.data ?? null
   config.steps[index].output = result.data ?? null
   config.steps[index].state = result.errors && result.errors.length > 0 ? PipelineState.Failed : PipelineState.Succeeded
