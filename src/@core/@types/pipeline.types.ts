@@ -1,3 +1,5 @@
+import {IRunnable} from '../@shared/interfaces/runnable.interface'
+import {RunFn} from '../@shared/types/runnable.types'
 import {RunnerContext, RunnerResult} from '../generics/runner.generic'
 import {Require} from './require.type'
 
@@ -12,7 +14,7 @@ export type StripFn<T extends SourceData = SourceData> = (data: T) => Partial<T>
  *  @since v1
  *  @version v1
  */
-export type PartialStep<T extends SourceData = SourceData> = Require<PipelineStep<T>, 'pipe'>
+export type PartialStep<T extends SourceData = SourceData> = Require<PipelineStep<T>, 'fn'>
 
 /**
  *  New PipeFn function vs interface for flexibility.
@@ -36,11 +38,14 @@ export type PipeFn<T extends SourceData = SourceData> = (
  */
 export type PipelineStep<T extends SourceData = SourceData> = {
   run: RunnerResult | null
+  input: T | null
+  output?: T | null
+  errorMessage?: string | null
   state: PipelineState
   errors?: any[]
   attempt?: number
   retries?: number
-  pipe: PipeFn<T>
+  fn: RunFn<T, T>
   validate?: ValidateFn<T>
   transform?<R = T>(data: T): Promise<R> | R
   strip?: StripFn<T>
@@ -55,6 +60,26 @@ export enum PipelineState {
   Succeeded = 'succeeded',
 }
 
+export enum PipelineMode {
+  /**
+   * Runs the pipeline steps asynchronously.
+   * @default
+   */
+  Async = 'async',
+
+  /**
+   *  Runs the pipeline steps in parallel.
+   *  All pipeline functions will receive the same input data.
+   */
+  Fanout = 'fanout',
+
+  /**
+   * Runs the pipeline steps in a chained manner.
+   * (chained != sync) as chained will *only pass the output of the previous step into the next step.*
+   */
+  Chained = 'chained',
+}
+
 /**
  *  Pipeline configuration (simplified).
  *  Represents the entire pipeline configuration.
@@ -66,6 +91,7 @@ export type PipelineConfig<T extends SourceData = SourceData> = {
   input: T | null | undefined
   output: T | null | undefined
   state: PipelineState
+  mode: PipelineMode
   runs: RunnerResult[]
   steps: PipelineStep<T>[]
   errors: unknown[]
@@ -73,10 +99,9 @@ export type PipelineConfig<T extends SourceData = SourceData> = {
   max: number
   retries: number
   stopOnError: boolean
-  setup?: (data: T) => Promise<void | T>
+  delay?: (attempt: number) => number
   transformer?: TransformFn<T>
   validator?: ValidateFn<T>
-  strip?: StripFn<T>
 }
 
 export type SourceData = Record<string, unknown>
