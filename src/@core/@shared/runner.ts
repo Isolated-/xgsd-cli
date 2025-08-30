@@ -1,6 +1,5 @@
 import {debug} from '../util/debug.util'
 import {RunFn} from './types/runnable.types'
-import {setTimeout as sleep} from 'timers/promises'
 import {Worker} from 'worker_threads'
 
 export type RunnerOpts = {
@@ -46,8 +45,9 @@ function runInWorker<T, R>(fn: (data: T) => R | Promise<R>, data: T, ms: number)
     debug('worker process started up', runInWorker.name, name, data as any)
 
     const timer = setTimeout(() => {
-      debug('worker has process timed out', runInWorker.name, name)
+      debug('worker process has timed out', runInWorker.name, name)
       worker.terminate()
+      clearTimeout(timer)
       reject(new Error('Timeout'))
     }, ms)
 
@@ -143,9 +143,8 @@ export const runnerFn = async (data: any, fn: RunFn<any, any>, opts?: RunnerOpts
   }
 
   if (cancelled) {
-    let last = errors.length !== 1 ? errors[errors.length - 1] : 0
     debug(`function has been cancelled`, runnerFn.name, fnName)
-    return {data: null, error: errors[last], retries, errors}
+    return {data: null, error: errors[0], retries, errors}
   }
 
   const runnerResult = await runner(data, fn, {
@@ -171,7 +170,7 @@ export const runnerFn = async (data: any, fn: RunFn<any, any>, opts?: RunnerOpts
 
   if (retries === 0) {
     debug(`retry logic is disabled, exiting now`, runnerFn.name, fnName)
-    return {data: null, error: errors[errors.length - 1], retries, errors}
+    return {data: null, error: errors[0], retries, errors}
   }
 
   debug(
@@ -184,14 +183,14 @@ export const runnerFn = async (data: any, fn: RunFn<any, any>, opts?: RunnerOpts
   if (nextAttempt >= retries) {
     debug(`failed to execute function: ${fnName} after ${attempt + 1} attempts`, runnerFn.name, fnName)
     errors.push(new Error('Max retries exceeded'))
-    return {data: null, error: errors[errors.length - 1], retries, errors}
+    return {data: null, error: errors[0], retries, errors}
   }
 
   await new Promise((resolve) => setTimeout(resolve, delay(attempt)))
 
   if (cancelled) {
     debug(`function cancelled before retry handler`, runnerFn.name, fnName)
-    return {data: null, error: errors[errors.length - 1], retries, errors}
+    return {data: null, error: errors[0], retries, errors}
   }
 
   debug(`retrying now...`, runnerFn.name, fnName)
