@@ -6,7 +6,7 @@ const failingAction = require('./failing')
 module.exports = {
   runtime: 'xgsd@v1',
   timeout: 500,
-  retries: 3,
+  max: 1,
   mode: 'fanout',
   validate: (data) => {
     if (!data || typeof data !== 'object') {
