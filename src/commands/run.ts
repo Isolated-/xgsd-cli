@@ -1,8 +1,9 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {join} from 'path'
-import {timedRunnerFn} from '../@core/@shared/runner'
-import {pipes} from '../@core/pipelines/pipelines.util'
+import {runner, runnerFn, timedRunnerFn} from '../@core/@shared/runner'
+import {getDefaultPipelineConfig} from '../@core/pipelines/pipelines.util'
 import {readJsonSync} from 'fs-extra'
+import {Pipeline} from '../@core/pipelines/pipeline.concrete'
 
 export default class Run extends Command {
   static override args = {
@@ -11,9 +12,16 @@ export default class Run extends Command {
       required: true,
       parse: async (input) => {
         try {
-          return require(join(process.cwd(), input))
+          const extension = input.split('.').pop()
+          if (extension !== 'js') {
+            throw new Error('only .js and .ts files are supported')
+          }
+
+          const mod = require(join(process.cwd(), input))
+
+          return mod
         } catch (error) {
-          throw new Error('unable to find function, does it exist?')
+          throw error
         }
       },
     }),
@@ -48,32 +56,28 @@ export default class Run extends Command {
   public async run(): Promise<void> {
     const {args, flags} = await this.parse(Run)
 
-    if (Array.isArray(args.function)) {
-      // handle pipeline
-      const fns = args.function.map((item: any) => {
-        return async (context: any) => {
-          const result = await timedRunnerFn(flags.data ?? {data: 'some data to hash'}, item.fn, {
-            mode: 'isolated',
-            max: item.retries || 3,
-            timeout: item.timeout || 2000,
-          } as any)
-
-          return context.next({data: result})
-        }
+    if (typeof args.function === 'function') {
+      const result = await timedRunnerFn(flags.data ?? {data: 'some data'}, args.function, {
+        mode: 'isolated',
+        retries: 3,
+        timeout: 3000,
       })
 
-      const pipeline = pipes(...fns)
-      pipeline.config.timeout = 30000
-
-      const ctx = await pipeline.run(flags.data as any)
-      console.log(ctx) // <- eventually store this
       return
     }
 
-    const result = await timedRunnerFn(flags.data ?? {data: 'some data to hash'}, args.function as any, {
-      mode: 'isolated',
-      retries: 3,
-      timeout: 2000,
-    })
+    const pipelineConfig = args.function as any
+    if (pipelineConfig.steps && pipelineConfig.steps === 0) {
+      this.error('please provide one or more steps in the pipeline')
+    }
+
+    const pipeline = new Pipeline(
+      getDefaultPipelineConfig({
+        ...pipelineConfig,
+      }),
+    )
+
+    const ctx = await pipeline.orchestrate({data: 'some input data'}, ...pipelineConfig.steps)
+    console.log(ctx)
   }
 }

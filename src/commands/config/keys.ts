@@ -2,9 +2,6 @@ import {Args, Command, Flags} from '@oclif/core'
 import {KeyChain} from '../../@core/keys/keychain'
 import {decodeKey, toRawKey} from '../../@core/keys/util'
 import {testActionFn} from '../../@core/actions/test.action'
-import {runnerFn} from '../../@core/@shared/runner'
-import {getDefaultPipelineConfig, pipes, pipeToStep} from '../../@core/pipelines/pipelines.util'
-import {join} from 'path'
 
 export default class ConfigKeys extends Command {
   static override args = {
@@ -58,11 +55,6 @@ export default class ConfigKeys extends Command {
     const failingPipeFn = async (context: any) => {
       throw new Error('failed pipe')
     }
-
-    const pipeline = pipes(pipeFn, pipeFn, nextPipeFn, failingPipeFn, finalPipe)
-    pipeline.config.timeout = 100
-    const ctx = await pipeline.run({data: 'payload'})
-    console.log(ctx)
   }
 
   public async import(key: string): Promise<void> {
