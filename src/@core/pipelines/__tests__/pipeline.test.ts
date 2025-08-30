@@ -142,6 +142,58 @@ describe('pipeline unit tests (new abstractions)', () => {
       expect(result.output).toEqual({data: 'bar!!!'})
     })
 
+    test('should handle empty pipelines gracefully', async () => {
+      const pipeline = new Pipeline(getDefaultPipelineConfig())
+      const result = await pipeline.orchestrate({foo: 'bar'})
+      expect(result.state).toBe(PipelineState.Completed)
+      expect(result.output).toBeNull() // or {foo: 'bar'} depending on your design
+      expect(result.steps).toHaveLength(0)
+    })
+
+    test('async mode should preserve step indexes regardless of execution timing', async () => {
+      const slowFn = async () => new Promise((res) => setTimeout(() => res({data: 'slow'}), 50)) as Promise<SourceData>
+      const fastFn = async () => ({data: 'fast'})
+
+      const pipeline = new Pipeline(getDefaultPipelineConfig({mode: PipelineMode.Async}))
+      const result = await pipeline.orchestrate({foo: 'bar'}, slowFn, fastFn)
+
+      expect(result.steps[0].run).toEqual({data: 'slow'})
+      expect(result.steps[1].run).toEqual({data: 'fast'})
+    })
+
+    test('should accumulate retries across steps', async () => {
+      let count = 0
+      const flakyFn = async () => {
+        count++
+        if (count < 2) throw new Error('flaky')
+        return {ok: true}
+      }
+
+      const pipeline = new Pipeline(getDefaultPipelineConfig({max: 2}))
+      const result = await pipeline.orchestrate({foo: 'bar'}, flakyFn, flakyFn)
+
+      expect(result.retries).toBeGreaterThan(1)
+    })
+
+    test('should timeout a long-running function', async () => {
+      const timeoutFn = async () =>
+        new Promise((res) => setTimeout(() => res({late: true}), 200)) as Promise<SourceData>
+      const pipeline = new Pipeline(getDefaultPipelineConfig({timeout: 50}))
+      const result = (await pipeline.orchestrate({foo: 'bar'}, timeoutFn)) as any
+
+      expect(result.steps[0].state).toBe(PipelineState.Failed)
+      expect(result.errors[0].message.toLowerCase()).toContain('timeout')
+    })
+
+    test('fanout should overwrite duplicate keys with last step result', async () => {
+      const fn1 = async () => ({key: 'first'})
+      const fn2 = async () => ({key: 'second'})
+      const pipeline = new Pipeline(getDefaultPipelineConfig({mode: PipelineMode.Fanout}))
+      const result = await pipeline.orchestrate({foo: 'bar'}, fn1, fn2)
+
+      expect(result.output).toEqual({key: 'second'}) // confirm "last wins" logic
+    })
+
     test('should fan input out to all steps', async () => {
       const pipeline = new Pipeline(getDefaultPipelineConfig({mode: PipelineMode.Fanout}))
       const result = await pipeline.orchestrate({foo: 'bar'}, newTestFn, newTestFn, newTestFn)
