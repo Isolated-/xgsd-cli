@@ -1,12 +1,5 @@
 import {RunFn} from '../../@shared/types/runnable.types'
-import {
-  PipeFn,
-  PipelineConfig,
-  PipelineMode,
-  PipelineState,
-  PipelineStep,
-  SourceData,
-} from '../../@types/pipeline.types'
+import {PipelineMode, PipelineState} from '../../@types/pipeline.types'
 import {Pipeline} from '../pipeline.concrete'
 import {getDefaultPipelineConfig, orchestration} from '../pipelines.util'
 
