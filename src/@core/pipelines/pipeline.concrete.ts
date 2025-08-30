@@ -100,6 +100,13 @@ export class Pipeline<T extends SourceData = SourceData> implements IPipeline<T>
       state: PipelineState.Running,
     })
 
+    if (fns.length === 0) {
+      return {
+        ...config,
+        state: PipelineState.Completed,
+      }
+    }
+
     return orchestrate(config)
   }
 }
