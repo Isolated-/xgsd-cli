@@ -1,15 +1,18 @@
-import {PipelineConfig, SourceData} from '../../@types/pipeline.types'
+import {IRunnable} from '../../@shared/interfaces/runnable.interface'
+import {RunFn} from '../../@shared/types/runnable.types'
+import {PipeFn, PipelineConfig, SourceData} from '../../@types/pipeline.types'
 
 export interface IPipeline<T extends SourceData = SourceData> {
   config: PipelineConfig<T>
 
   /**
-   *  Runs the pipeline with the given input.
+   *  New input data orchestrator.
    *  @param {T | null | undefined} input
-   *  @returns updated PipelineConfig<T> with aggregated output (.config.output)
    *  @since v1
    *  @version v1
-   *  @note probably will change to return a run result instead of configuration object.
+   *  @note
+   *    Orchestrates the input data for the pipeline.
+   *    Ensures that Pipeline isn't concerned with retry logic
    */
-  run(input?: T | null): Promise<PipelineConfig<T>>
+  orchestrate(input: T | null, ...fns: RunFn<T, T>[]): Promise<PipelineConfig<T>>
 }
