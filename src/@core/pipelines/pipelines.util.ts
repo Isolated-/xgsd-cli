@@ -1,36 +1,13 @@
-import {PartialStep, PipeFn, PipelineConfig, PipelineState, PipelineStep, SourceData} from '../@types/pipeline.types'
-import {IPipeline} from './interfaces/pipeline.interfaces'
+import {RunFn} from '../@shared/types/runnable.types'
+import {PipelineConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
 import {Pipeline} from './pipeline.concrete'
 
-export const pipes = <T extends SourceData = SourceData>(...pipeFns: PipeFn<T>[]): IPipeline<T> => {
-  return new Pipeline(
-    getDefaultPipelineConfig({
-      steps: pipeToStep(...pipeFns),
-    }),
-  )
-}
-
-export const pipeToStep = <T extends SourceData = SourceData>(...pipeFns: PipeFn<T>[]): PipelineStep<T>[] => {
-  return pipeFns.map((fn) => ({
-    run: null,
-    state: PipelineState.Pending,
-    pipe: fn,
-  }))
-}
-
-export const partialStepToStep = <T extends SourceData = SourceData>(steps: PartialStep<T>[]): PipelineStep<T>[] => {
-  return steps.map((step) => ({
-    run: null,
-    state: PipelineState.Pending,
-    pipe: step.pipe!,
-    validate: step.validate,
-    transform: step.transform,
-    strip: step.strip,
-  }))
-}
-
-export const stepToPipe = <T extends SourceData = SourceData>(...steps: PipelineStep<T>[]): PipeFn<T>[] => {
-  return steps.map((step) => step.pipe)
+export const orchestration = async <T extends SourceData = SourceData>(
+  input: T,
+  ...fns: RunFn<T, T>[]
+): Promise<PipelineConfig<T>> => {
+  const pipeline = new Pipeline(getDefaultPipelineConfig())
+  return pipeline.orchestrate(input, ...(fns as any)) as Promise<PipelineConfig<T>>
 }
 
 export const getDefaultPipelineConfig = <T extends SourceData = SourceData>(
@@ -47,6 +24,7 @@ export const getDefaultPipelineConfig = <T extends SourceData = SourceData>(
     max: 3,
     retries: 0,
     stopOnError: false,
+    mode: PipelineMode.Async,
     ...opts,
   }
 }
