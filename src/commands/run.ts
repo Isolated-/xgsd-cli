@@ -2,7 +2,7 @@ import {Args, Command, Flags} from '@oclif/core'
 import {join} from 'path'
 import {runner, runnerFn, timedRunnerFn} from '../@core/@shared/runner'
 import {getDefaultPipelineConfig} from '../@core/pipelines/pipelines.util'
-import {readJsonSync} from 'fs-extra'
+import {ensureFileSync, readJsonSync, writeFileSync} from 'fs-extra'
 import {Pipeline} from '../@core/pipelines/pipeline.concrete'
 
 export default class Run extends Command {
@@ -26,6 +26,7 @@ export default class Run extends Command {
       },
     }),
   }
+  static override enableJsonFlag: boolean = true
   static override description = 'describe the command here'
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
@@ -51,9 +52,16 @@ export default class Run extends Command {
         }
       },
     }),
+
+    save: Flags.boolean({
+      char: 's',
+      description: 'save the output to a file',
+      default: true,
+      allowNo: true,
+    }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<any> {
     const {args, flags} = await this.parse(Run)
 
     if (typeof args.function === 'function') {
@@ -66,18 +74,23 @@ export default class Run extends Command {
       return
     }
 
-    const pipelineConfig = args.function as any
-    if (pipelineConfig.steps && pipelineConfig.steps === 0) {
-      this.error('please provide one or more steps in the pipeline')
-    }
+    const userPipelineConfig = args.function as any
 
     const pipeline = new Pipeline(
       getDefaultPipelineConfig({
-        ...pipelineConfig,
+        ...userPipelineConfig,
       }),
     )
 
-    const ctx = await pipeline.orchestrate({data: 'some input data'}, ...pipelineConfig.steps)
-    console.log(ctx)
+    const timestamp = new Date().toISOString()
+    const path = join(process.cwd(), `runs/run-${timestamp}.json`)
+    const ctx = await pipeline.orchestrate({data: 'some input data'}, ...userPipelineConfig.steps)
+
+    if (flags.save) {
+      ensureFileSync(path)
+      writeFileSync(path, JSON.stringify(ctx, null, 2), 'utf-8')
+    }
+
+    return ctx
   }
 }

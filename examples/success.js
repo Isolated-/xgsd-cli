@@ -7,6 +7,18 @@ const hasherFn = async (input) => {
 const verifyHashFn = async (input) => {
   const crypto = require('crypto')
   const hash = crypto.createHash('sha256').update(input.data).digest('hex')
+
+  let index = 0
+  while (index < 5) {
+    console.log('testing logging')
+
+    if (index === 4) {
+      console.error('oh no')
+    }
+
+    index++
+  }
+
   return {valid: hash === input.hash}
 }
 

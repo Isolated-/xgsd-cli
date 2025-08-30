@@ -15,6 +15,7 @@ export type RunnerOpts = {
 
 export type RunnerResult<T, E = Error> = {
   data: T
+  logs?: any[]
   error?: E
   errors?: E[]
   retries?: number
@@ -25,21 +26,34 @@ function runInWorker<T, R>(fn: (data: T) => R | Promise<R>, data: T, ms: number)
   const name = fn.name || 'usercode'
   debug('starting worker process for isolated run', runInWorker.name, name, data as any)
 
+  let logs: any[] = []
+
   return new Promise((resolve, reject) => {
     const worker = new Worker(
       `
-      const { parentPort } = require('worker_threads');
-      parentPort.on('message', async ({fn, data}) => {
-        try {
-          const f = eval(fn); // careful: only safe for your trusted/external model
-          const result = await f(data);
-          parentPort.postMessage({result});
-        } catch (err) {
-          parentPort.postMessage({error: err.message});
+        const { parentPort } = require('worker_threads');
+
+        function sendLog(level, args) {
+          parentPort.postMessage({ log: { level, args } });
         }
-      });
+
+        // Override console.* to forward logs
+        console.log = (...args) => sendLog("log", args);
+        console.error = (...args) => sendLog("error", args);
+        console.warn = (...args) => sendLog("warn", args);
+        console.info = (...args) => sendLog("info", args);
+
+        parentPort.on('message', async ({fn, data}) => {
+          try {
+            const f = eval('(' + fn + ')'); // safe-ish for trusted fn
+            const result = await f(data);
+            parentPort.postMessage({ result });
+          } catch (err) {
+            parentPort.postMessage({ error: err && err.message ? err.message : String(err) });
+          }
+        });
       `,
-      {eval: true, workerData: {data}},
+      {eval: true},
     )
 
     debug('worker process started up', runInWorker.name, name, data as any)
@@ -51,12 +65,17 @@ function runInWorker<T, R>(fn: (data: T) => R | Promise<R>, data: T, ms: number)
       reject(new Error('Timeout'))
     }, ms)
 
-    worker.on('message', ({result, error}) => {
-      debug('response received from worker', runInWorker.name, name, {result, error})
+    worker.on('message', ({result, log, error}) => {
+      if (log) {
+        logs.push(log)
+        debug('worker log', runInWorker.name, name, log)
+      }
+
+      debug('response received from worker', runInWorker.name, name, {result, log, error})
       clearTimeout(timer)
       worker.terminate()
       if (error) reject(new Error(error))
-      else resolve(result)
+      else resolve({result, logs} as any)
     })
 
     worker.postMessage({fn: fn.toString(), data})
@@ -71,10 +90,6 @@ async function timeout<T>(ms: number, task: () => Promise<T>): Promise<T> {
       timer = setTimeout(() => reject(new Error('Timeout')), ms)
     }),
   ]).finally(() => clearTimeout(timer))
-}
-
-function isTimerHandle(h: any): h is NodeJS.Timeout {
-  return h && typeof h.hasRef === 'function' && typeof h.refresh === 'function'
 }
 
 export const timedRunnerFn = async (data: any, fn: RunFn<any, any>, opts?: RunnerOpts): Promise<RunnerResult<any>> => {
@@ -104,18 +119,22 @@ export const timedRunnerFn = async (data: any, fn: RunFn<any, any>, opts?: Runne
  *  @since v1
  *  @version v1
  */
-export const runner = async (data: any, fn: RunFn<any, any>, opts?: RunnerOpts): Promise<RunnerResult<any>> => {
+export const runner = async (data: any, fn: RunFn<any, any>, opts?: RunnerOpts): Promise<any> => {
+  let logs: any[] = []
+
   try {
-    let result
+    let result: any
     if (opts?.mode === 'isolated') {
-      result = await runInWorker(fn, data, opts?.timeout ?? 500)
+      const {result: workerResult, logs: workerLogs} = await runInWorker(fn, data, opts?.timeout ?? 500)
+      result = workerResult
+      logs = workerLogs
     } else {
       result = await timeout(opts?.timeout ?? 500, () => Promise.resolve(fn(data)))
     }
 
-    return {data: result}
+    return {data: result, logs}
   } catch (error: any) {
-    return {data: null, error}
+    return {data: null, error, logs: logs ?? []}
   }
 }
 

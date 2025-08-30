@@ -1,6 +1,6 @@
 import {IRunnable} from '../@shared/interfaces/runnable.interface'
+import {RunnerResult} from '../@shared/runner'
 import {RunFn} from '../@shared/types/runnable.types'
-import {RunnerContext, RunnerResult} from '../generics/runner.generic'
 import {Require} from './require.type'
 
 export type TransformFn<T extends SourceData = SourceData, R extends SourceData = T> = (data: T) => R
@@ -37,7 +37,7 @@ export type PipeFn<T extends SourceData = SourceData> = (
  *  @version v1
  */
 export type PipelineStep<T extends SourceData = SourceData> = {
-  run: RunnerResult | null
+  run: RunnerResult<T> | null
   input: T | null
   output?: T | null
   errorMessage?: string | null
@@ -92,7 +92,7 @@ export type PipelineConfig<T extends SourceData = SourceData> = {
   output: T | null | undefined
   state: PipelineState
   mode: PipelineMode
-  runs: RunnerResult[]
+  runs: RunnerResult<T>[]
   steps: PipelineStep<T>[]
   errors: unknown[]
   timeout: number
