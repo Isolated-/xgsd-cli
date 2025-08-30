@@ -1,10 +1,94 @@
-# @xgsd/cli
-
-A CLI for interacting with xGSD APIs (WIP) - you probably don't need this
+# xGSD Command-Line Interface (CLI) - (`@xgsd/cli`)
 
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
 [![Version](https://img.shields.io/npm/v/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
 [![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
+
+Lightweight and lightning fast orchestration and automation.
+
+## About
+
+xGSD is designed to increase productivity and elimate boring work so you can focus on what matters: succeeding. At its core, xGSD is an orchestration and automation layer built on top of privacy-first abstractions to ensure _no one_ gets hands on your data.
+
+### Storage
+
+This component is still being designed, however, it's essentially:
+
+1. End-to-end encryption used for everything (even at application layer)
+2. Zero knowledge API interface -> your machine sends only encrypted messages.
+3. Flexible and adaptable -> perfect for BYOS.
+
+### Pipelines
+
+_Pipelines_ allow for simple _orchestration_ and _automation_ with isolation, retries, timeouts, and other core features built in so you can focus on building and deploying code instead of error handling. Everything executes on your machine with planned future support for remote execution whilst maintaining our privacy first approach.
+
+#### Actions
+
+You'll need an `Action` to execute on your pipeline, defining one is simple but remember that _all dependencies_ will need to be imported inside your `Action` due to limitations with our current isolation method (currently using `Worker`s). TypeScript is currently not supported so you'll need to ensure you're writing pure JS functions:
+
+```js
+const myAction = async (context) => {
+  const crypto = require('crypto')
+
+  const data = context.data
+  const hash = crypto.createHash('sha256').update(data).digest('hex')
+
+  return hash
+}
+module.exports = myAction
+```
+
+The example above will hash data and return the response, you can run it with:
+
+```bash
+$ xgsd run action.js
+```
+
+Which will produce the following response:
+
+```text
+(myAction) running function [runnerFn] - {"mode":"isolated","retries":3,"timeout":2000}
+(myAction) starting worker process for isolated run [runInWorker] - {"data":"some data to hash"}
+(myAction) worker process started up [runInWorker] - {"data":"some data to hash"}
+(myAction) response received from worker [runInWorker] - {"result":"6a2da20943931e9834fc12cfe5bb47bbd9ae43489a30726962b576f4e3993e50"}
+(myAction) function resolved successfully, data will be returned [runnerFn]
+(myAction) executed in 35.89ms - succeeded  [timedRunnerFn]
+```
+
+#### Pipelines
+
+Using pipelines is similar, we require more information to execute successfully. Ensure you've defined your actions and then define your pipeline file like:
+
+```js
+const action = require('./action')
+
+module.exports = [
+  {
+    fn: action,
+    retries: 3,
+    timeout: 2000,
+  },
+]
+```
+
+You can then run your pipeline with `$ xgsd run pipeline.js`. The result should look like:
+
+```
+(pipeline) pipeline starting up, number of steps: 1, current step: 1 [runPipelineStep]
+(pipeline) executing step  (1) now... [runPipeline]
+(usercode) running function [runnerFn] - {"retries":3,"attempt":0,"timeout":30000}
+(myAction) running function [runnerFn] - {"mode":"isolated","max":3,"timeout":2000}
+(myAction) starting worker process for isolated run [runInWorker] - {"data":"some data to hash"}
+(myAction) worker process started up [runInWorker] - {"data":"some data to hash"}
+(myAction) response received from worker [runInWorker] - {"result":"6a2da20943931e9834fc12cfe5bb47bbd9ae43489a30726962b576f4e3993e50"}
+(myAction) function resolved successfully, data will be returned [runnerFn] - {"data":"some data to hash"}
+(myAction) executed in 32.69ms - succeeded  [timedRunnerFn]
+(usercode) function resolved successfully, data will be returned [runnerFn] - {"output":null,"runs":[{"data":{"data":"6a2da20943931e9834fc12cfe5bb47bbd9ae43489a30726962b576f4e3993e50"}}],"steps":[{"run":{"data":{"data":"6a2da20943931e9834fc12cfe5bb47bbd9ae43489a30726962b576f4e3993e50"}},"state":"succeeded"}],"errors":[],"state":"running","timeout":30000,"max":3,"retries":0,"stopOnError":false,"previous":null}
+(usercode) executed in 33.27ms - succeeded  [timedRunnerFn]
+(info) step finished with state: succeeded [runPipelineStep]
+(pipeline) finished step 1, next step: no next step [runPipeline]
+(pipeline) pipeline has been completed, completed 1 steps in 33.53ms [runPipeline]
+```
 
 # Todo
 
