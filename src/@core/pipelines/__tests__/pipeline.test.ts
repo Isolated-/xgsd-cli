@@ -1,34 +1,27 @@
 import {createReadStream} from 'fs'
-import {PipeFn, PipelineState, SourceData} from '../../@types/pipeline.types'
+import {PipeFn, PipelineMode, PipelineState, SourceData} from '../../@types/pipeline.types'
 import {Pipeline} from '../pipeline.concrete'
-import {getDefaultPipelineConfig, pipes} from '../pipelines.util'
+import {getDefaultPipelineConfig, orchestration} from '../pipelines.util'
+import {RunFn} from '../../@shared/types/runnable.types'
 
-export const testFn: PipeFn<SourceData> = async (context) => {
-  return context.next(context.input)
+export const testFn: RunFn<any, any> = async ({input, state, runs, steps, errors, next}) => {
+  return next(input)
 }
 
-export const myPipe: PipeFn<SourceData> = async (context) => {
-  return context.next(context.input)
-}
-
-export const loadUserAccount: PipeFn<SourceData> = async (context) => {
-  const data = {
-    username: 'myusername',
-    email: 'test@xgsd.io',
-  }
-
-  return context.next(data)
-}
-
-export const saveUserAccount: PipeFn<SourceData> = async (context) => {
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-  return context.next({saved: true})
+export const newTestFn: RunFn<any, any> = async (data) => {
+  return {data: data.foo.toUpperCase()}
 }
 
 describe('pipeline unit tests (new abstractions)', () => {
   test('should create an instance from default config (improved flexibility vs old interface)', () => {
-    const pipeline = pipes(testFn)
+    const pipeline = new Pipeline(getDefaultPipelineConfig())
     expect(pipeline).toBeInstanceOf(Pipeline)
+  })
+
+  test('should create and run from generator function (orchestration)', async () => {
+    const pipelineResult = await orchestration({foo: 'bar'}, newTestFn)
+    expect(pipelineResult).toBeDefined()
+    expect(pipelineResult.output).toEqual({data: 'BAR'})
   })
 
   test('should create an instance from custom config (no more private constructors blocking creation)', () => {
@@ -36,9 +29,11 @@ describe('pipeline unit tests (new abstractions)', () => {
       ...getDefaultPipelineConfig(),
       steps: [
         {
+          input: null,
+          output: null,
           state: PipelineState.Pending,
           run: null,
-          pipe: testFn,
+          fn: testFn,
         },
       ],
     })
@@ -46,73 +41,117 @@ describe('pipeline unit tests (new abstractions)', () => {
     expect(pipeline).toBeInstanceOf(Pipeline)
   })
 
-  test('should call run() and return the config object', async () => {
-    const pipeline = pipes(testFn)
-    const result = await pipeline.run({
-      myData: true,
+  describe('orchestration tests', () => {
+    test('should orchestrate input data through pipe functions', async () => {
+      const pipeline = new Pipeline(getDefaultPipelineConfig())
+
+      const result = await pipeline.orchestrate({foo: 'bar'}, newTestFn)
+      expect(result.output).toEqual({data: 'BAR'})
     })
 
-    expect(result.output).toEqual({myData: true})
-    expect(result.state).toEqual(PipelineState.Succeeded)
-    expect(result.errors).toHaveLength(0)
-    expect(result.steps[0].state).toEqual(PipelineState.Succeeded)
-  })
+    test('should handle errors thrown by pipe functions', async () => {
+      const pipeline = new Pipeline(getDefaultPipelineConfig({max: 1}))
 
-  test('should call loadUser and saveUser', async () => {
-    const pipeline = pipes(loadUserAccount, saveUserAccount)
-    const result = await pipeline.run({
-      username: 'myuser',
+      const result = await pipeline.orchestrate({foo: 'bar'}, async () => {
+        throw new Error('Test error')
+      })
+
+      expect(result.errors).toHaveLength(2)
+      expect(result.errors[0]).toEqual(new Error('Test error'))
+      expect(result.errors[1]).toEqual(new Error('Max retries exceeded'))
     })
 
-    expect(result).toBeDefined()
-    expect(result.output).toEqual({email: 'test@xgsd.io', username: 'myusername', saved: true})
-  })
+    test('should mutate and return the correct state', async () => {
+      const initial = getDefaultPipelineConfig({max: 1})
+      const pipeline = new Pipeline(initial)
 
-  test('should stop if a step fails and `stopOnError`: true', async () => {
-    const failing: PipeFn<SourceData> = async (context) => {
-      throw new Error('oops something went wrong')
-    }
-
-    const pipeline = pipes(loadUserAccount, failing, saveUserAccount)
-    pipeline.config.stopOnError = true
-
-    const result = await pipeline.run({
-      username: 'myuser',
+      const result = await pipeline.orchestrate({foo: 'bar'}, newTestFn)
+      expect(initial).not.toEqual(result)
     })
 
-    expect(result.runs).toHaveLength(1)
-    expect(result.state).toEqual(PipelineState.Completed) // <- state is "completed" when one or more steps fail (loadUserAccount completes here)
-    expect(result.errors).toHaveLength(1)
-    expect(result.errors[0]).toEqual(new Error('oops something went wrong'))
-  })
+    test('should only make a single attempt when stopOnError = true', async () => {
+      const pipeline = new Pipeline(getDefaultPipelineConfig({stopOnError: true, max: 10}))
+      const result = await pipeline.orchestrate({foo: 'bar'}, async () => {
+        throw new Error('Test error')
+      })
 
-  test('should continue processing if a step fails and `stopOnError`: false', () => {
-    jest.useFakeTimers()
-    const failing: PipeFn<SourceData> = async (context) => {
-      // keep this here to clear listener
-      await new Promise((resolve) =>
-        setTimeout(() => {
-          context.next()
-        }, 50),
-      )
-      throw new Error('oops something went wrong')
-    }
+      expect(result.stopOnError).toBeTruthy()
+      expect(result.errors).toHaveLength(2)
+      expect(result.errors[0]).toEqual(new Error('Test error'))
+      expect(result.errors[1]).toEqual(new Error('Max retries exceeded'))
+      expect(result.retries).toEqual(1)
+    })
 
-    const pipeline = pipes(loadUserAccount, failing, saveUserAccount)
-    pipeline.config.stopOnError = false
+    test('should set step to failed', async () => {
+      const pipeline = new Pipeline(getDefaultPipelineConfig({max: 1}))
+      const result = await pipeline.orchestrate({foo: 'bar'}, async () => {
+        throw new Error('Test error')
+      })
 
-    expect(
-      pipeline.run({
-        username: 'myuser',
-      }),
-    ).resolves.toEqual({
-      output: {email: 'test@xgsd.io', username: 'myusername', saved: true},
-      state: PipelineState.Completed, // <- state is "completed" when one or more steps fail
-      steps: [
-        {state: PipelineState.Succeeded, run: null, pipe: loadUserAccount},
-        {state: PipelineState.Failed, run: null, pipe: failing},
-        {state: PipelineState.Succeeded, run: null, pipe: saveUserAccount},
-      ],
+      expect(result).toBeDefined()
+      expect(result.errors[0]).toEqual(new Error('Test error'))
+      expect(result.steps[0].errorMessage?.toLowerCase()).toEqual('test error')
+    })
+
+    test('should update step input/output correctly', async () => {
+      const pipeline = new Pipeline(getDefaultPipelineConfig({max: 1}))
+      const result = await pipeline.orchestrate({foo: 'bar'}, async (context: any) => {
+        return {data: context.foo.toUpperCase()}
+      })
+
+      expect(result).toBeDefined()
+      expect(result.input).toEqual({foo: 'bar'})
+      expect(result.steps[0].input).toEqual({foo: 'bar'})
+      expect(result.steps[0].output).toEqual({data: 'BAR'})
+      expect(result.output).toEqual({data: 'BAR'})
+    })
+
+    test('input should be null when orchestrating with no input', async () => {
+      const pipeline = new Pipeline(getDefaultPipelineConfig({max: 1}))
+      const result = await pipeline.orchestrate(null, async (context: any) => {
+        return {data: context.foo.toUpperCase()}
+      })
+
+      expect(result).toBeDefined()
+      expect(result.input).toBeNull()
+      expect(result.steps[0].input).toBeNull()
+    })
+
+    test('should chain output -> input of next step when orchestrating', async () => {
+      const testFn = async (context: any) => {
+        return {
+          data: context.data.toUpperCase(),
+          added: true,
+        }
+      }
+
+      const testFn2 = async (context: any) => {
+        return {data: context.data.toLowerCase()}
+      }
+
+      const testFn3 = async (context: any) => {
+        return {data: context.data + '!!!'}
+      }
+
+      const pipeline = new Pipeline(getDefaultPipelineConfig({mode: PipelineMode.Chained}))
+      const result = await pipeline.orchestrate({data: 'bar'}, testFn, testFn2, testFn3)
+      expect(result).toBeDefined()
+      expect(result.runs).toHaveLength(3)
+      expect(result.steps[1].input).toEqual(result.steps[0].output)
+      expect(result.steps[2].input).toEqual(result.steps[1].output)
+      expect(result.output).toEqual({data: 'bar!!!'})
+    })
+
+    test('should fan input out to all steps', async () => {
+      const pipeline = new Pipeline(getDefaultPipelineConfig({mode: PipelineMode.Fanout}))
+      const result = await pipeline.orchestrate({foo: 'bar'}, newTestFn, newTestFn, newTestFn)
+
+      expect(result).toBeDefined()
+      expect(result.runs).toHaveLength(3)
+      expect(result.steps[0].input).toEqual({foo: 'bar'})
+      expect(result.steps[1].input).toEqual({foo: 'bar'})
+      expect(result.steps[2].input).toEqual({foo: 'bar'})
+      expect(result.output).toEqual({data: 'BAR'})
     })
   })
 })
