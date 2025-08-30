@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">27.58% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/31</span>
+                <span class='fraction'>8/29</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">7.69% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/15</span>
+                <span class='fraction'>1/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">16.66% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>1/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">27.58% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/31</span>
+                <span class='fraction'>8/29</span>
             </div>
         
             
@@ -153,19 +153,15 @@
 <a name='L88'></a><a href='#L88'>88</a>
 <a name='L89'></a><a href='#L89'>89</a>
 <a name='L90'></a><a href='#L90'>90</a>
-<a name='L91'></a><a href='#L91'>91</a>
-<a name='L92'></a><a href='#L92'>92</a>
-<a name='L93'></a><a href='#L93'>93</a>
-<a name='L94'></a><a href='#L94'>94</a>
-<a name='L95'></a><a href='#L95'>95</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<a name='L91'></a><a href='#L91'>91</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -177,11 +173,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -223,10 +219,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -251,18 +243,18 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import {createPrivateKey, createPublicKey, createSign, generateKeyPairSync, sign, verify} from 'crypto'</span>
-<span class="cstat-no" title="statement not covered" >import {KEY_DEFAULT_OPTS} from '../constants'</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import {createPrivateKey, createPublicKey, createSign, generateKeyPairSync, sign, verify} from 'crypto'
+import {KEY_DEFAULT_OPTS} from '../constants'
 import {KeyChain} from '../keychain'
-<span class="cstat-no" title="statement not covered" >import {OsKeyStore} from '../keystore'</span>
+import {OsKeyStore} from '../keystore'
 import {IKeyOpts, PartialKeyOpts} from './key-opts.interface'
 import {IKeyStore} from './keystore.interface'
 import {IKey} from './key.interface'
-<span class="cstat-no" title="statement not covered" >import {decodeString, encodeString} from '../util/format.util'</span>
-<span class="cstat-no" title="statement not covered" >import {BinaryExportable, IExportable} from '../../generics/exportable.generic'</span>
+import {decodeString, encodeString} from '../util/format.util'
+import {BinaryExportable, IExportable} from '../../generics/exportable.generic'
 &nbsp;
 export interface IKeyManager {
-  sign(data: Buffer | string): Promise&lt;{pubkey: IExportable&lt;string&gt;; signature: IExportable&lt;string&gt;}&gt;
+  sign(data: Buffer | string): Promise&lt;{signature: IExportable&lt;string&gt;}&gt;
   verify(data: Buffer | string, signature: Buffer | string): Promise&lt;boolean&gt;
 }
 &nbsp;
@@ -271,11 +263,11 @@ export interface IKeyManager {
  *  @updated 0.1.0
  *  @since 0.1.0
  */
-<span class="cstat-no" title="statement not covered" >export class K</span>eyManager implements IKeyManager {
+export class KeyManager implements IKeyManager {
   public options: IKeyOpts
 &nbsp;
-<span class="fstat-no" title="function not covered" >  constructor(o</span>ptions?: IKeyOpts, private readonly <span class="cstat-no" title="statement not covered" >_store: IKeyStore = <span class="branch-0 cbranch-no" title="branch not covered" >n</span>ew OsKeyStore())</span> {
-<span class="cstat-no" title="statement not covered" >    this.options = {</span>
+  constructor(options?: IKeyOpts, private readonly _store: IKeyStore = new OsKeyStore()) {
+    this.options = {
       ...KEY_DEFAULT_OPTS,
       ...options,
     }
@@ -308,20 +300,16 @@ export interface IKeyManager {
 <span class="cstat-no" title="statement not covered" >    return publicKey.export({format: format as any, type: 'spki'}).toString(this.options.digest)</span>
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  async </span>sign(data: Buffer | string): Promise&lt;{pubkey: IExportable&lt;string&gt;; signature: IExportable&lt;string&gt;}&gt; {
+<span class="fstat-no" title="function not covered" >  async </span>sign(data: string): Promise&lt;{signature: IExportable&lt;string&gt;}&gt; {
 <span class="cstat-no" title="statement not covered" >    if (!(await this._store.exists(this.options))) {</span>
 <span class="cstat-no" title="statement not covered" >      throw new Error(`key not found in "${this.options.context}" context`)</span>
     }
 &nbsp;
-    const keyChain = <span class="cstat-no" title="statement not covered" >await this._store.load(this.options.context, this.options)</span>
-    const signingKey = <span class="cstat-no" title="statement not covered" >await keyChain.select(1, {...this.options, length: 32, type: 'signing'})</span>
-&nbsp;
-    const privateKey = <span class="cstat-no" title="statement not covered" >this.getPrivateKey(signingKey)</span>
-    const signature = <span class="cstat-no" title="statement not covered" >sign(null, Buffer.isBuffer(data) ? data : Buffer.from(data), privateKey)</span>
+    const keyChain = (<span class="cstat-no" title="statement not covered" >await this._store.load(this.options.context, this.options))</span> as KeyChain
+    const signature = <span class="cstat-no" title="statement not covered" >await keyChain.sign(data, 'base64')</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    return {</span>
-      pubkey: new BinaryExportable(this.getPublicKey(privateKey, 'pem')),
-      signature: new BinaryExportable(signature.toString(this.options.digest)),
+      signature: new BinaryExportable(signature, {v: 1, alg: 'ed25519'}),
     }
   }
 &nbsp;
@@ -352,7 +340,7 @@ export interface IKeyManager {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-08-28T08:02:56.705Z
+                at 2025-08-30T00:59:36.714Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

@@ -14,7 +14,9 @@
     "argon2": "^0.44.0",
     "bip39": "^3.1.0",
     "eventemitter2": "^6.4.9",
-    "keytar": "^7.9.0"
+    "keytar": "^7.9.0",
+    "nodevm": "^0.0.0-empty",
+    "vm2": "^3.9.19"
   },
   "devDependencies": {
     "@eslint/compat": "^1",

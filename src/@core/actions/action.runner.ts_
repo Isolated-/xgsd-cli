@@ -1,0 +1,213 @@
+import {EventEmitter2, Listener} from 'eventemitter2'
+import {ActionData, IAction, IRunner, RunnerContext, RunnerResult} from '../generics/runner.generic'
+import {RuntimeError, RuntimeErrorCode} from '../errors/runtime.error'
+import {ActionError} from '../errors/action.error'
+import {BaseError} from '../errors/generic/base-error.error'
+import {debug} from 'console'
+import {SourceData} from '../@types/pipeline.types'
+
+export const buildDefaultRunnerContext = (opts?: Partial<RunnerContext>): RunnerContext => {
+  return {
+    version: 'xgsd@v1',
+    progress: undefined,
+    data: null,
+    errors: null,
+    retries: undefined,
+    max: undefined, // <- default to no retry logic
+    action: opts?.action ?? null,
+    stream: undefined,
+    delay: exponentialBackOff,
+    update: (data: Record<string, any>) => {
+      throw new RuntimeError(RuntimeErrorCode.NOT_CONFIGURED)
+    },
+    error: (code: RuntimeErrorCode) => {
+      throw new RuntimeError(code)
+    },
+    ...opts,
+  }
+}
+
+export enum RunnerEvent {
+  Start = 'start',
+  Failed = 'failed',
+  Retry = 'retry',
+  Progress = 'progress',
+  Completed = 'completed',
+  Cancelled = 'cancelled',
+}
+
+export type RunnerEventCallback = (context: RunnerContext) => Promise<void>
+
+export const exponentialBackOff = (retries: number): number => {
+  const baseDelay = 1000 // 1 second
+  const maxDelay = 30000 // 30 seconds
+  const delay = Math.min(baseDelay * 2 ** retries, maxDelay)
+  return delay
+}
+
+/**
+ *  New Runner designed to be more stateless than ActionRuntime
+ *  Serves same purpose and although has been renamed, keeps same functionality
+ *
+ *  This runner uses an event bus to communicate with listeners like Pipeline.
+ *  The following events are emitted:
+ *    - start -> triggered at the start (with bare context)
+ *    - complete -> triggered when execution has completed
+ *    - retry -> triggered when execution failed but retry logic is enabled
+ *    - failed -> triggered when execution has completed failed
+ *    - cancelled -> triggered when cancelled (by user or internally)
+ *
+ *  Features before considered "done":
+ *    - Listen to process events to capture errors and handle interruptions gracefully.
+ *    - Capture logs from stdout and stderr related to runtime.
+ *    - Implement a mechanism to persist logs for later analysis (--dump-logs).
+ *
+ *  @since v0.1
+ *  @version 1
+ *  @note try not to depend on this class directly, use Pipelines and Pipes instead
+ */
+export class Runner<T extends SourceData = SourceData> implements IRunner<T> {
+  /**
+   *  @deprecated will be made private before deployment
+   *  @since v0.1
+   *  @note stop using this interface and depend on `runner.on()` for safety and consistency
+   */
+  event!: EventEmitter2
+  context!: RunnerContext
+  action: IAction | null
+  cancelled!: boolean
+
+  constructor(action?: IAction, event?: EventEmitter2) {
+    this.event = event ?? new EventEmitter2()
+    this.action = action ?? null
+  }
+
+  on(event: RunnerEvent, callback: RunnerEventCallback): EventEmitter2 | Listener {
+    return this.event.on(event, callback)
+  }
+
+  /**
+   *  New interface re-designed for resiliency and flexibility.
+   *  @version v0.1.0 (xgsd@v1)
+   *  @since v0.1.0
+   *  @param {ActionData} data
+   *  @param {IAction} action
+   *  @param {RunnerContext} context
+   *  @returns {Promise<RunnerResult>}
+   *
+   *  This runner uses an event bus to communicate with listeners like Pipeline.
+   *  The following events are emitted:
+   *    - start -> triggered at the start (with bare context)
+   *    - complete -> triggered when execution has completed
+   *    - retry -> triggered when execution failed but retry logic is enabled
+   *    - failed -> triggered when execution has completed failed
+   *    - cancelled -> triggered when cancelled (by user or internally)
+   */
+  async execute<R extends SourceData = SourceData>(
+    data: ActionData,
+    action: IAction,
+    context?: Partial<RunnerContext>,
+  ): Promise<R> {
+    const act = action ?? this.action
+    const ctx = buildDefaultRunnerContext(context)
+    const built = {
+      ...ctx,
+      action: act,
+      stream: this.event, // <- here we share event bus (don't create new instance)
+      data: data,
+      start: new Date().toISOString(),
+    }
+
+    built.update = (data: Record<string, any>) => this.event.emit('stream', data, act, built)
+    built.error = (code) => this.event.emit(RunnerEvent.Failed, code)
+
+    built.abort = async () => {
+      await this.cancel()
+    }
+
+    this.event.emit(RunnerEvent.Start, built)
+
+    let result: ActionData
+    try {
+      result = await act.run(built)
+    } catch (error) {
+      return this.retry(ctx.max, built.delay!, built, act, error)
+    }
+
+    const output = {...built, data: result, success: true}
+    this.event.emit(RunnerEvent.Completed, output)
+
+    return output as any
+  }
+
+  details(): string[] {
+    throw new Error('Method not implemented.')
+  }
+
+  cancel(): Promise<void> {
+    throw new Error('Method not implemented.')
+  }
+
+  /**
+   *  V1 retry logic for Runner
+   *
+   *  Uses exponential backoff by default and triggers Retry event before
+   *  Re-calling execute(). Multiple start events may be triggered during this process.
+   *
+   *  Returns a full RunnerResult ready for dumping to file or logs.
+   *  Does not directly collect logs, that is for the RunLogger
+   *
+   *  Will throw RuntimeError if max retries exceeded or unknown error is detected.
+   *
+   *  @version 1
+   *  @since v0.1.0
+   *
+   *  @param {number} max
+   *  @param {DelayFn} delay
+   *  @param {RunnerContext} context
+   *  @param {IAction} action
+   *  @param {unknown} error
+   *  @returns {Promise<RunnerResult>}
+   */
+  async retry(
+    max: number = 0,
+    delay: (attempt: number) => number,
+    context: RunnerContext,
+    action: IAction,
+    error: unknown,
+  ): Promise<T> {
+    const retries = context.retries ?? 1
+    const errors = context.errors ?? []
+
+    if (max && retries >= max) {
+      this.event.emit(RunnerEvent.Failed, context, error)
+      throw new RuntimeError(RuntimeErrorCode.MAX_RETRIES_EXCEED)
+    }
+
+    const updatedContext = {
+      ...context,
+      action: this.action ?? action ?? null,
+      retries,
+      errors,
+    }
+
+    if (error instanceof ActionError) {
+      const delayMs = delay(retries)
+
+      // trigger failure event
+      this.event.emit(RunnerEvent.Retry, updatedContext, delayMs)
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs))
+      return this.execute(context.data, action, {
+        ...updatedContext,
+        retries: retries + 1,
+        errors,
+      })
+    }
+
+    debug('caught unwrapped exception:')
+    debug(error)
+
+    throw new RuntimeError(RuntimeErrorCode.UNEXPECTED_ERROR_FATAL)
+  }
+}

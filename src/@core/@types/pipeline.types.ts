@@ -24,7 +24,7 @@ export type PartialStep<T extends SourceData = SourceData> = Require<PipelineSte
 export type PipeFn<T extends SourceData = SourceData> = (
   context: PipelineConfig<T> & {
     previous: PipelineStep<T> | null
-    next: (data?: T | null) => Promise<PipelineStep<T> | null>
+    next: (data?: T | null, error?: Error | Error[] | null) => Promise<PipelineStep<T> | null>
   },
 ) => Promise<PipelineStep<T> | null>
 
@@ -37,6 +37,9 @@ export type PipeFn<T extends SourceData = SourceData> = (
 export type PipelineStep<T extends SourceData = SourceData> = {
   run: RunnerResult | null
   state: PipelineState
+  errors?: any[]
+  attempt?: number
+  retries?: number
   pipe: PipeFn<T>
   validate?: ValidateFn<T>
   transform?<R = T>(data: T): Promise<R> | R

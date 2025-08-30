@@ -1,10 +1,10 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {KeyChain} from '../../@core/keys/keychain'
 import {decodeKey, toRawKey} from '../../@core/keys/util'
-import {pipes, Pipeline} from '../../@core/actions/action.pipeline'
-import {GenerateMasterKeyPipe} from '../../@core/actions/__pipes__/keys/generate-master-key.pipe'
-import {DeriveKeyPipe} from '../../@core/actions/__pipes__/keys/derive-key.pipe'
-import {UpdateKeyStorePipe} from '../../@core/actions/__pipes__/keys/save-derived-key.action'
+import {testActionFn} from '../../@core/actions/test.action'
+import {runnerFn} from '../../@core/@shared/runner'
+import {getDefaultPipelineConfig, pipes, pipeToStep} from '../../@core/pipelines/pipelines.util'
+import {join} from 'path'
 
 export default class ConfigKeys extends Command {
   static override args = {
@@ -32,29 +32,37 @@ export default class ConfigKeys extends Command {
     forced: boolean = false,
     context: string = 'default',
     version: number = 1,
+    hook: any,
   ): Promise<void> {
     if (!passphrase) {
       this.error('passphrase must be provided to continue with key generation.')
     }
 
-    const pipeline = pipes(new GenerateMasterKeyPipe(), new DeriveKeyPipe())
-    const result = await pipeline.run({
-      passphrase,
-      recovery,
-      words,
-      raw,
-      forced,
-      context,
-      version,
-    })
+    const action = testActionFn
 
-    console.log(result)
-
-    for (const one of result) {
-      if (one.error) {
-        this.error(`Failed at step ${one.idx}: ${one.action.id}`)
-      }
+    const pipeFn = async (context: any) => {
+      const result = await action(context.input.data)
+      return context.next({data: result})
     }
+
+    const nextPipeFn = async (context: any) => {
+      await new Promise((resolve) => setTimeout(resolve, 15000))
+      return context.next({data: 'next result'})
+    }
+
+    const finalPipe = async (context: any) => {
+      console.log('called')
+      return context.next({data: 'final result'}, null)
+    }
+
+    const failingPipeFn = async (context: any) => {
+      throw new Error('failed pipe')
+    }
+
+    const pipeline = pipes(pipeFn, pipeFn, nextPipeFn, failingPipeFn, finalPipe)
+    pipeline.config.timeout = 100
+    const ctx = await pipeline.run({data: 'payload'})
+    console.log(ctx)
   }
 
   public async import(key: string): Promise<void> {
@@ -81,6 +89,7 @@ export default class ConfigKeys extends Command {
           flags.force,
           flags.context,
           flags.version,
+          flags.hook,
         )
         break
       case 'import':

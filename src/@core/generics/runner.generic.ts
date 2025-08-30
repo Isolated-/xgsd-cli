@@ -1,6 +1,18 @@
+import {throws} from 'assert'
 import {EventEmitter2} from 'eventemitter2'
+import {ActionError, ActionErrorCode} from '../errors/action.error'
+import {RuntimeErrorCode} from '../errors/runtime.error'
+import {SourceData} from '../@types/pipeline.types'
 
 export type ActionData = Record<string, any> | null
+
+export interface IAction extends SourceData {
+  id: string
+  run<R extends SourceData = SourceData>(ctx: RunnerContext): Promise<R>
+  cancel(): void
+}
+
+export type RunActionFn = (context: RunnerContext) => Promise<RunnerResult>
 
 /**
  *  A lightweight and flexible executor of Actions (micro-tasks) that can be used with Pipelines
@@ -22,47 +34,53 @@ export type ActionData = Record<string, any> | null
  *  @version @runtime v1 (xgsd@v1)
  *  @since v0.1
  */
-export interface IRunner<T = ActionData> {
+export interface IRunner<T extends SourceData = SourceData> {
   event: EventEmitter2
   context: RunnerContext
-  action: IAction<T>
+  action: IAction | null
   cancelled: boolean
   details(): string[]
-  execute(data: T, action?: IAction<T>): Promise<RunnerResult>
+  execute<R extends SourceData = T>(data: T, action?: IAction, context?: Partial<RunnerContext>): Promise<R>
   cancel(): Promise<void>
-  retry(max?: number, delay?: (attempt: number) => number): Promise<RunnerResult>
+  retry(
+    max?: number,
+    delay?: (attempt: number) => number,
+    context?: RunnerContext,
+    action?: IAction,
+    error?: unknown,
+  ): Promise<RunnerResult>
 }
 
+// TODO: implement this interface for collecting and storing logs to file
+export interface IRunnerLogCollector {}
+
+// TODO: simplify this into data and functions/utilities/hooks
 export type RunnerContext = {
-  progress: number
+  action: IAction | null
+  version?: string
+  progress?: number
   data: ActionData
   errors: ActionError[] | null
   retries?: number
   max?: number
+  timeout?: number
   nextRetryMs?: number
-  update: (message?: string, progress?: number, total?: number) => void
-  error: (error: string, code: string) => void
+  stream?: EventEmitter2
+  delay?: (attempt: number) => number
+  update: (data: Record<string, any>, progress?: number, total?: number) => void
+  failing?: (code: ActionErrorCode) => void
+  error: (code: RuntimeErrorCode) => void
+  abort?: () => void
   [key: string]: unknown
 }
 
-export type RunnerResult = {
+export interface RunnerResult extends SourceData {
+  context?: RunnerContext
   success: boolean
-  failed: boolean
+  failed?: boolean
   retries?: number
   max?: number
   cancelled?: boolean
   data: ActionData | null
-  errors: ActionError[] | null
-}
-
-export class ActionError extends Error {
-  constructor(public message: string, public code?: string) {
-    super(message)
-  }
-}
-
-export interface IAction<T = ActionData> {
-  id: string
-  run(ctx: RunnerContext): Promise<T>
-  cancel(): void
+  errors?: ActionError[] | null
 }

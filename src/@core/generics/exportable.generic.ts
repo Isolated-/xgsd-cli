@@ -3,7 +3,7 @@ import {decodeString, encodeString} from '../keys/util/format.util'
 
 export type RawData = Buffer
 
-export interface IExportable<T = unknown, Q = RawData> {
+export interface IExportable<T = unknown, Q extends RawData = RawData> {
   raw(from?: BufferEncoding): Q
   digest(digest?: BinaryToTextEncoding, from?: BufferEncoding): string
   export<R = T>(format?: 'raw' | 'import' | 'pem'): R
