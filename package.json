@@ -1,7 +1,7 @@
 {
   "name": "@xgsd/cli",
   "description": "A CLI for interacting with xGSD APIs (WIP) - you probably don't need this (built for ubuntu 22.04+)",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "author": "@xgsd",
   "bin": {
     "xgsd": "./bin/run.js"

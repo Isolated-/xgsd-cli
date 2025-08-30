@@ -3,489 +3,193 @@
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
 [![Version](https://img.shields.io/npm/v/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
 [![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
+[![tests](https://github.com/Isolated-/xgsd-cli/actions/workflows/test.yml/badge.svg)](https://github.com/Isolated-/xgsd-cli/actions/workflows/test.yml)
 
-Lightweight and lightning fast orchestration and automation.
+A privacy-first automation and orchestration runtime for developers. Think AWS Lambda, but portable — runs on your laptop, in your cloud, or even on a Raspberry Pi. Local, lightweight, and blazing fast.
 
-## About
+**Whilst every effort is made to protect your data, please ensure you do your part to keep your information secure. Treat any encryption keys, secrets, passwords, or anything "sensitive" with care to ensure you’re protected. Don't forget to `xgsd seal` once you've finished working.**
 
-xGSD is designed to increase productivity and elimate boring work so you can focus on what matters: succeeding. At its core, xGSD is an orchestration and automation layer built on top of privacy-first abstractions to ensure _no one_ gets hands on your data.
+There are _many_ orchestration (FaaS/ETL) options available, none focus on privacy, security, and local execution as much as xGSD does. Free and open source, no external dependencies, and nothing to manage - it just works.
 
-### Storage
+## Installation
 
-This component is still being designed, however, it's essentially:
+Getting started is easy, first you'll need the xGSD CLI:
 
-1. End-to-end encryption used for everything (even at application layer)
-2. Zero knowledge API interface -> your machine sends only encrypted messages.
-3. Flexible and adaptable -> perfect for BYOS.
+```sh
+# using nodejs
+npm install -g @xgsd/cli
 
-### Pipelines
+# using yarn
+yarn install -g @xgsd/cli
 
-_Pipelines_ allow for simple _orchestration_ and _automation_ with isolation, retries, timeouts, and other core features built in so you can focus on building and deploying code instead of error handling. Everything executes on your machine with planned future support for remote execution whilst maintaining our privacy first approach.
+# using apt (coming soon)
+sudo update -y && sudo upgrade -y
+sudo apt install xgsd
+```
 
-#### Actions
+Once you've done that you're ready to start building with xGSD. There are a few ways to get up and running depending on what you need. If you just need secure storage for files (or any data), then you can get started by checking out `$ xgsd storage --help`.
 
-You'll need an `Action` to execute on your pipeline, defining one is simple but remember that _all dependencies_ will need to be imported inside your `Action` due to limitations with our current isolation method (currently using `Worker`s). TypeScript is currently not supported so you'll need to ensure you're writing pure JS functions:
+## Quickstart
+
+Here's an example you can get started with:
 
 ```js
-const myAction = async (context) => {
+// inside a pipeline.js (naming doesn't matter)
+// inside a pipeline.js (naming doesn't matter)
+const hasherFn = async (input) => {
   const crypto = require('crypto')
-
-  const data = context.data
-  const hash = crypto.createHash('sha256').update(data).digest('hex')
-
-  return hash
+  return {hash: crypto.createHash('sha256').update(input.data).digest('hex'), data: input.data}
 }
+
+const verifyHashFn = async (input) => {
+  const crypto = require('crypto')
+  const hash = crypto.createHash('sha256').update(input.data).digest('hex')
+  return {valid: hash === input.hash}
+}
+
+// minimal config
+module.exports = {
+  timeout: 2000,
+  max: 5,
+  mode: 'chained',
+  steps: [hasherFn, verifyHashFn],
+}
+```
+
+The above example will output something like:
+
+```text
+(hasherFn) running function [runnerFn] - {"mode":"isolated","retries":5,"timeout":2000}
+(hasherFn) starting worker process for isolated run [runInWorker] - {"data":"hello world"}
+(hasherFn) worker process started up [runInWorker] - {"data":"hello world"}
+(hasherFn) response received from worker [runInWorker] - {"result":{"hash":"b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9","data":"hello world"}}
+(hasherFn) function resolved successfully, data will be returned [runnerFn] - {"data":"hello world"}
+(hasherFn) executed in 34.52ms - succeeded  [timedRunnerFn]
+(verifyHashFn) running function [runnerFn] - {"mode":"isolated","retries":5,"timeout":2000}
+(verifyHashFn) starting worker process for isolated run [runInWorker] - {"hash":"b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9","data":"hello world"}
+(verifyHashFn) worker process started up [runInWorker] - {"hash":"b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9","data":"hello world"}
+{
+  hash: 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9',
+  data: 'hello world'
+}
+(verifyHashFn) response received from worker [runInWorker] - {"result":{"valid":true}}
+(verifyHashFn) function resolved successfully, data will be returned [runnerFn] - {"hash":"b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9","data":"hello world"}
+(verifyHashFn) executed in 37.07ms - succeeded  [timedRunnerFn]
+```
+
+## Usage
+
+Most of the orchestration options today require dependencies, network connections, and servers. You can get started with xGSD today and run code to pull and transform data before storage (ETL), automate your home, respond to events, and many more. Everything you need to get started is done for you: error handling, retry logic, timeouts, async/fanout/chained ordering, and more.
+
+All you need to worry about is creating an action:
+
+```js
+// file: path/to/action.js
+
+// what's the action? This is business logic, it does a thing and returns a result
+const myAction = (input) => input.data.toUpperCase()
 module.exports = myAction
 ```
 
-The example above will hash data and return the response, you can run it with:
-
-```bash
-$ xgsd run action.js
-```
-
-Which will produce the following response:
-
-```text
-(myAction) running function [runnerFn] - {"mode":"isolated","retries":3,"timeout":2000}
-(myAction) starting worker process for isolated run [runInWorker] - {"data":"some data to hash"}
-(myAction) worker process started up [runInWorker] - {"data":"some data to hash"}
-(myAction) response received from worker [runInWorker] - {"result":"6a2da20943931e9834fc12cfe5bb47bbd9ae43489a30726962b576f4e3993e50"}
-(myAction) function resolved successfully, data will be returned [runnerFn]
-(myAction) executed in 35.89ms - succeeded  [timedRunnerFn]
-```
-
-#### Pipelines
-
-Using pipelines is similar, we require more information to execute successfully. Ensure you've defined your actions and then define your pipeline file like:
+You can run this action with `$ xgsd run path/to/action.js -d @payload.json` which will invoke your action with input from your `payload.json` file, or simply `$ xgsd run path/to/action.js -d "my message"`. Each action is fault tolerant and runs in isolation. **Note:** due to the current limitations with our `Worker` implementation, you'll need to ensure all variables and imports are contained within the action:
 
 ```js
-const action = require('./action')
+// do this
+const myAction = (input) => {
+  const crypto = require('crypto')
+  return crypto.createHash('sha256').update(input.data).digest('hex')
+}
 
-module.exports = [
-  {
-    fn: action,
-    retries: 3,
-    timeout: 2000,
-  },
-]
+// and not this
+const crypto = require('crypto')
+const myAction = (input) => {
+  // ... action implementation
+}
 ```
 
-You can then run your pipeline with `$ xgsd run pipeline.js`. The result should look like:
+Doing so will lead to errors as the `Worker` is unable to correctly serialize and isolate your code. This is intended and normal when working with `Worker` instances; we'll find a more flexible approach in the short term.
 
-```
-(pipeline) pipeline starting up, number of steps: 1, current step: 1 [runPipelineStep]
-(pipeline) executing step  (1) now... [runPipeline]
-(usercode) running function [runnerFn] - {"retries":3,"attempt":0,"timeout":30000}
-(myAction) running function [runnerFn] - {"mode":"isolated","max":3,"timeout":2000}
-(myAction) starting worker process for isolated run [runInWorker] - {"data":"some data to hash"}
-(myAction) worker process started up [runInWorker] - {"data":"some data to hash"}
-(myAction) response received from worker [runInWorker] - {"result":"6a2da20943931e9834fc12cfe5bb47bbd9ae43489a30726962b576f4e3993e50"}
-(myAction) function resolved successfully, data will be returned [runnerFn] - {"data":"some data to hash"}
-(myAction) executed in 32.69ms - succeeded  [timedRunnerFn]
-(usercode) function resolved successfully, data will be returned [runnerFn] - {"output":null,"runs":[{"data":{"data":"6a2da20943931e9834fc12cfe5bb47bbd9ae43489a30726962b576f4e3993e50"}}],"steps":[{"run":{"data":{"data":"6a2da20943931e9834fc12cfe5bb47bbd9ae43489a30726962b576f4e3993e50"}},"state":"succeeded"}],"errors":[],"state":"running","timeout":30000,"max":3,"retries":0,"stopOnError":false,"previous":null}
-(usercode) executed in 33.27ms - succeeded  [timedRunnerFn]
-(info) step finished with state: succeeded [runPipelineStep]
-(pipeline) finished step 1, next step: no next step [runPipeline]
-(pipeline) pipeline has been completed, completed 1 steps in 33.53ms [runPipeline]
-```
+We didn't design everything to just run one function, create **pipelines**:
 
-# Todo
-
-- Hook process events to auto seal configuration/encryption key ("--hardened" mode)
-
-<!-- toc -->
-
-- [Usage](#usage)
-- [Commands](#commands)
-<!-- tocstop -->
-
-# Usage
-
-<!-- usage -->
-
-```sh-session
-$ npm install -g @xgsd/cli
-$ xgsd COMMAND
-running command...
-$ xgsd (--version)
-@xgsd/cli/0.0.0 linux-x64 node-v24.4.1
-$ xgsd --help [COMMAND]
-USAGE
-  $ xgsd COMMAND
-...
+```js
+// file: path/to/pipeline.js
+const myAction = require('./myAction.js')
+const myTransformer = (input) => input.data.toUpperCase()
+module.exports = {
+  timeout: 1500,
+  retries: 3,
+  mode: 'chained',
+  validate: (data) => true,
+  delay: (attempt) => attempt * 100,
+  steps: [myAction, myTransformer],
+}
 ```
 
-<!-- usagestop -->
+Then you can run your pipeline with `$ xgsd run path/to/pipeline.js` and optionally pass data if required. This same system will be extended to include events that can run code based on pipeline changes, or changes in the internal event loop.
 
-# Commands
+There are three modes: `async`, `fanout`, and `chained`. They're similar but provide additional limitations/benefits:
 
-<!-- commands -->
+- `async` - runs everything as fast as possible. If errors occur then retrying will happen **after** some or more steps have been completed. Ordering is guaranteed but is useful for when ordering doesn't matter.
+- `fanout` - run in order and wait for each step to fully complete but `input` is always constant and equal to what was provided. Perfect for home automation, event handling, and more.
+- `chained` - run in order and wait for each step to complete but the `output` of each step becomes the `input` of the next. Perfect for when you need each action to be in sync with each other.
 
-- [`xgsd hello PERSON`](#xgsd-hello-person)
-- [`xgsd hello world`](#xgsd-hello-world)
-- [`xgsd help [COMMAND]`](#xgsd-help-command)
-- [`xgsd plugins`](#xgsd-plugins)
-- [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
-- [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
-- [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
-- [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
-- [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
-- [`xgsd plugins reset`](#xgsd-plugins-reset)
-- [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
-- [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
-- [`xgsd plugins update`](#xgsd-plugins-update)
+Here's the full configuration options and defaults:
 
-## `xgsd hello PERSON`
-
-Say hello
-
-```
-USAGE
-  $ xgsd hello PERSON -f <value>
-
-ARGUMENTS
-  PERSON  Person to say hello to
-
-FLAGS
-  -f, --from=<value>  (required) Who is saying hello
-
-DESCRIPTION
-  Say hello
-
-EXAMPLES
-  $ xgsd hello friend --from oclif
-  hello friend from oclif! (./src/commands/hello/index.ts)
+```js
+const options = {
+    input: null,
+    steps: [],
+    timeout: 10000,
+    max: 3,
+    stopOnError: false,
+    mode: PipelineMode.Async,
+    delay: (attempt: number): number => Math.min(1000 * 2 ** attempt, 30000),
+    validate: (data: any): boolean => true,
+    transform: (data: any): any
+}
 ```
 
-_See code: [src/commands/hello/index.ts](https://github.com/xgsd/cli/blob/v0.0.0/src/commands/hello/index.ts)_
+## Testing
 
-## `xgsd hello world`
+Pipelines, actions, and storage are covered with extensive tests. You can run them with:
 
-Say hello world
+```sh
+# regular (all tests)
+yarn test
 
-```
-USAGE
-  $ xgsd hello world
+# watch mode
+yarn test:watch
 
-DESCRIPTION
-  Say hello world
-
-EXAMPLES
-  $ xgsd hello world
-  hello world! (./src/commands/hello/world.ts)
+# generate docs
+yarn docs
 ```
 
-_See code: [src/commands/hello/world.ts](https://github.com/xgsd/cli/blob/v0.0.0/src/commands/hello/world.ts)_
+## Changes
 
-## `xgsd help [COMMAND]`
+Changes to the internal structure of **pipelines** and **actions** are almost definite, however, this will not introduce breaking features. Key management, and cryptography will only be updated should there be a security issue or absolute need to.
 
-Display help for xgsd.
+## Support
 
-```
-USAGE
-  $ xgsd help [COMMAND...] [-n]
+If you need help with this CLI, don't hesitate to contact me. You can reach me via email at [**mike@xgsd.io**](mailto:mike@xgsd.io). Please ensure you've completed some level of troubleshooting and remember that everything is encrypted and our servers have zero knowledge of your data, so support for any of your data is limited. _Anything_ else is not — I’m here to help with technical support, usage guidelines, or if you've found a bug that needs fixing. Feel free to review the code and make any improvements without contact too [you can do that here](https://github.com/Isolated-/xgsd-cli).
 
-ARGUMENTS
-  COMMAND...  Command to show help for.
+## Feedback
 
-FLAGS
-  -n, --nested-commands  Include all nested commands in the output.
+No analytic data is, or will be, collected from your machine. Please feel free to reach out with suggestions, criticism, or just to let me know what you're using this for (see **Support**).
 
-DESCRIPTION
-  Display help for xgsd.
-```
+## Versioning
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.32/src/commands/help.ts)_
+This project follows [Semantic Versioning](https://semver.org/):
 
-## `xgsd plugins`
+- **MAJOR** (x.0.0): Breaking changes, incompatible API modifications.
+- **MINOR** (0.x.0): Backwards-compatible new features and improvements.
+- **PATCH** (0.0.x): Backwards-compatible bug fixes or small internal improvements.
 
-List installed plugins.
+Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable releases.
 
-```
-USAGE
-  $ xgsd plugins [--json] [--core]
+## Privacy & Security
 
-FLAGS
-  --core  Show core plugins.
+Most of the features in this project are a response to the UKs changes in regulation toward providers and are designed to mitigate the threats posed by Online Safety Act (OSA), Investigatory Powers Act (IPA), and the proposed Chat Control.
 
-GLOBAL FLAGS
-  --json  Format output as json.
+**We do not and will not support weakening of encryption, state-owned backdoors, or any form of violating our users right to privacy.**
 
-DESCRIPTION
-  List installed plugins.
-
-EXAMPLES
-  $ xgsd plugins
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/index.ts)_
-
-## `xgsd plugins add PLUGIN`
-
-Installs a plugin into xgsd.
-
-```
-USAGE
-  $ xgsd plugins add PLUGIN... [--json] [-f] [-h] [-s | -v]
-
-ARGUMENTS
-  PLUGIN...  Plugin to install.
-
-FLAGS
-  -f, --force    Force npm to fetch remote resources even if a local copy exists on disk.
-  -h, --help     Show CLI help.
-  -s, --silent   Silences npm output.
-  -v, --verbose  Show verbose npm output.
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  Installs a plugin into xgsd.
-
-  Uses npm to install plugins.
-
-  Installation of a user-installed plugin will override a core plugin.
-
-  Use the XGSD_NPM_LOG_LEVEL environment variable to set the npm loglevel.
-  Use the XGSD_NPM_REGISTRY environment variable to set the npm registry.
-
-ALIASES
-  $ xgsd plugins add
-
-EXAMPLES
-  Install a plugin from npm registry.
-
-    $ xgsd plugins add myplugin
-
-  Install a plugin from a github url.
-
-    $ xgsd plugins add https://github.com/someuser/someplugin
-
-  Install a plugin from a github slug.
-
-    $ xgsd plugins add someuser/someplugin
-```
-
-## `xgsd plugins:inspect PLUGIN...`
-
-Displays installation properties of a plugin.
-
-```
-USAGE
-  $ xgsd plugins inspect PLUGIN...
-
-ARGUMENTS
-  PLUGIN...  [default: .] Plugin to inspect.
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  Displays installation properties of a plugin.
-
-EXAMPLES
-  $ xgsd plugins inspect myplugin
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/inspect.ts)_
-
-## `xgsd plugins install PLUGIN`
-
-Installs a plugin into xgsd.
-
-```
-USAGE
-  $ xgsd plugins install PLUGIN... [--json] [-f] [-h] [-s | -v]
-
-ARGUMENTS
-  PLUGIN...  Plugin to install.
-
-FLAGS
-  -f, --force    Force npm to fetch remote resources even if a local copy exists on disk.
-  -h, --help     Show CLI help.
-  -s, --silent   Silences npm output.
-  -v, --verbose  Show verbose npm output.
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  Installs a plugin into xgsd.
-
-  Uses npm to install plugins.
-
-  Installation of a user-installed plugin will override a core plugin.
-
-  Use the XGSD_NPM_LOG_LEVEL environment variable to set the npm loglevel.
-  Use the XGSD_NPM_REGISTRY environment variable to set the npm registry.
-
-ALIASES
-  $ xgsd plugins add
-
-EXAMPLES
-  Install a plugin from npm registry.
-
-    $ xgsd plugins install myplugin
-
-  Install a plugin from a github url.
-
-    $ xgsd plugins install https://github.com/someuser/someplugin
-
-  Install a plugin from a github slug.
-
-    $ xgsd plugins install someuser/someplugin
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/install.ts)_
-
-## `xgsd plugins link PATH`
-
-Links a plugin into the CLI for development.
-
-```
-USAGE
-  $ xgsd plugins link PATH [-h] [--install] [-v]
-
-ARGUMENTS
-  PATH  [default: .] path to plugin
-
-FLAGS
-  -h, --help          Show CLI help.
-  -v, --verbose
-      --[no-]install  Install dependencies after linking the plugin.
-
-DESCRIPTION
-  Links a plugin into the CLI for development.
-
-  Installation of a linked plugin will override a user-installed or core plugin.
-
-  e.g. If you have a user-installed or core plugin that has a 'hello' command, installing a linked plugin with a 'hello'
-  command will override the user-installed or core plugin implementation. This is useful for development work.
-
-
-EXAMPLES
-  $ xgsd plugins link myplugin
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/link.ts)_
-
-## `xgsd plugins remove [PLUGIN]`
-
-Removes a plugin from the CLI.
-
-```
-USAGE
-  $ xgsd plugins remove [PLUGIN...] [-h] [-v]
-
-ARGUMENTS
-  PLUGIN...  plugin to uninstall
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-DESCRIPTION
-  Removes a plugin from the CLI.
-
-ALIASES
-  $ xgsd plugins unlink
-  $ xgsd plugins remove
-
-EXAMPLES
-  $ xgsd plugins remove myplugin
-```
-
-## `xgsd plugins reset`
-
-Remove all user-installed and linked plugins.
-
-```
-USAGE
-  $ xgsd plugins reset [--hard] [--reinstall]
-
-FLAGS
-  --hard       Delete node_modules and package manager related files in addition to uninstalling plugins.
-  --reinstall  Reinstall all plugins after uninstalling.
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/reset.ts)_
-
-## `xgsd plugins uninstall [PLUGIN]`
-
-Removes a plugin from the CLI.
-
-```
-USAGE
-  $ xgsd plugins uninstall [PLUGIN...] [-h] [-v]
-
-ARGUMENTS
-  PLUGIN...  plugin to uninstall
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-DESCRIPTION
-  Removes a plugin from the CLI.
-
-ALIASES
-  $ xgsd plugins unlink
-  $ xgsd plugins remove
-
-EXAMPLES
-  $ xgsd plugins uninstall myplugin
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/uninstall.ts)_
-
-## `xgsd plugins unlink [PLUGIN]`
-
-Removes a plugin from the CLI.
-
-```
-USAGE
-  $ xgsd plugins unlink [PLUGIN...] [-h] [-v]
-
-ARGUMENTS
-  PLUGIN...  plugin to uninstall
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-DESCRIPTION
-  Removes a plugin from the CLI.
-
-ALIASES
-  $ xgsd plugins unlink
-  $ xgsd plugins remove
-
-EXAMPLES
-  $ xgsd plugins unlink myplugin
-```
-
-## `xgsd plugins update`
-
-Update installed plugins.
-
-```
-USAGE
-  $ xgsd plugins update [-h] [-v]
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-DESCRIPTION
-  Update installed plugins.
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/update.ts)_
-
-<!-- commandsstop -->
+A full security overview will be published once everything is up and running. Please feel free to check the code ([here](https://github.com/Isolated-/xgsd-cli)) if you're concerned about how your data is managed.
