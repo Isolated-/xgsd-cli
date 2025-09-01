@@ -146,7 +146,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexiblePipelineConfig
     runner: config.runner ?? 'xgsd@v1',
     metadata: config.metadata ?? {},
     mode: config.mode ?? PipelineMode.Chained,
-    enabled: config.enabled ?? true,
+    enabled: config.enabled || true,
     data: config.data,
     options: {
       timeout: ms(config.options?.timeout || ('5s' as any)) || 5000,
