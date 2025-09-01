@@ -21,10 +21,6 @@ npm install -g @xgsd/cli
 
 # using yarn
 yarn install -g @xgsd/cli
-
-# using apt (coming soon)
-sudo update -y && sudo upgrade -y
-sudo apt install xgsd
 ```
 
 Once you've done that you're ready to start building with xGSD.
@@ -38,7 +34,7 @@ mkdir mypipeline
 npm init -y
 ```
 
-Create a configuration file:
+Create a configuration file (save this as `config.yml` in the root of your package):
 
 ```yaml
 # basic info
@@ -133,7 +129,7 @@ And finally run your pipeline with `$ xgsd run path/to/module -d path/to/data.js
 (status) executed 3 steps, 3 succeeded and 0 failed, duration: 5.64s
 ```
 
-The run result will be available providing `collect.run = true`, it's too long to include is this section but it includes everything you need to know about what happened, what went wrong, and how it was handled. Everything has been designed so you can focus on business logic, and xGSD will manage ensuring it works.
+The run result will be available providing `collect.run = true`, it's too long to include is this section but it includes everything you need to know about what happened, what went wrong, and how it was handled. Everything has been designed so you can focus on business logic, and xGSD will ensures it works.
 
 ## Use Cases
 
@@ -167,13 +163,55 @@ yarn test:watch
 yarn docs
 ```
 
-## Changes
+## Configuration
 
-Changes to the internal structure of **pipelines** and **actions** are almost definite, however, this will not introduce breaking features. Key management, and cryptography will only be updated should there be a security issue or absolute need to.
+YAML is used to configure your pipeline. JSON support will be added, however, YAML is ideal for right now as it's easy to read and write and doesn't involve as much boilerplate as JSON.
+
+- `name` - used for display (optional, defaults to package name)
+- `description` - used for display (optional)
+- `runner` - currently only `xgsd@v1` is supported (optional/recommended)
+- `metadata` - map/object of whatever you like (optional)
+- `mode` - must be one of **async**, **fanout**, and **chained**.(default: `chained`)
+- `options` (optional)
+  - `timeout` - the amount of milliseconds to wait before timing out (optional)
+  - `maxRetries` - the maximum number of retries/attempts (optional)
+- `collect` (optional)
+  - `logs` - must be `true` or `false` or left undefined (default: `false`)
+  - `run` - must be `true` or `false` or left undefined (default: `false`)
+- `steps`
+  - `name` - used for display (**required**)
+  - `description` - used for display (optional)
+  - `action` - must match your function, e.g. `myAction` (**required**)
+
+**Limitations**: currently `options` determines timeout and retries at the pipeline level, in future each `step` will support individual timeout/retry rules. No additional data/config is passed to the step, only the original input data. Configuration will be improved in `v0.2.0`. JSON configuration is supported yet (will be by `v0.2.0` or sooner). Configuration file must exist at `package/config.yml` in future this will be far more flexible and will include defining multiple pipelines within one package.
+
+Where possible defaults are used to ensure minimal config is required, here's the bare minimum:
+
+```yaml
+steps:
+  - name: Uppercase Data
+    action: upperCaseAction
+  - name: Hash Data
+    action: hashDataAction
+  - name: Fetch Some API Data
+    action: fetchData
+```
+
+It is recommended to include a `runner` to ensure backward compatability. New runner versions may be added and this will protect your pipeline against any changes in default runner used.
+
+## Modes
+
+If you need a mode introduced please let me know - more modes = more use cases for us to use!
+
+- `async` - this mode is absolutely ideal for when ordering doesn't matter. Each step is executed initially in order but no waiting for results, retries, or timeouts. This mode won't allow one failing step to block up your entire pipeline.
+- `fanout` - this mode and `chained` are very similar and may be confusing for some, the main difference between this mode and `chained` is in `fanout` the input data is passed to all steps in order. This is ideal for when the result of one step doesn't affect the next.
+- `chained` - order is preserved like `chained`, however, the output from the _last successful step_ is passed into the input of the next step. This chaining allows for complex workflows and maintains order when things go wrong.
+
+It's worth noting that regardless of the mode used, you'll get full process isolation at the pipeline level and individual steps. _Most_ blocking tasks that would typically stall Node.js shouldn't with the exception of `while (true) {}`. I'm working on a solution for this.
 
 ## Support
 
-If you need help with this CLI, don't hesitate to contact me. You can reach me via email at [**mike@xgsd.io**](mailto:mike@xgsd.io). Please ensure you've completed some level of troubleshooting and remember that everything is encrypted and our servers have zero knowledge of your data, so support for any of your data is limited. _Anything_ else is not — I’m here to help with technical support, usage guidelines, or if you've found a bug that needs fixing. Feel free to review the code and make any improvements without contact too [you can do that here](https://github.com/Isolated-/xgsd-cli).
+If you're struggling with this CLI, want to give feedback, need changes to enable your workflow, or anything else shoot me an email [**mike@xgsd.io**](mailto:mike@xgsd.io), I'll try to help wherever I can. If you want to make changes to xGSD, feel free to make a pull request [do that here](https://github.com/Isolated-/xgsd-cli).
 
 ## Feedback
 
@@ -193,16 +231,14 @@ Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable re
 
 Most of the features in this project are a response to the UKs changes in regulation toward providers and are designed to mitigate the threats posed by Online Safety Act (OSA), Investigatory Powers Act (IPA), and the proposed Chat Control.
 
-**We do not and will not support weakening of encryption, state-owned backdoors, or any form of violating our users right to privacy.**
-
-A full security overview will be published once everything is up and running. Please feel free to check the code ([here](https://github.com/Isolated-/xgsd-cli)) if you're concerned about how your data is managed.
+A full security overview will be published once everything is up and running. Please feel free to check the code ([here](https://github.com/Isolated-/xgsd-cli)) if you're concerned about how your data is managed. In short: **We do not and will not support weakening of encryption, state-owned backdoors, or any form of violating our users right to privacy.**
 
 ## Commands
 
 - [`xgsd help [COMMAND]`](#xgsd-help-command)
 - [`xgsd run FUNCTION`](#xgsd-run-function)
 
-### `$ xgsd help [COMMAND]`
+### `xgsd help [COMMAND]`
 
 Display help for xgsd.
 
@@ -222,7 +258,7 @@ DESCRIPTION
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.32/src/commands/help.ts)_
 
-### `$ xgsd run FUNCTION`
+### `xgsd run FUNCTION`
 
 Run pipelines that you've created with error handling, retries, timeouts, isolation, and more.
 
