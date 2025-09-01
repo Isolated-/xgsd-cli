@@ -144,9 +144,15 @@ export type FlexiblePipelineOptions = {
 
 export type FlexiblePipelineConfig<T = SourceData> = {
   name: string | undefined
+  description: string | undefined
   package: string | undefined
   version: string | undefined
+  enabled: boolean
   mode: PipelineMode
+  collect?: {
+    logs?: boolean
+    run?: boolean
+  }
   runner: 'xgsd@v1'
   output: string
   metadata: Record<string, unknown>
