@@ -1,15 +1,13 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {join} from 'path'
 import {pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
-import {Pipeline, userCodeOrchestration} from '../@core/pipelines/pipeline.concrete'
+import {userCodeOrchestration} from '../@core/pipelines/pipeline.concrete'
 import * as Joi from 'joi'
-import {PipelineMode} from '../@core/@types/pipeline.types'
 import {load} from 'js-yaml'
 import {EventEmitter2} from 'eventemitter2'
 import chalk from 'chalk'
 import {
   findUserWorkflowConfigPath,
-  getWorkflowConfigDefaults,
   loadUserWorkflowConfig,
   validateWorkflowConfig,
 } from '../@core/pipelines/pipelines.util'
@@ -23,7 +21,7 @@ export default class Run extends Command {
   }
   static override enableJsonFlag: boolean = true
   static override description =
-    "Run pipelines that you've created with error handling, retries, timeouts, isolation, and more."
+    'Run workflows and your code with full confidence. Error handling, retries, timeouts, and isolation - all built in.'
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
     // flag with no value (-f, --force)
