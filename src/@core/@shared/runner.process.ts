@@ -1,5 +1,5 @@
 import {join} from 'path'
-import {PipelineStep, SourceData, FlexiblePipelineConfig, PipelineState} from '../@types/pipeline.types'
+import {PipelineStep, SourceData, FlexibleWorkflowConfig, PipelineState} from '../@types/pipeline.types'
 import {retry, WrappedError, timeout as withTimeout, runner} from './runner'
 import {RetryAttempt} from './runner/retry.runner'
 import {fork} from 'child_process'
@@ -8,7 +8,7 @@ import ms = require('ms')
 import _ = require('lodash')
 
 type ChildMessage =
-  | {type: 'RUN'; id: string; data: SourceData; config: FlexiblePipelineConfig}
+  | {type: 'RUN'; id: string; data: SourceData; config: FlexibleWorkflowConfig}
   | {type: 'LOG'; log: any}
   | {type: 'ATTEMPT'; attempt: number; next: number; error: WrappedError}
   | {type: 'RESULT'; result: any}
@@ -18,7 +18,7 @@ function logRetry(name: string, attempt: number, max: number, next: number, erro
   log(`${name} - retry attempt ${attempt + 1}/${max}, next retry in ${ms(next)}, error: ${error.message}`, 'warn')
 }
 
-async function runStep(step: PipelineStep, input: SourceData, pipelineConfig: FlexiblePipelineConfig) {
+async function runStep(step: PipelineStep, input: SourceData, pipelineConfig: FlexibleWorkflowConfig) {
   return new Promise<{step: any; fatal: boolean; errors: any[]}>((resolve, reject) => {
     const stepProcess = fork(join(__dirname, 'runner.step-process.js'))
 

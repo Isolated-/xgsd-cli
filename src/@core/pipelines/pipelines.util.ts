@@ -1,6 +1,6 @@
 import {extname, join, resolve} from 'path'
 import {RunFn} from '../@shared/types/runnable.types'
-import {FlexiblePipelineConfig, PipelineConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
+import {FlexibleWorkflowConfig, PipelineConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
 import {IPipeline} from './interfaces/pipeline.interfaces'
 import {Pipeline} from './pipeline.concrete'
 import {pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
@@ -67,7 +67,7 @@ export const findUserWorkflowConfigPath = (basePath: string, workflow?: string):
   return null
 }
 
-export const loadUserWorkflowConfig = (path: string, workflow?: string): FlexiblePipelineConfig => {
+export const loadUserWorkflowConfig = (path: string, workflow?: string): FlexibleWorkflowConfig => {
   const configPath = findUserWorkflowConfigPath(path, workflow)
   if (!configPath) {
     let expectedPath = join(path, 'workflows', workflow || 'config')
@@ -84,13 +84,13 @@ export const loadUserWorkflowConfig = (path: string, workflow?: string): Flexibl
     fileContents = load(data.toString())
   }
 
-  return fileContents as FlexiblePipelineConfig
+  return fileContents as FlexibleWorkflowConfig
 }
 
 export const validRunners = ['xgsd@v1']
 export const validModes = ['chained', 'fanout', 'async']
 
-export const validateWorkflowConfig = (config: FlexiblePipelineConfig): FlexiblePipelineConfig => {
+export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): FlexibleWorkflowConfig => {
   const optionsValidators = Joi.object({
     timeout: Joi.string()
       .pattern(/^\d+ms$|^\d+s$|^\d+m$|^\d+h$|^\d+d$|^\d+w$|^\d+mo$/)
@@ -139,7 +139,7 @@ export const validateWorkflowConfig = (config: FlexiblePipelineConfig): Flexible
   return getWorkflowConfigDefaults(value)
 }
 
-export const getWorkflowConfigDefaults = (config: Require<FlexiblePipelineConfig, 'steps'>): FlexiblePipelineConfig => {
+export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig, 'steps'>): FlexibleWorkflowConfig => {
   let header = {
     name: config.name ?? '',
     description: config.description ?? '',
@@ -173,5 +173,5 @@ export const getWorkflowConfigDefaults = (config: Require<FlexiblePipelineConfig
   return {
     ...header,
     steps,
-  } as FlexiblePipelineConfig
+  } as FlexibleWorkflowConfig
 }

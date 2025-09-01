@@ -1,6 +1,6 @@
 import {join} from 'path'
 import {RunFn} from '../../@shared/types/runnable.types'
-import {FlexiblePipelineConfig, PipelineMode, PipelineState} from '../../@types/pipeline.types'
+import {FlexibleWorkflowConfig, PipelineMode, PipelineState} from '../../@types/pipeline.types'
 import {Require} from '../../@types/require.type'
 import {Pipeline} from '../pipeline.concrete'
 import {
@@ -248,13 +248,13 @@ describe('validateWorkflowConfig', () => {
   })
 
   test('should validate user workflow config', () => {
-    expect(() => validateWorkflowConfig(validMinimalConfig as FlexiblePipelineConfig)).not.toThrow()
+    expect(() => validateWorkflowConfig(validMinimalConfig as FlexibleWorkflowConfig)).not.toThrow()
     expect(() => validateWorkflowConfig(validWorkflowConfig as any)).not.toThrow()
   })
 
   test('should return reasonable defaults', () => {
-    const result = validateWorkflowConfig(validMinimalConfig as FlexiblePipelineConfig)
-    expect(result).toEqual(getWorkflowConfigDefaults(validMinimalConfig as Require<FlexiblePipelineConfig, 'steps'>))
+    const result = validateWorkflowConfig(validMinimalConfig as FlexibleWorkflowConfig)
+    expect(result).toEqual(getWorkflowConfigDefaults(validMinimalConfig as Require<FlexibleWorkflowConfig, 'steps'>))
   })
 
   test('should use `workflow.options` when `workflow.steps[i].options` are empty', () => {
@@ -266,7 +266,7 @@ describe('validateWorkflowConfig', () => {
   })
 
   test('should throw an error when invalid input is provided', () => {
-    expect(() => validateWorkflowConfig({} as FlexiblePipelineConfig)).toThrow()
+    expect(() => validateWorkflowConfig({} as FlexibleWorkflowConfig)).toThrow()
     expect(() => validateWorkflowConfig({steps: []} as any)).toThrow()
     expect(() => validateWorkflowConfig({steps: [{}]} as any)).toThrow()
     expect(() => validateWorkflowConfig({steps: [{name: 'My Step', action: 'myAction'}]} as any)).not.toThrow()

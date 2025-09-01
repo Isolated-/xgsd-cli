@@ -1,6 +1,6 @@
 import {config} from 'process'
 import {
-  FlexiblePipelineConfig,
+  FlexibleWorkflowConfig,
   PipelineConfig,
   PipelineMode,
   PipelineState,
@@ -169,7 +169,7 @@ export const userCodeOrchestration = async <T extends SourceData = SourceData>(
 export function runInChildProcess<T extends SourceData = SourceData, R = any>(
   id: string,
   data: T,
-  config: FlexiblePipelineConfig,
+  config: FlexibleWorkflowConfig,
   event: EventEmitter2,
 ): Promise<{result: R}> {
   let settled = false

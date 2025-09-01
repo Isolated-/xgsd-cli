@@ -126,7 +126,7 @@ export type PipelineConfig<T extends SourceData = SourceData> = {
   validator?: ValidateFn<T>
 }
 
-export type FlexiblePipelineOptions = {
+export type FlexibleWorkflowOptions = {
   timeout?: number
   /**
    *  @deprecated use retries instead
@@ -143,7 +143,7 @@ export type FlexiblePipelineOptions = {
   validator?: ValidateFn
 }
 
-export type FlexiblePipelineConfig<T = SourceData> = {
+export type FlexibleWorkflowConfig<T = SourceData> = {
   name: string | undefined
   description: string | undefined
   package: string | undefined
@@ -162,13 +162,13 @@ export type FlexiblePipelineConfig<T = SourceData> = {
   runner: 'xgsd@v1'
   output: string
   metadata: Record<string, unknown>
-  options: FlexiblePipelineOptions
+  options: FlexibleWorkflowOptions
   flags: Record<string, boolean>
   steps: PipelineStep<T>[]
 }
 
-export type FlexiblePipelineResult<T = SourceData, E = Error> = {
-  config: FlexiblePipelineConfig<T>
+export type FlexibleWorkflowResult<T = SourceData, E = Error> = {
+  config: FlexibleWorkflowConfig<T>
   output: T | null | undefined
   errors: E[]
 }
