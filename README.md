@@ -5,11 +5,9 @@
 [![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
 [![tests](https://github.com/Isolated-/xgsd-cli/actions/workflows/test.yml/badge.svg)](https://github.com/Isolated-/xgsd-cli/actions/workflows/test.yml)
 
-A privacy-first automation and orchestration runtime for developers. Think AWS Lambda, but portable — runs on your laptop, in your cloud, or even on a Raspberry Pi. Local, lightweight, and blazing fast.
+Built for solos, xGSD is local task orchestration (and soon) built on top of a secure storage system that integrates with whatever storage solution you want/need. If you don't need the complexity (and power) of a cloud solution, xGSD may be for you. No dependencies, or anything to manage just define your pipeline and everything else is taken care of.
 
-**Whilst every effort is made to protect your data, please ensure you do your part to keep your information secure. Treat any encryption keys, secrets, passwords, or anything "sensitive" with care to ensure you’re protected. Don't forget to `xgsd seal` once you've finished working.**
-
-There are _many_ orchestration (FaaS/ETL) options available, none focus on privacy, security, and local execution as much as xGSD does. Free and open source, no external dependencies, and nothing to manage - it just works.
+_Please note this is a work in progress, expect some ugly errors here and there but please report any that you find outside of your pipeline - this allows me to make xGSD better for everyone. See **Support** for details_.
 
 ## Installation
 
@@ -53,7 +51,14 @@ metadata:
   version: 1
   production: false
 
+# can be async, fanout or chained
+# async is perfect when the ordering doesn't matter
+# use fanout when ordering matters but output isn't needed downstream
+# output of last successful step is fed into the input of the next with chained
+mode: chained
+
 # store logs and result
+# currently these are stored in your package
 collect:
   logs: true
   run: true
@@ -104,12 +109,48 @@ module.exports = {
   upperCaseAction,
   hashDataAction,
   fetchData,
-  blockingAction,
-  failingAction,
 }
 ```
 
-And finally run your pipeline with `$ xgsd run path/to/module -d path/to/data.json -w`.
+And finally run your pipeline with `$ xgsd run path/to/module -d path/to/data.json -w`. More documentation will be available soon, if you find any problems let me know (see **Support**). Here's an example of what this quickstart should log:
+
+```
+(status) My First Pipeline (1.0.0) is running using runner "xgsd@v1" in async mode, timeout: 5000ms, retries: 3.
+(status) Uppercase Data - converts the input data to uppercase is running using xgsd@v1, timeout: 5000ms, retries: 3
+(status) Fetch Some API Data - get some data from httpbin.org is running using xgsd@v1, timeout: 5000ms, retries: 3
+(status) Hash Data - hashes the input data is running using xgsd@v1, timeout: 5000ms, retries: 3
+(status) Hash Data - executing step
+(success) Hash Data - step completed successfully in 0 attempts
+(status) Uppercase Data - executing step
+(success) Uppercase Data - step completed successfully in 0 attempts
+(status) Fetch Some API Data - executing step
+(warn) Fetch Some API Data - retry attempt 1/3, next retry in 1s, error: Timeout
+(warn) Fetch Some API Data - retry attempt 2/3, next retry in 2s, error: Timeout
+(success) Fetch Some API Data - step completed successfully in 2 attempts
+(info) the run id for My First Pipeline is 996e0a16-7bac-4804-9072-e7ea9f202981
+(info) logs and results if collected will be saved to /home/you/pipeine/runs/my-first-pipeline
+(info) the duration in your report may be slightly different to below
+(status) executed 3 steps, 3 succeeded and 0 failed, duration: 5.64s
+```
+
+The run result will be available providing `collect.run = true`, it's too long to include is this section but it includes everything you need to know about what happened, what went wrong, and how it was handled. Everything has been designed so you can focus on business logic, and xGSD will manage ensuring it works.
+
+## Use Cases
+
+xGSD is flexible and isn't designed for a specific use case, it's designed for solo developers and getting stuff done. That said, here's some ideas/what we use it for:
+
+- **Storage** - when secure storage is available, a lot of the processing work will be offloaded to internal pipelines.
+- **Home orchestration** - using Lambda for home-based IoT? This could be a viable (and free) alternative.
+- **Data transformation pipelines** – quick way to build ETL-style jobs (e.g. clean → transform → export).
+- **API glue** – chain together external APIs without needing a full backend service.
+- **Prototyping automations** – test an idea locally in hours instead of spinning up infra in AWS/GCP.
+- **CI/CD experiments** – run ad-hoc build/test/deploy sequences without a full CI service.
+- **Research workflows** – automate repetitive fetch → parse → store tasks when working with APIs, datasets, or scraping.
+- **Developer utilities** – wrap up personal scripts (formatting, linting, packaging, etc.) into a pipeline that’s easier to re-run.
+- **Scheduled jobs** – cron-like pipelines to perform regular maintenance or reporting.
+- **Offline-first automation** – run workflows without cloud dependencies (useful in privacy-conscious setups).
+
+I would love to know what you end up using it for!
 
 ## Testing
 
@@ -156,13 +197,10 @@ Most of the features in this project are a response to the UKs changes in regula
 
 A full security overview will be published once everything is up and running. Please feel free to check the code ([here](https://github.com/Isolated-/xgsd-cli)) if you're concerned about how your data is managed.
 
+## Commands
+
 <!-- commands -->
-* [`xgsd config keys [OPERATION] [EXTRA]`](#xgsd-config-keys-operation-extra)
-* [`xgsd hello PERSON`](#xgsd-hello-person)
-* [`xgsd hello world`](#xgsd-hello-world)
 * [`xgsd help [COMMAND]`](#xgsd-help-command)
-* [`xgsd hook register HOOK`](#xgsd-hook-register-hook)
-* [`xgsd keys [OPERATION] [EXTRA]`](#xgsd-keys-operation-extra)
 * [`xgsd plugins`](#xgsd-plugins)
 * [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
 * [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
@@ -174,83 +212,6 @@ A full security overview will be published once everything is up and running. Pl
 * [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
 * [`xgsd plugins update`](#xgsd-plugins-update)
 * [`xgsd run FUNCTION`](#xgsd-run-function)
-* [`xgsd validate`](#xgsd-validate)
-
-## `xgsd config keys [OPERATION] [EXTRA]`
-
-describe the command here
-
-```
-USAGE
-  $ xgsd config keys [OPERATION] [EXTRA] [-f] [--raw] [-p <value>] [-r <value>] [-w <value>] [-c <value>] [-v
-    <value>]
-
-ARGUMENTS
-  OPERATION  (generate|import) operation to perform on keys
-  EXTRA      extra argument for the operation
-
-FLAGS
-  -c, --context=<value>     [default: default] context for the key
-  -f, --force               force operation without prompt
-  -p, --passphrase=<value>  passphrase to encrypt the key
-  -r, --recovery=<value>    recovery phrase to recover the key
-  -v, --version=<value>     [default: 1] version for the key
-  -w, --words=<value>       [default: 24] number of words for recovery phrase
-      --raw                 output raw key without any formatting
-
-DESCRIPTION
-  describe the command here
-
-ALIASES
-  $ xgsd keys
-
-EXAMPLES
-  $ xgsd config keys
-```
-
-_See code: [src/commands/config/keys.ts](https://github.com/xgsd/cli/blob/v0.1.1-alpha.0/src/commands/config/keys.ts)_
-
-## `xgsd hello PERSON`
-
-Say hello
-
-```
-USAGE
-  $ xgsd hello PERSON -f <value>
-
-ARGUMENTS
-  PERSON  Person to say hello to
-
-FLAGS
-  -f, --from=<value>  (required) Who is saying hello
-
-DESCRIPTION
-  Say hello
-
-EXAMPLES
-  $ xgsd hello friend --from oclif
-  hello friend from oclif! (./src/commands/hello/index.ts)
-```
-
-_See code: [src/commands/hello/index.ts](https://github.com/xgsd/cli/blob/v0.1.1-alpha.0/src/commands/hello/index.ts)_
-
-## `xgsd hello world`
-
-Say hello world
-
-```
-USAGE
-  $ xgsd hello world
-
-DESCRIPTION
-  Say hello world
-
-EXAMPLES
-  $ xgsd hello world
-  hello world! (./src/commands/hello/world.ts)
-```
-
-_See code: [src/commands/hello/world.ts](https://github.com/xgsd/cli/blob/v0.1.1-alpha.0/src/commands/hello/world.ts)_
 
 ## `xgsd help [COMMAND]`
 
@@ -271,61 +232,6 @@ DESCRIPTION
 ```
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.32/src/commands/help.ts)_
-
-## `xgsd hook register HOOK`
-
-describe the command here
-
-```
-USAGE
-  $ xgsd hook register HOOK [-f]
-
-ARGUMENTS
-  HOOK  function to run
-
-FLAGS
-  -f, --force
-
-DESCRIPTION
-  describe the command here
-
-EXAMPLES
-  $ xgsd hook register
-```
-
-_See code: [src/commands/hook/register.ts](https://github.com/xgsd/cli/blob/v0.1.1-alpha.0/src/commands/hook/register.ts)_
-
-## `xgsd keys [OPERATION] [EXTRA]`
-
-describe the command here
-
-```
-USAGE
-  $ xgsd keys [OPERATION] [EXTRA] [-f] [--raw] [-p <value>] [-r <value>] [-w <value>] [-c <value>] [-v
-    <value>]
-
-ARGUMENTS
-  OPERATION  (generate|import) operation to perform on keys
-  EXTRA      extra argument for the operation
-
-FLAGS
-  -c, --context=<value>     [default: default] context for the key
-  -f, --force               force operation without prompt
-  -p, --passphrase=<value>  passphrase to encrypt the key
-  -r, --recovery=<value>    recovery phrase to recover the key
-  -v, --version=<value>     [default: 1] version for the key
-  -w, --words=<value>       [default: 24] number of words for recovery phrase
-      --raw                 output raw key without any formatting
-
-DESCRIPTION
-  describe the command here
-
-ALIASES
-  $ xgsd keys
-
-EXAMPLES
-  $ xgsd keys
-```
 
 ## `xgsd plugins`
 
@@ -619,11 +525,12 @@ _See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/
 
 ## `xgsd run FUNCTION`
 
-describe the command here
+Run pipelines that you've created with error handling, retries, timeouts, isolation, and more.
 
 ```
 USAGE
   $ xgsd run FUNCTION [--json] [-f] [-n <value>] [-d <value>] [-w] [-l info|status|warn|error|success...]
+    [-p]
 
 ARGUMENTS
   FUNCTION  function to run
@@ -634,38 +541,18 @@ FLAGS
   -l, --log-level=<option>...  [default: info,status,warn,error,success] log level
                                <options: info|status|warn|error|success>
   -n, --name=<value>           name to print
+  -p, --plain                  run in plain mode (no colours)
   -w, --watch                  watch for changes (streams logs to console)
 
 GLOBAL FLAGS
   --json  Format output as json.
 
 DESCRIPTION
-  describe the command here
+  Run pipelines that you've created with error handling, retries, timeouts, isolation, and more.
 
 EXAMPLES
   $ xgsd run
 ```
 
 _See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.1.1-alpha.0/src/commands/run.ts)_
-
-## `xgsd validate`
-
-describe the command here
-
-```
-USAGE
-  $ xgsd validate [-f] [-y <value>]
-
-FLAGS
-  -f, --force
-  -y, --yml=<value>  YAML file to validate
-
-DESCRIPTION
-  describe the command here
-
-EXAMPLES
-  $ xgsd validate
-```
-
-_See code: [src/commands/validate.ts](https://github.com/xgsd/cli/blob/v0.1.1-alpha.0/src/commands/validate.ts)_
 <!-- commandsstop -->
