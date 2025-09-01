@@ -52,7 +52,7 @@ export default class Run extends Command {
 
     workflow: Flags.string({
       char: 'e',
-      description: 'workflow file to use (must be a path)',
+      description: 'you can specify a workflow by name when you have a workflows/ folder in our NPM package',
       required: false,
     }),
 
