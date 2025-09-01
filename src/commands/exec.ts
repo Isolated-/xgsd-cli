@@ -44,31 +44,30 @@ function ensureImageExists(watch: boolean = false): void {
   try {
     // Check if image exists
     execSync('docker image inspect xgsd:v1', {stdio: watch ? 'inherit' : 'ignore'})
-    console.log('✅ xgsd:v1 already exists')
   } catch {
-    console.log('⚠️  xgsd:v1 not found, building...')
-
-    // Path to your CLI's Dockerfile
-    const cliPath = path.resolve(__dirname, '../../') // adjust to where Dockerfile lives
+    const cliPath = path.resolve(__dirname, '../../')
 
     execSync(`docker build -t xgsd:v1 ${cliPath}`, {stdio: watch ? 'inherit' : 'ignore'})
-    console.log('✅ Built xgsd:v1')
   }
 }
 
 export default class Exec extends Command {
-  static override args = {}
-  static override description = 'describe the command here'
+  static override args = {
+    package: Args.string({description: 'package to run', required: true}),
+  }
+  static override description = 'Run a workflow in a Docker container (proof of concept, very limited)'
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
-    package: Flags.string({description: 'package to run'}),
     watch: Flags.boolean({char: 'w', description: 'watch for changes (streams logs to console)'}),
   }
 
   public async run(): Promise<void> {
-    const {flags} = await this.parse(Exec)
+    const {
+      flags,
+      args: {package: packageName},
+    } = await this.parse(Exec)
 
-    const workflowPath = path.resolve(flags.package || '.')
+    const workflowPath = path.resolve(packageName || '.')
     if (!existsSync(path.join(workflowPath, 'package.json'))) {
       this.error(`No package.json found in ${workflowPath}`)
     }
@@ -82,7 +81,7 @@ export default class Exec extends Command {
     this.log(`workflow path is ${workflowPath}`)
     this.log(`workflow is starting with ${version.client}`)
 
-    const args = ['run', '-v', `${workflowPath}:/app/workflow`, 'xgsd:v1', 'run', '.']
+    const args = ['run', '--rm', '-v', `${workflowPath}:/app/workflow`, 'xgsd:v1', 'run', '.']
     if (flags.watch) args.push('--watch')
 
     const docker = spawn('docker', args, {stdio: 'inherit'})
