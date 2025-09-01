@@ -1,7 +1,7 @@
 {
   "name": "@xgsd/cli",
   "description": "Local task orchestration for solo-developers, built on top of xGSD. Get started in minutes.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "Michael Palmer",
   "bin": {
     "xgsd": "./bin/run.js"
