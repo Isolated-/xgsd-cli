@@ -50,6 +50,12 @@ export default class Run extends Command {
       default: ['info', 'status', 'warn', 'error', 'success'],
     }),
 
+    workflow: Flags.string({
+      char: 'e',
+      description: 'workflow file to use (must be a path)',
+      required: false,
+    }),
+
     plain: Flags.boolean({char: 'p', description: 'run in plain mode (no colours)'}),
   }
 
@@ -89,7 +95,7 @@ export default class Run extends Command {
 
     let userConfig
     try {
-      userConfig = validateWorkflowConfig(loadUserWorkflowConfig(userModulePath))
+      userConfig = validateWorkflowConfig(loadUserWorkflowConfig(userModulePath, flags.workflow!))
     } catch (error: any) {
       this.error(error.message)
     }
