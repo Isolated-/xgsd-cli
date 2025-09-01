@@ -6,6 +6,7 @@
 /tmp
 /node_modules
 oclif.manifest.json
+examples/**/**/node_modules
 
 package-lock.json
 pnpm-lock.yaml
