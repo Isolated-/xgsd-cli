@@ -51,6 +51,9 @@ metadata:
   version: 1
   production: false
 
+# enable/disable the pipeline
+enabled: true
+
 # can be async, fanout or chained
 # async is perfect when the ordering doesn't matter
 # use fanout when ordering matters but output isn't needed downstream
@@ -66,7 +69,7 @@ collect:
 # these are passed to all steps
 # timeout is for each step in ms
 options:
-  timeout: 5000
+  timeout: 5s
   maxRetries: 3
 
 # step config should be simple
@@ -75,12 +78,15 @@ steps:
   - name: Uppercase Data
     description: converts the input data to uppercase
     action: upperCaseAction
+    enabled: true # works here too
   - name: Hash Data
     description: hashes the input data
     action: hashDataAction
   - name: Fetch Some API Data
     description: get some data from httpbin.org
     action: fetchData
+    options: # individual step options
+      - timeout: 15s
 ```
 
 And declare your functions/actions:
