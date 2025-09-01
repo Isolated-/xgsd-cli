@@ -51,6 +51,17 @@ metadata:
   version: 1
   production: false
 
+# v0.3 adds this option:
+data:
+  # ... map of data
+  anything: 'you like'
+  bools: true
+  strings: 'yes'
+  ints: 1
+  arrays:
+    - of
+    - course
+
 # enable/disable the pipeline
 enabled: true
 
@@ -79,6 +90,9 @@ steps:
     description: converts the input data to uppercase
     action: upperCaseAction
     enabled: true # works here too
+    # added in v0.3
+    data:
+      # same as workflow level
   - name: Hash Data
     description: hashes the input data
     action: hashDataAction
@@ -183,6 +197,7 @@ YAML is used to configure your pipeline. JSON support will be added, however, YA
 - `metadata` - map/object of whatever you like (optional)
 - `mode` - must be one of **async**, **fanout**, and **chained**.(default: `chained`)
 - `enabled` - disable/enable the pipeline (default: `true`)
+- `data` - static data to be sent in addition to runtime data (no default), step wins logic (deeply merged)
 - `error` (planned, not implemented yet) - determine what happens on error (continue|exit)
 - `options` (optional)
   - `timeout` - the amount of milliseconds to wait before timing out (optional, default: `5s`)
@@ -197,9 +212,12 @@ YAML is used to configure your pipeline. JSON support will be added, however, YA
   - `error` (planned, not implemented yet) - determine what happens on error (continue|exit)
   - `action` - must match your function, e.g. `myAction` (**required**)
   - `enabled` - enable/disable at step level (default: `true`)
+  - `data` - same as top level
   - `options`
     - `timeout` - same as `options`, if undefined then `options.timeout` is used.
     - `retries` - same as `options`, if undefined then `options.retries` is used.
+
+When using `data` remember that in `chained` mode, the output of the last step is still passed into the next one without any additional data. If this limits you, let me know and I'll change it!
 
 Whilst many options are available, you only need:
 
