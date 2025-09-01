@@ -1,5 +1,6 @@
 import {PipelineState} from '../@types/pipeline.types'
 import {retry, WrappedError} from './runner'
+import * as ms from 'ms'
 
 process.on('message', async (msg: any) => {
   if (msg.type !== 'RUN') return
@@ -12,10 +13,18 @@ process.on('message', async (msg: any) => {
     process.send!({type: 'LOG', log: {level, message}})
   }
 
+  const description = step.description || 'no description'
+  let timeout = step.options?.timeout || options.timeout
+  const retries = step.options?.retries || options.retries
+
+  if (typeof timeout === 'string') {
+    timeout = ms(timeout as ms.StringValue)
+  }
+
   log(
-    `${step.name} - ${step.description ? step.description : 'no description'} is running using ${
-      config.runner
-    }, timeout: ${options.timeout}ms, retries: ${options.maxRetries}`,
+    `${step.name} - ${description} is running using ${config.runner}, timeout: ${ms(
+      timeout,
+    )}, retries: ${retries}, enabled: ${step.enabled ?? true}`,
     'status',
   )
 
@@ -50,16 +59,33 @@ process.on('message', async (msg: any) => {
     return
   }
 
+  if (step.enabled === false) {
+    log(`${step.name} is currently disabled, skipping this step.`, 'warn')
+    process.send!({
+      type: 'RESULT',
+      result: {
+        state: PipelineState.Skipped,
+        ...step,
+      },
+    })
+    return
+  }
+
   let totalRetries = 0
   let errors: WrappedError[] = []
+
   try {
     log(`${step.name} - executing step`, 'status')
-    const result = await retry(data, fn, options.maxRetries || 1, {
-      timeout: options.timeout,
+    const result = await retry(data, fn, retries, {
+      timeout,
       delay: (attempt: number) => Math.min(1000 * 2 ** attempt, 30000),
       onAttempt: (attempt) => {
         totalRetries++
-        errors.push({name: step.name || '', message: attempt.error.message, stack: attempt.error.stack} as WrappedError)
+        errors.push({
+          name: attempt.error.name || '',
+          message: attempt.error.message,
+          stack: attempt.error.stack,
+        } as WrappedError)
         process.send!({type: 'ATTEMPT', attempt: attempt.attempt, next: attempt.nextMs, error: attempt.error})
       },
     })
@@ -75,9 +101,10 @@ process.on('message', async (msg: any) => {
       name: step.name || '',
       description: step.description || '',
       state: result.error ? PipelineState.Failed : PipelineState.Completed,
-      attempt: totalRetries,
       input: data ?? null,
       output: result.data ?? null,
+      max: retries,
+      attempt: totalRetries,
       error: errors[0] ?? null,
       errors,
       duration: new Date().getTime() - new Date(startedAt).getTime(),
