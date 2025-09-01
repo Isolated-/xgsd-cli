@@ -56,6 +56,8 @@ export default class Run extends Command {
       multiple: true,
       default: ['info', 'status', 'warn', 'error', 'success'],
     }),
+
+    plain: Flags.boolean({char: 'p', description: 'run in plain mode (no colours)'}),
   }
 
   public async run(): Promise<any> {
@@ -170,7 +172,7 @@ export default class Run extends Command {
         }
 
         if (flags['log-level'].includes(msg.log.level)) {
-          this.log(message)
+          this.log(flags.plain ? `(${msg.log.level}) ${msg.log.message}` : message)
         }
       })
     }
