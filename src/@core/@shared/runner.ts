@@ -8,7 +8,7 @@ import {Worker} from 'worker_threads'
  */
 import {execute} from './runner/execute.runner'
 export {execute}
-import {retry} from './runner/retry.runner'
+import {retry, RetryAttempt} from './runner/retry.runner'
 export {retry}
 
 export type RunnerOpts = {
@@ -24,6 +24,7 @@ export type RunnerOpts = {
 
 export type RunnerResult<T, E = Error> = {
   data: T
+  attempt?: number
   logs?: any[]
   error?: E
   errors?: E[]
@@ -157,7 +158,7 @@ export const runnerFn = async (data: any, fn: RunFn<any, any>, opts?: RunnerOpts
       cancelled: false,
       mode: 'local',
       delay: (attempt: number) => attempt * 100,
-      onAttempt: (attempt: number, errors: any[]) => {},
+      onAttempt: (attempt: RetryAttempt) => {},
     },
     opts,
   )
@@ -175,26 +176,22 @@ export const runnerFn = async (data: any, fn: RunFn<any, any>, opts?: RunnerOpts
     return {data: null, error: errors[0], retries, errors}
   }
 
-  const runnerResult = await runner(data, fn, {
+  const result = await retry(data, fn, retries, {
     timeout,
-    errors,
-    attempt,
-    retries,
+    delay,
     onAttempt,
-    cancelled,
-    mode: opts?.mode,
   })
 
   // successful path
-  if (!runnerResult.error) {
+  if (!result.error) {
     debug(`function resolved successfully, data will be returned`, runnerFn.name, fnName, data)
-    return runnerResult
+    return {data: result.data, attempt: attempt + 1, errors: []}
   }
 
   // error path
-  debug(`function resulted with error: ${runnerResult.error.message}`, runnerFn.name, fnName)
-  errors.push(runnerResult.error)
-  onAttempt(attempt, runnerResult.error, cancel)
+  debug(`function resulted with error: ${result.error.message}`, runnerFn.name, fnName)
+  errors.push(result.error)
+  onAttempt(attempt, result.error, cancel)
 
   if (retries === 0) {
     debug(`retry logic is disabled, exiting now`, runnerFn.name, fnName)
@@ -211,14 +208,14 @@ export const runnerFn = async (data: any, fn: RunFn<any, any>, opts?: RunnerOpts
   if (nextAttempt >= retries) {
     debug(`failed to execute function: ${fnName} after ${attempt + 1} attempts`, runnerFn.name, fnName)
     errors.push(new Error('Max retries exceeded'))
-    return {data: null, error: errors[0], retries, errors}
+    return {data: null, attempt: attempt + 1, error: errors[0], retries, errors}
   }
 
   await new Promise((resolve) => setTimeout(resolve, delay(attempt)))
 
   if (cancelled) {
     debug(`function cancelled before retry handler`, runnerFn.name, fnName)
-    return {data: null, error: errors[0], retries, errors}
+    return {data: null, attempt: attempt + 1, error: errors[0], retries, errors}
   }
 
   debug(`retrying now...`, runnerFn.name, fnName)
