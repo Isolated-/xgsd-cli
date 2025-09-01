@@ -21,6 +21,10 @@ npm install -g @xgsd/cli
 
 # using yarn
 yarn install -g @xgsd/cli
+
+# using apt (coming soon)
+sudo update -y && sudo upgrade -y
+sudo apt install xgsd
 ```
 
 Once you've done that you're ready to start building with xGSD.
@@ -172,20 +176,26 @@ YAML is used to configure your pipeline. JSON support will be added, however, YA
 - `runner` - currently only `xgsd@v1` is supported (optional/recommended)
 - `metadata` - map/object of whatever you like (optional)
 - `mode` - must be one of **async**, **fanout**, and **chained**.(default: `chained`)
+- `enabled` - disable/enable the pipeline (default: `true`)
+- `error` (planned, not implemented yet) - determine what happens on error (continue|exit)
 - `options` (optional)
-  - `timeout` - the amount of milliseconds to wait before timing out (optional)
-  - `maxRetries` - the maximum number of retries/attempts (optional)
+  - `timeout` - the amount of milliseconds to wait before timing out (optional, default: `5s`)
+  - `retries` - the maximum number of retries/attempts (optional, default: `5`)
 - `collect` (optional)
   - `logs` - must be `true` or `false` or left undefined (default: `false`)
   - `run` - must be `true` or `false` or left undefined (default: `false`)
 - `steps`
   - `name` - used for display (**required**)
   - `description` - used for display (optional)
+  - `with` (planned, not implemented yet) - map of data to send alongside regular input.
+  - `error` (planned, not implemented yet) - determine what happens on error (continue|exit)
   - `action` - must match your function, e.g. `myAction` (**required**)
+  - `enabled` - enable/disable at step level (default: `true`)
+  - `options`
+    - `timeout` - same as `options`, if undefined then `options.timeout` is used.
+    - `retries` - same as `options`, if undefined then `options.retries` is used.
 
-**Limitations**: currently `options` determines timeout and retries at the pipeline level, in future each `step` will support individual timeout/retry rules. No additional data/config is passed to the step, only the original input data. Configuration will be improved in `v0.2.0`. JSON configuration is supported yet (will be by `v0.2.0` or sooner). Configuration file must exist at `package/config.yml` in future this will be far more flexible and will include defining multiple pipelines within one package.
-
-Where possible defaults are used to ensure minimal config is required, here's the bare minimum:
+Whilst many options are available, you only need:
 
 ```yaml
 steps:
@@ -197,7 +207,7 @@ steps:
     action: fetchData
 ```
 
-It is recommended to include a `runner` to ensure backward compatability. New runner versions may be added and this will protect your pipeline against any changes in default runner used.
+To get started. It is recommended to include a `runner` to ensure backward compatability. New runner versions may be added and this will protect your pipeline against any changes in default runner used.
 
 ## Modes
 
