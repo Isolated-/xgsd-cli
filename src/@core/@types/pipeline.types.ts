@@ -38,6 +38,7 @@ export type PipelineStep<T extends SourceData = SourceData> = {
   }
   enabled?: boolean
   input: T | null
+  data?: Record<string, T> | null
   output?: T | null
   /**
    *  @deprecated use error/errors
@@ -149,6 +150,11 @@ export type FlexiblePipelineConfig<T = SourceData> = {
   version: string | undefined
   enabled: boolean
   mode: PipelineMode
+  /**
+   *  @note "data" option has been added, merges with any runtime data
+   *  @since v0.3
+   */
+  data?: Record<string, T> | null
   collect?: {
     logs?: boolean
     run?: boolean
