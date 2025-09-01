@@ -30,7 +30,7 @@ export async function retry<T, R = T>(
   let finalError: WrappedError | null = null
 
   while (attempt < retries) {
-    const execution = await execute<T, R, WrappedError>(data, fn, undefined)
+    const execution = await execute<T, R, WrappedError>(data, fn, undefined, opts?.timeout)
 
     if (!execution.error) {
       return {data: execution.data}
