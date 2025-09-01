@@ -208,7 +208,7 @@ EXAMPLES
   $ xgsd config keys
 ```
 
-_See code: [src/commands/config/keys.ts](https://github.com/xgsd/cli/blob/v0.1.0-alpha.1/src/commands/config/keys.ts)_
+_See code: [src/commands/config/keys.ts](https://github.com/xgsd/cli/blob/v0.1.1-alpha.0/src/commands/config/keys.ts)_
 
 ## `xgsd hello PERSON`
 
@@ -232,7 +232,7 @@ EXAMPLES
   hello friend from oclif! (./src/commands/hello/index.ts)
 ```
 
-_See code: [src/commands/hello/index.ts](https://github.com/xgsd/cli/blob/v0.1.0-alpha.1/src/commands/hello/index.ts)_
+_See code: [src/commands/hello/index.ts](https://github.com/xgsd/cli/blob/v0.1.1-alpha.0/src/commands/hello/index.ts)_
 
 ## `xgsd hello world`
 
@@ -250,7 +250,7 @@ EXAMPLES
   hello world! (./src/commands/hello/world.ts)
 ```
 
-_See code: [src/commands/hello/world.ts](https://github.com/xgsd/cli/blob/v0.1.0-alpha.1/src/commands/hello/world.ts)_
+_See code: [src/commands/hello/world.ts](https://github.com/xgsd/cli/blob/v0.1.1-alpha.0/src/commands/hello/world.ts)_
 
 ## `xgsd help [COMMAND]`
 
@@ -293,7 +293,7 @@ EXAMPLES
   $ xgsd hook register
 ```
 
-_See code: [src/commands/hook/register.ts](https://github.com/xgsd/cli/blob/v0.1.0-alpha.1/src/commands/hook/register.ts)_
+_See code: [src/commands/hook/register.ts](https://github.com/xgsd/cli/blob/v0.1.1-alpha.0/src/commands/hook/register.ts)_
 
 ## `xgsd keys [OPERATION] [EXTRA]`
 
@@ -646,7 +646,7 @@ EXAMPLES
   $ xgsd run
 ```
 
-_See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.1.0-alpha.1/src/commands/run.ts)_
+_See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.1.1-alpha.0/src/commands/run.ts)_
 
 ## `xgsd validate`
 
@@ -667,5 +667,5 @@ EXAMPLES
   $ xgsd validate
 ```
 
-_See code: [src/commands/validate.ts](https://github.com/xgsd/cli/blob/v0.1.0-alpha.1/src/commands/validate.ts)_
+_See code: [src/commands/validate.ts](https://github.com/xgsd/cli/blob/v0.1.1-alpha.0/src/commands/validate.ts)_
 <!-- commandsstop -->
