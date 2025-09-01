@@ -1,11 +1,11 @@
-# Local Task Orchestration with xGSD CLI
+# Local Workflows with xGSD CLI
 
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
 [![Version](https://img.shields.io/npm/v/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
 [![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
 [![CI & Release](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml/badge.svg)](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml)
 
-Built for solos, xGSD is local task orchestration (and soon) built on top of a secure storage system that integrates with whatever storage solution you want/need. If you don't need the complexity (and power) of a cloud solution, xGSD may be for you. No dependencies, or anything to manage just define your pipeline and everything else is taken care of.
+Built for solos, xGSD is local workflows (and soon) built on top of a secure storage system that integrates with whatever storage solution you want/need. If you don't need the complexity (and power) of a cloud solution, xGSD may be for you. No dependencies, or anything to manage just define your pipeline and everything else is taken care of.
 
 _Please note this is a work in progress, expect some ugly errors here and there but please report any that you find outside of your pipeline - this allows me to make xGSD better for everyone. See **Support** for details_.
 
@@ -308,7 +308,7 @@ Run pipelines that you've created with error handling, retries, timeouts, isolat
 
 ```
 USAGE
-  $ xgsd run FUNCTION [--json] [-f] [-n <value>] [-d <value>] [-w] [-l info|status|warn|error|success...] [-e <value>]
+  $ xgsd run FUNCTION [--json] [-f] [-n <value>] [-d <value>] [-w] [-l info|status|warn|error|success...]
     [-p]
 
 ARGUMENTS
@@ -322,7 +322,6 @@ FLAGS
   -n, --name=<value>           name to print
   -p, --plain                  run in plain mode (no colours)
   -w, --watch                  watch for changes (streams logs to console)
-  -e, --workflow               used for multiple workflows per project/npm package
 
 GLOBAL FLAGS
   --json  Format output as json.

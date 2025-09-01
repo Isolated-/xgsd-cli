@@ -1,6 +1,6 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {join} from 'path'
-import {pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
+import {mkdtempSync, pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
 import {userCodeOrchestration} from '../@core/pipelines/pipeline.concrete'
 import * as Joi from 'joi'
 import {load} from 'js-yaml'
