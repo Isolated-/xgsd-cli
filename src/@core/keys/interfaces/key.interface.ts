@@ -1,5 +1,6 @@
 import {BinaryToTextEncoding} from 'crypto'
 import {IKeyOpts} from './key-opts.interface'
+import {IExportable} from '../../generics/exportable.generic'
 
 export interface IKey {
   /**
@@ -9,8 +10,8 @@ export interface IKey {
    */
   select(version: number, opts?: IKeyOpts): Promise<IKey>
   digest(encoding?: BinaryToTextEncoding): string
-  sign(data: string | Buffer, encoding?: BinaryToTextEncoding): string
-  verify(data: string | Buffer, signature: string, encoding?: BinaryToTextEncoding): boolean
-  export(): string
+  sign(data: string | Buffer, encoding?: BinaryToTextEncoding): Promise<string>
+  verify(data: string | Buffer, signature: string, encoding?: BinaryToTextEncoding): Promise<boolean>
+  export(format?: 'string' | 'exportable'): string | IExportable<string>
   zero(): void
 }

@@ -1,4 +1,13 @@
-import {BinaryToTextEncoding, randomBytes, hkdfSync, pbkdf2Sync, createHash, hkdf} from 'crypto'
+import {
+  BinaryToTextEncoding,
+  randomBytes,
+  hkdfSync,
+  pbkdf2Sync,
+  createHash,
+  hkdf,
+  createPrivateKey,
+  createPublicKey,
+} from 'crypto'
 import {
   HKDF_IV_LENGTH,
   KEY_DEFAULT_OPTS,
@@ -64,6 +73,42 @@ export const generateMasterKey = async (
 
   const hkdf = hkdfSync(options.hash as any, passwordBuf, seed, seed, options.length)
   return Buffer.from(hkdf)
+}
+
+export const createSigningKeys = (from: Buffer): {pubkey: Buffer; privkey: Buffer} => {
+  return {pubkey: Buffer.alloc(0), privkey: Buffer.alloc(0)}
+}
+
+export const createSignPrivateKey = (
+  from: string,
+  format: 'pem' | 'der' = 'pem',
+  encoding: BufferEncoding = 'base64url',
+  digest: BinaryToTextEncoding = 'base64url',
+): string => {
+  const privateKey = createPrivateKey({
+    key: Buffer.concat([
+      Buffer.from('302e020100300506032b657004220420', 'hex'), // ASN.1 header for Ed25519 private key
+      Buffer.from(from, encoding),
+    ]),
+    format: 'der',
+    type: 'pkcs8',
+  })
+
+  return privateKey.export({format: format as any, type: 'pkcs8'}).toString(digest)
+}
+
+export const createSignPublicKey = (
+  from: string,
+  format: 'pem' | 'der' = 'der',
+  digest: BinaryToTextEncoding = 'base64url',
+): string => {
+  const publicKey = createPublicKey({
+    key: from,
+    format,
+    type: 'spki',
+  })
+
+  return publicKey.export({format: format as any, type: 'spki'}).toString(digest)
 }
 
 export const toRawKey = (key: string): Buffer => {

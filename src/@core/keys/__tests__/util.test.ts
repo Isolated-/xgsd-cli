@@ -1,5 +1,13 @@
 import {BinaryToTextEncoding} from 'crypto'
-import {decodeKey, encodeKey, generateMasterKey, generateRecoveryPhrase, isValidLength} from '../util'
+import {
+  createSignPrivateKey,
+  createSignPublicKey,
+  decodeKey,
+  encodeKey,
+  generateMasterKey,
+  generateRecoveryPhrase,
+  isValidLength,
+} from '../util'
 import {MAX_KEY_LENGTH} from '../constants'
 import {deriveKeyV1} from '../derive.util'
 
@@ -12,6 +20,16 @@ const decoded = {
   salt: 'W2rOiql2Rsg',
   key: '654Hgl_AE3ioIrpgNMGyiF6mFXswP7v-DOa34jhuXdePZwnP4CjMx5ZTjNc_uwKJB0-Tql0G1sIK0M6JazowwQ',
 }
+
+describe('(util) createSignPrivateKey unit tests', () => {
+  test('should create a public/private key pair', () => {
+    const key = createSignPrivateKey(decoded.key)
+    expect(key).toBeDefined()
+
+    const pub = createSignPublicKey(key, 'pem', 'base64url')
+    expect(pub).toBeDefined()
+  })
+})
 
 describe('(util) generateRecoveryPhrase function', () => {
   test('should generate a mnemonic of the correct strength', async () => {

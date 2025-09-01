@@ -40,7 +40,7 @@ export class OsKeyStore implements IKeyStore {
       debug(`(save) key already exists at ${path}, key will be overwitten.`, OsKeyStore.name)
     }
 
-    await setPassword(this.service, path, key.export())
+    await setPassword(this.service, path, key.export() as string)
     debug(`(save) key saved to OS keystore ${path}`, OsKeyStore.name)
   }
 

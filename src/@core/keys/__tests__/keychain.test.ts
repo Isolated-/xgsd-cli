@@ -34,9 +34,12 @@ export const testKeyConfig = {
 }
 
 describe('keychain cryptographic tests (sign|verify|hmac|encrypt|decrypt)', () => {
-  test('should sign and verify data correctly', () => {
+  test('should sign and verify data correctly', async () => {
     const keyChain = KeyChain.fromRawKey(testKeyConfig.bytes)
     const data = 'testdata'
+
+    const signature = await keyChain.sign(data)
+    expect(await keyChain.verify(data, signature)).toBe(true)
   })
 })
 

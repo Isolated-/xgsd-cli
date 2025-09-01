@@ -1,15 +1,18 @@
-import {BinaryToTextEncoding, createSign} from 'crypto'
+import {BinaryToTextEncoding, createSign, sign, verify} from 'crypto'
 import {KEY_DEFAULT_OPTS, MAX_KEY_LENGTH, MIN_KEY_LENGTH} from './constants'
 import {IKeyStore} from './interfaces'
 import {IKeyOpts, PartialKeyOpts} from './interfaces/key-opts.interface'
 import {IKey} from './interfaces/key.interface'
 import {
+  createSignPrivateKey,
+  createSignPublicKey,
   deriveKey,
   encodeKey,
   generateRecoveryPhrase as generateMnemonic,
   generateMasterKey as generateStandardKey,
 } from './util'
 import {decodeString} from './util/format.util'
+import {BinaryExportable, IExportable} from '../generics/exportable.generic'
 
 export class KeyChain implements IKey {
   protected readonly opts: IKeyOpts
@@ -68,21 +71,60 @@ export class KeyChain implements IKey {
     return KeyChain.fromRawKey(Buffer.from(derived, 'hex'), options)
   }
 
-  sign(data: string | Buffer, encoding: BinaryToTextEncoding = 'hex'): string {
-    throw new Error('method not implemented')
+  async getPublicKey(format?: 'der' | 'pem'): Promise<IExportable<string>> {
+    if (!this.isReady) {
+      throw new Error('key is not initialised')
+    }
+
+    const signKey = await this.select(1, {...this.opts, length: 32, type: 'signing'})
+    const publicKey = createSignPublicKey(signKey.digest('hex'), format || 'der', 'hex')
+    return new BinaryExportable(publicKey)
   }
 
-  verify(data: string | Buffer, signature: string, encoding?: BinaryToTextEncoding): boolean {
-    throw new Error('method not implemented')
+  async sign(
+    data: string,
+    encoding: BufferEncoding = 'base64url',
+    digest: BinaryToTextEncoding = 'base64url',
+  ): Promise<string> {
+    if (!this.isReady) {
+      throw new Error('key is not initialised')
+    }
+    const signingKey = await this.select(1, {...this.opts, length: 32, type: 'signing'})
+
+    // dont change (key is always hex, encoding/digest shouldn't be used here)
+    const privateKey = createSignPrivateKey(signingKey.digest('hex'), 'pem', 'hex')
+    const signature = sign(null, Buffer.from(data, encoding), privateKey)
+
+    return signature.toString(digest)
+  }
+
+  async verify(data: string, signature: string, encoding: BinaryToTextEncoding = 'base64url'): Promise<boolean> {
+    if (!this.isReady) {
+      throw new Error('key is not initialised')
+    }
+
+    // dont change (key is always hex, encoding/digest shouldn't be used here)
+    const verifyingKey = await this.select(1, {...this.opts, length: 32, type: 'signing'})
+    const privateKey = createSignPrivateKey(verifyingKey.digest('hex'), 'pem', 'hex')
+
+    return verify(null, Buffer.from(data, encoding), privateKey, Buffer.from(signature, encoding))
   }
 
   zero(): void {
     this._keyBytes = Buffer.alloc(0)
   }
 
-  export(): string {
+  public export(): string
+  public export<T extends 'exportable'>(format: T): IExportable<string>
+  public export<T extends 'string'>(format: T): string
+
+  export(format: 'exportable' | 'string' = 'string'): string | IExportable<string> {
     if (!this.isReady) {
       throw new Error('key is not initialised')
+    }
+
+    if (format === 'exportable') {
+      return new BinaryExportable(this.digest(), this.opts)
     }
 
     return encodeKey(this._keyBytes, Buffer.alloc(0), this.opts)

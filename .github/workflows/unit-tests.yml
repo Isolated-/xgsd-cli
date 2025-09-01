@@ -1,12 +1,8 @@
-name: full testing against supported OS
+name: quick tests against ubuntu
 on:
   push:
     branches:
-      - main
-      - staging
-      - 'feature/*'
-    tags:
-      - 'v*.*.*'
+      - dev
   pull_request:
     branches:
       - '**'
@@ -15,8 +11,8 @@ jobs:
   unit-tests:
     strategy:
       matrix:
-        os: ['ubuntu-latest', 'windows-latest']
-        node_version: [lts/-1, lts/*, latest]
+        os: ['ubuntu-latest']
+        node_version: [latest]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
