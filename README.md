@@ -70,7 +70,7 @@ collect:
 # timeout is for each step in ms
 options:
   timeout: 5s
-  maxRetries: 3
+  retries: 3
 
 # step config should be simple
 # and require little to no info beyond name + action
