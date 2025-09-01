@@ -69,9 +69,9 @@ export const findUserWorkflowConfigPath = (basePath: string, workflow?: string):
 
 export const loadUserWorkflowConfig = (path: string, workflow?: string): FlexiblePipelineConfig => {
   const configPath = findUserWorkflowConfigPath(path, workflow)
-
   if (!configPath) {
-    throw new Error("configuration path doesn't exist at " + path)
+    let expectedPath = join(path, 'workflows', workflow || 'config')
+    throw new Error("configuration path doesn't exist at " + expectedPath)
   }
 
   const ext = extname(configPath)
