@@ -87,10 +87,9 @@ export default class Run extends Command {
 
     this.log(`found your configuration file at ${foundPath}`)
 
-    const configFile = loadUserWorkflowConfig(foundPath)
     let userConfig
     try {
-      userConfig = validateWorkflowConfig(configFile)
+      userConfig = validateWorkflowConfig(loadUserWorkflowConfig(userModulePath))
     } catch (error: any) {
       this.error(error.message)
     }
