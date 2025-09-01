@@ -106,6 +106,7 @@ export const validateWorkflowConfig = (config: FlexiblePipelineConfig): Flexible
       .valid(...validRunners)
       .optional(),
     metadata: Joi.object().optional(),
+    data: Joi.object().optional(),
     mode: Joi.string().valid(...validModes),
     config: Joi.object().optional(),
     options: optionsValidators,
@@ -119,6 +120,7 @@ export const validateWorkflowConfig = (config: FlexiblePipelineConfig): Flexible
           enabled: Joi.boolean().default(true),
           name: Joi.string().required(),
           description: Joi.string().optional(),
+          data: Joi.object().optional(),
           action: Joi.string().required(),
           options: optionsValidators,
         }),
@@ -144,6 +146,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexiblePipelineConfig
     metadata: config.metadata ?? {},
     mode: config.mode ?? PipelineMode.Chained,
     enabled: config.enabled ?? true,
+    data: config.data,
     options: {
       timeout: ms(config.options?.timeout || ('5s' as any)) || 5000,
       retries: config.options?.retries || 5,
@@ -159,6 +162,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexiblePipelineConfig
     description: step.description || 'no description',
     action: step.action,
     enabled: step.enabled ?? true,
+    data: step.data ?? header.data,
     options: {
       timeout: step.options?.timeout || header.options.timeout,
       retries: step.options?.retries || header.options.retries,

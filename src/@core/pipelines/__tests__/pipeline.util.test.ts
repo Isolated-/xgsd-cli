@@ -56,6 +56,30 @@ const validWorkflowConfig = {
   ],
 }
 
+const v03Config = {
+  ...validWorkflowConfig,
+  data: {
+    url: 'http://httpbin.org/json',
+  },
+}
+
+const v03ConfigWithSteps = {
+  ...v03Config,
+  steps: [
+    {
+      name: 'My First Step',
+      action: 'myAction',
+      data: {
+        url: 'https://example.com',
+      },
+    },
+    {
+      name: 'My Second Step',
+      action: 'myAction',
+    },
+  ],
+}
+
 describe('getWorkflowConfigDefaults', () => {
   test('should get user workflow config from file (.yml) (v0.3+)', () => {
     const config = getWorkflowConfigDefaults({
@@ -123,6 +147,35 @@ describe('findUserWorkflowConfigPath', () => {
 })
 
 describe('validateWorkflowConfig', () => {
+  test('should validate user workflow config (v0.3+)', () => {
+    expect(() => validateWorkflowConfig(v03Config as any)).not.toThrow()
+    const result = validateWorkflowConfig(v03Config as any)
+    expect(result.data).toEqual({url: 'http://httpbin.org/json'})
+  })
+
+  test(`should not default "data" to null if not provided`, () => {
+    const result = validateWorkflowConfig({
+      ...validMinimalConfig,
+      data: undefined,
+    } as any)
+    expect(result.data).toBeUndefined()
+  })
+
+  test('should apply workflow "data" to steps if not provided', () => {
+    const result = validateWorkflowConfig({
+      ...validMinimalConfig,
+      data: {url: 'http://httpbin.org/json'},
+    } as any)
+    expect(result.steps[0].data).toEqual({url: 'http://httpbin.org/json'})
+  })
+
+  test('should not override step "data" if already provided', () => {
+    const result = validateWorkflowConfig(v03ConfigWithSteps as any)
+    // step 0 has its own data, step 1 should get workflow data
+    expect(result.steps[0].data).toEqual({url: 'https://example.com'})
+    expect(result.steps[1].data).toEqual({url: 'http://httpbin.org/json'})
+  })
+
   test('should validate user workflow config', () => {
     expect(() => validateWorkflowConfig(validMinimalConfig as FlexiblePipelineConfig)).not.toThrow()
     expect(() => validateWorkflowConfig(validWorkflowConfig as any)).not.toThrow()
