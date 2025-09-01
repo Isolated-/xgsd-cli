@@ -23,14 +23,31 @@ process.on('message', async (msg: any) => {
   try {
     userModule = await import(config.package!)
   } catch (error: any) {
-    log(`failed to load user module: ${error.message}`, 'error')
-    throw new Error('failed to load user module')
+    log(`failed to load package: ${config.package}, error: ${error.message}`, 'error')
+    process.send!({
+      type: 'ERROR',
+      error: {
+        name: 'Package Load Failure',
+        message: `failed to load package: ${config.package}, error: ${error.message}`,
+        stack: error.stack,
+        fatal: true,
+      },
+    })
+    return
   }
 
   const fn = userModule[step.action!]
   if (!fn) {
-    log(`${step.name} missing function implementation for: ${step.action}`, 'error')
-    throw new Error('missing function implementation')
+    log(`${step.name} is missing function implementation for: ${step.action}`, 'error')
+    process.send!({
+      type: 'ERROR',
+      error: {
+        name: 'Function Load Failure',
+        message: `missing function implementation for: ${step.action}`,
+        fatal: true,
+      },
+    })
+    return
   }
 
   let totalRetries = 0

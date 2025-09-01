@@ -106,6 +106,8 @@ export const userCodeResultCollector = (id: string, date: string, path: string, 
     const nodeVersion = process.version
     const os = process.platform
 
+    const lastEndedAt = result.steps.filter((step: any) => step.endedAt).pop()?.endedAt || null
+
     const report = {
       id,
       runner: result.config.runner || '',
@@ -113,7 +115,7 @@ export const userCodeResultCollector = (id: string, date: string, path: string, 
       description: result.config.description || '',
       package: result.config.package || '',
       start: result.steps[0]?.startedAt || null,
-      end: result.steps[result.steps.length - 1]?.endedAt || null,
+      end: lastEndedAt,
       duration: result.steps.reduce((acc: number, step: any) => acc + (step.duration || 0), 0),
       state:
         result.steps.filter((step: any) => step.state === PipelineState.Completed).length > 0

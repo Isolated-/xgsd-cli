@@ -17,7 +17,7 @@ function logRetry(name: string, attempt: number, max: number, next: number, erro
 }
 
 async function runStep(step: PipelineStep, input: SourceData, pipelineConfig: FlexiblePipelineConfig) {
-  return new Promise<{step: any; errors: any[]}>((resolve, reject) => {
+  return new Promise<{step: any; fatal: boolean; errors: any[]}>((resolve, reject) => {
     const stepProcess = fork(join(__dirname, 'runner.step-process.js'))
 
     let errors: WrappedError[] = []
@@ -34,7 +34,11 @@ async function runStep(step: PipelineStep, input: SourceData, pipelineConfig: Fl
           errors.push(msg.error)
           break
         case 'RESULT':
-          resolve({step: msg.result, errors})
+          resolve({step: msg.result, fatal: false, errors})
+          break
+        case 'ERROR':
+          stepProcess.kill()
+          resolve({step: step, fatal: true, errors: [msg.error]})
           break
       }
     })
@@ -79,7 +83,7 @@ process.on('message', async (context: ChildMessage) => {
 
       const result = await runStep(step, input, config)
 
-      if (config.mode === 'chained') input = result.step.output || input
+      if (config.mode === 'chained') input = result.step?.output || input
 
       completedSteps.push({
         ...result.step,
@@ -91,7 +95,7 @@ process.on('message', async (context: ChildMessage) => {
     }
   }
 
-  const failed = completedSteps.filter((step) => step.errors!.length > 0)
+  const failed = completedSteps.filter((step) => step.errors!.length > 0 && !step.output)
   const succeeded = completedSteps.length - failed.length
 
   log(`the run id for ${config.name} is ${context.id}`, 'info')
@@ -100,8 +104,9 @@ process.on('message', async (context: ChildMessage) => {
 
   log(
     `executed ${completedSteps.length} steps, ${succeeded} succeeded and ${failed.length} failed, duration: ${(
-      performance.now() - pipelineStartMs
-    ).toFixed(2)}ms`,
+      (performance.now() - pipelineStartMs) /
+      1000
+    ).toFixed(2)}s`,
     'status',
   )
 

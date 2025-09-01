@@ -29,7 +29,8 @@ export default class Run extends Command {
     }),
   }
   static override enableJsonFlag: boolean = true
-  static override description = 'describe the command here'
+  static override description =
+    "Run pipelines that you've created with error handling, retries, timeouts, isolation, and more."
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
     // flag with no value (-f, --force)
@@ -75,9 +76,7 @@ export default class Run extends Command {
     // this will eventually be refactored
     const packageJsonPath = join(process.cwd(), args.function, 'package.json')
     if (!pathExistsSync(packageJsonPath)) {
-      this.error(
-        `package.json not found at ${packageJsonPath}, did you run yarn? Alternatively, use $ xgsd create {action} and we'll do it for you!`,
-      )
+      this.error(`package.json not found at ${packageJsonPath}, you'll need an NPM package before continuing.`)
     }
 
     const userCodePackageJson = readJsonSync(packageJsonPath)
