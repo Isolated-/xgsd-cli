@@ -106,6 +106,7 @@ export const userCodeResultCollector = (id: string, date: string, path: string, 
     const nodeVersion = process.version
     const os = process.platform
 
+    const firstStartedAt = result.steps.filter((step: any) => step.startedAt).pop()?.startedAt || null
     const lastEndedAt = result.steps.filter((step: any) => step.endedAt).pop()?.endedAt || null
 
     const report = {
@@ -114,7 +115,7 @@ export const userCodeResultCollector = (id: string, date: string, path: string, 
       name: result.config.name,
       description: result.config.description || '',
       package: result.config.package || '',
-      start: result.steps[0]?.startedAt || null,
+      start: firstStartedAt,
       end: lastEndedAt,
       duration: result.steps.reduce((acc: number, step: any) => acc + (step.duration || 0), 0),
       state:
