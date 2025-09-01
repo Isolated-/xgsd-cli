@@ -308,7 +308,7 @@ Run pipelines that you've created with error handling, retries, timeouts, isolat
 
 ```
 USAGE
-  $ xgsd run FUNCTION [--json] [-f] [-n <value>] [-d <value>] [-w] [-l info|status|warn|error|success...]
+  $ xgsd run FUNCTION [--json] [-f] [-n <value>] [-d <value>] [-w] [-l info|status|warn|error|success...] [-e <value>]
     [-p]
 
 ARGUMENTS
@@ -322,6 +322,7 @@ FLAGS
   -n, --name=<value>           name to print
   -p, --plain                  run in plain mode (no colours)
   -w, --watch                  watch for changes (streams logs to console)
+  -e, --workflow               used for multiple workflows per project/npm package
 
 GLOBAL FLAGS
   --json  Format output as json.
