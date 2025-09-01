@@ -7,6 +7,12 @@ import {PipelineMode} from '../@core/@types/pipeline.types'
 import {load} from 'js-yaml'
 import {EventEmitter2} from 'eventemitter2'
 import chalk from 'chalk'
+import {
+  findUserWorkflowConfigPath,
+  getWorkflowConfigDefaults,
+  loadUserWorkflowConfig,
+  validateWorkflowConfig,
+} from '../@core/pipelines/pipelines.util'
 
 export default class Run extends Command {
   static override args = {
@@ -50,7 +56,7 @@ export default class Run extends Command {
   public async run(): Promise<any> {
     const {args, flags} = await this.parse(Run)
 
-    const modulePath = join(process.cwd(), args.function)
+    const userModulePath = join(process.cwd(), args.function)
 
     // this will eventually be refactored
     const packageJsonPath = join(process.cwd(), args.function, 'package.json')
@@ -72,76 +78,36 @@ export default class Run extends Command {
     const main = userCodePackageJson.main
     this.log(`found your main entry point: ${main}, this will be loaded shortly.`)
 
-    let configFilePath = join(process.cwd(), args.function, 'config.yml')
-    if (!pathExistsSync(configFilePath)) {
-      configFilePath = join(process.cwd(), args.function, 'config.yaml')
+    const foundPath = findUserWorkflowConfigPath(userModulePath)
+    if (!foundPath) {
+      this.error(
+        `unable to find a configuration file at ${userModulePath}, please create a new "config.yaml" in your package folder.`,
+      )
     }
 
-    if (!pathExistsSync(configFilePath)) {
-      this.error(`config.yml not found at ${configFilePath}, either create it or use --pipeline`)
+    this.log(`found your configuration file at ${foundPath}`)
+
+    const configFile = loadUserWorkflowConfig(foundPath)
+    let userConfig
+    try {
+      userConfig = validateWorkflowConfig(configFile)
+    } catch (error: any) {
+      this.error(error.message)
     }
-
-    const configFileYml = readFileSync(configFilePath).toString()
-    const configFileJson = load(configFileYml) as Record<string, unknown>
-
-    const max = 30 * 24 * 60 * 60 * 1000
-    const retryValidator = Joi.number().min(0).max(max).default(5)
-    const timeoutValidator = Joi.string()
-      .pattern(/^\d+ms$/)
-      .default('5000ms')
-    const optionsValidator = Joi.object({
-      timeout: timeoutValidator,
-      maxRetries: retryValidator,
-      retries: retryValidator,
-    }).optional()
-
-    const validationSchema = Joi.object({
-      name: Joi.string().default(userCodePackageJson.name),
-      description: Joi.string().optional(),
-      enabled: Joi.boolean().default(true),
-      runner: Joi.string().valid('xgsd@v1').default('xgsd@v1'),
-      metadata: Joi.object().optional(),
-      mode: Joi.string().valid('chained', 'fanout', 'async').default('chained') as Joi.Schema<PipelineMode>,
-      config: Joi.object().optional(),
-      options: optionsValidator.default({
-        timeout: 5000,
-        maxRetries: 5,
-        retries: 5,
-      }),
-      collect: Joi.object({
-        logs: Joi.boolean().default(flags.logs || false),
-        run: Joi.boolean().default(flags.save || false),
-      }).optional(),
-      steps: Joi.array()
-        .items(
-          Joi.object({
-            enabled: Joi.boolean().default(true),
-            name: Joi.string().required(),
-            description: Joi.string().optional(),
-            action: Joi.string().required(),
-            options: optionsValidator,
-          }),
-        )
-        .optional(),
-    })
 
     const data = (flags.data as any) ?? {data: 'some data'}
-    const {error, value: userConfig} = validationSchema.validate(configFileJson, {
-      allowUnknown: true,
-      stripUnknown: true,
-    })
 
     if (!userConfig.enabled) {
       this.log(
         `${userConfig.name} is currently disabled - if this is a mistake, re-enable it in the config file by marking \`enabled: true\`.`,
       )
-      this.log(`path to config file: ${configFilePath}`)
+      this.log(`path to config file: ${foundPath}`)
       this.exit(10)
     }
 
     const event = new EventEmitter2()
     const name = userConfig.name
-    const writePath = join(process.cwd(), args.function, 'runs', name.toLowerCase().replace(/\s+/g, '-'))
+    const writePath = join(process.cwd(), args.function, 'runs', name!.toLowerCase().replace(/\s+/g, '-'))
 
     if (flags.watch) {
       event.on('message', (msg) => {
@@ -174,7 +140,7 @@ export default class Run extends Command {
 
     await userCodeOrchestration(
       data,
-      {...userConfig, version: userCodePackageJson.version, package: modulePath, output: writePath},
+      {...userConfig, version: userCodePackageJson.version, package: userModulePath, output: writePath},
       event,
     )
 
