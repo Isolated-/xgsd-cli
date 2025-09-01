@@ -1,8 +1,8 @@
 {
   "name": "@xgsd/cli",
-  "description": "A CLI for interacting with xGSD APIs (WIP) - you probably don't need this (built for ubuntu 22.04+)",
-  "version": "0.1.0-alpha.0",
-  "author": "@xgsd",
+  "description": "A CLI for interacting with xGSD APIs and local FaaS (built for ubuntu 22.04+)",
+  "version": "0.1.0-alpha.1",
+  "author": "Michael Palmer",
   "bin": {
     "xgsd": "./bin/run.js"
   },
@@ -20,9 +20,7 @@
     "joi": "^18.0.1",
     "js-yaml": "^4.1.0",
     "keytar": "^7.9.0",
-    "nodevm": "^0.0.0-empty",
-    "uuid": "^11.1.0",
-    "vm2": "^3.9.19"
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@eslint/compat": "^1",
