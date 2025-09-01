@@ -1,0 +1,16 @@
+name: HTTP Request Example
+description: An example workflow that makes an HTTP request
+runner: xgsd@v1
+collect:
+  logs: true
+  run: true
+options:
+  timeout: 1s
+  retries: 3
+data:
+  url: 'https://jsonplaceholder.typicode.com/todos/1'
+steps:
+  - name: Fetch Data
+    action: fetchData
+  - name: Hash Result
+    action: hashResult

@@ -1,0 +1,12 @@
+# run this pipeline with $ xgsd run my-first-workflow --watch
+name: Upper Case Converter
+description: Converts input text to upper case
+runner: xgsd@v1
+options:
+  timeout: 1s
+  retries: 3
+data:
+  input: 'Hello, world!'
+steps:
+  - name: Convert to Upper Case
+    action: myAction
