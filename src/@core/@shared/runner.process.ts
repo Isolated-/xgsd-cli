@@ -4,6 +4,7 @@ import {retry, WrappedError, timeout as withTimeout, runner} from './runner'
 import {RetryAttempt} from './runner/retry.runner'
 import {fork} from 'child_process'
 import {v4} from 'uuid'
+import ms = require('ms')
 
 type ChildMessage =
   | {type: 'RUN'; id: string; data: SourceData; config: FlexiblePipelineConfig}
@@ -13,7 +14,7 @@ type ChildMessage =
   | {type: 'ERROR'; error: string}
 
 function logRetry(name: string, attempt: number, max: number, next: number, error: WrappedError) {
-  log(`${name} - retry attempt ${attempt + 1}/${max}, next retry in ${next}s, error: ${error.message}`, 'warn')
+  log(`${name} - retry attempt ${attempt + 1}/${max}, next retry in ${ms(next)}, error: ${error.message}`, 'warn')
 }
 
 async function runStep(step: PipelineStep, input: SourceData, pipelineConfig: FlexiblePipelineConfig) {
@@ -29,7 +30,7 @@ async function runStep(step: PipelineStep, input: SourceData, pipelineConfig: Fl
         case 'ATTEMPT':
           const next = Math.ceil(msg.next / 1000)
 
-          logRetry(step.name!, msg.attempt, pipelineConfig.options.maxRetries!, next, msg.error)
+          logRetry(step.name!, msg.attempt, step.options?.retries || pipelineConfig.options.retries!, next, msg.error)
 
           errors.push(msg.error)
           break
@@ -59,12 +60,12 @@ process.on('message', async (context: ChildMessage) => {
   let pipelineStartMs = performance.now()
 
   const {data, config} = context
-  const {timeout, maxRetries} = config.options
+  const {timeout, retries} = config.options
 
   log(
     `${config.name} (${config.version || 'unversioned'}) is running using runner "${config.runner}" in ${
       config.mode
-    } mode, timeout: ${timeout}ms, retries: ${maxRetries}.`,
+    } mode, timeout: ${timeout}, retries: ${retries}.`,
     'status',
   )
 
@@ -74,7 +75,7 @@ process.on('message', async (context: ChildMessage) => {
   if (config.mode === 'async') {
     // Run all steps in parallel
     const stepResults = await Promise.all(config.steps.map((step) => runStep(step, data, config)))
-    completedSteps.push(...stepResults.map((r) => r.step))
+    completedSteps.push(...stepResults.filter(Boolean).map((r) => r.step))
   }
 
   if (config.mode !== 'async') {
@@ -84,6 +85,10 @@ process.on('message', async (context: ChildMessage) => {
       const result = await runStep(step, input, config)
 
       if (config.mode === 'chained') input = result.step?.output || input
+
+      if (!result.step && !result.errors) {
+        continue
+      }
 
       completedSteps.push({
         ...result.step,
@@ -96,17 +101,17 @@ process.on('message', async (context: ChildMessage) => {
   }
 
   const failed = completedSteps.filter((step) => step.errors!.length > 0 && !step.output)
-  const succeeded = completedSteps.length - failed.length
+  const skipped = completedSteps.filter((step) => step.state === PipelineState.Skipped)
+  const succeeded = completedSteps.length - (failed.length + skipped.length)
 
   log(`the run id for ${config.name} is ${context.id}`, 'info')
   log(`logs and results if collected will be saved to ${config.output}`, 'info')
   log(`the duration in your report may be slightly different to below`, 'info')
 
   log(
-    `executed ${completedSteps.length} steps, ${succeeded} succeeded and ${failed.length} failed, duration: ${(
-      (performance.now() - pipelineStartMs) /
-      1000
-    ).toFixed(2)}s`,
+    `executed ${config.steps.length} steps, ${succeeded} succeeded, ${failed.length} failed and ${
+      skipped.length
+    } skipped, duration: ${ms(Math.ceil(performance.now() - pipelineStartMs))}`,
     'status',
   )
 
