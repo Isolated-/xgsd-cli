@@ -1,12 +1,12 @@
 {
-  "id": "d8174ed5-1563-4f73-a7c7-b44104b905c2",
+  "id": "62c0736e-c89f-4a1f-baae-b4d4dc312cf0",
   "runner": "xgsd@v1",
   "name": "HTTP Request Example",
   "description": "An example workflow that makes an HTTP request",
-  "package": "/home/me/xgsd-cli/examples/http",
-  "start": "2025-09-01T22:58:03.155Z",
-  "end": "2025-09-01T22:58:03.204Z",
-  "duration": 235,
+  "package": "/xgsd-cli/examples/http",
+  "start": "2025-09-01T23:08:34.432Z",
+  "end": "2025-09-01T23:08:34.483Z",
+  "duration": 470,
   "state": "completed",
   "config": {
     "name": "HTTP Request Example",
@@ -65,20 +65,20 @@
       }
     ],
     "version": "1.0.0",
-    "package": "/home/me/xgsd-cli/examples/http",
-    "output": "/home/me/xgsd-cli/examples/http/runs/http-request-example",
+    "package": "/xgsd-cli/examples/http",
+    "output": "/xgsd-cli/examples/http/runs/http-request-example",
     "node": {
       "os": "linux",
       "arch": "x64",
       "version": "v24.4.1",
       "processes": {
-        "user": 259345,
-        "system": 47245
+        "user": 237867,
+        "system": 43524
       },
       "memory": {
-        "rss": 83468288,
+        "rss": 82407424,
         "heapTotal": 30744576,
-        "heapUsed": 13616640,
+        "heapUsed": 13611712,
         "external": 2265470,
         "arrayBuffers": 47740
       }
@@ -103,9 +103,9 @@
       "attempt": 0,
       "error": null,
       "errors": [],
-      "duration": 186,
-      "startedAt": "2025-09-01T22:58:02.924Z",
-      "endedAt": "2025-09-01T22:58:03.110Z"
+      "duration": 419,
+      "startedAt": "2025-09-01T23:08:33.965Z",
+      "endedAt": "2025-09-01T23:08:34.384Z"
     },
     {
       "name": "Hash Result",
@@ -118,14 +118,14 @@
         "completed": false,
         "url": "https://jsonplaceholder.typicode.com/todos/1"
       },
-      "output": "a890405fcc349777500c6da0a4fd472594274c98ec90e2148a13bbf60c3842ad",
+      "output": "87399bb757c95c41e6880b8a42d05581b807f36da586e59df268db9f9584bd80",
       "max": 3,
       "attempt": 0,
       "error": null,
       "errors": [],
-      "duration": 49,
-      "startedAt": "2025-09-01T22:58:03.155Z",
-      "endedAt": "2025-09-01T22:58:03.204Z"
+      "duration": 51,
+      "startedAt": "2025-09-01T23:08:34.432Z",
+      "endedAt": "2025-09-01T23:08:34.483Z"
     }
   ]
 }
