@@ -8,6 +8,7 @@ import {load} from 'js-yaml'
 import {Require} from '../@types/require.type'
 import * as Joi from 'joi'
 import ms = require('ms')
+import * as _ from 'lodash'
 
 export const orchestration = async <T extends SourceData = SourceData, R extends SourceData = SourceData>(
   input: T,
@@ -162,7 +163,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexiblePipelineConfig
     description: step.description || 'no description',
     action: step.action,
     enabled: step.enabled ?? true,
-    data: step.data ?? header.data,
+    data: header.data || step.data ? _.merge({}, header.data, step.data) : undefined,
     options: {
       timeout: step.options?.timeout || header.options.timeout,
       retries: step.options?.retries || header.options.retries,

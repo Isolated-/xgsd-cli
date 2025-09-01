@@ -161,7 +161,7 @@ describe('validateWorkflowConfig', () => {
     expect(result.data).toBeUndefined()
   })
 
-  test('should apply workflow "data" to steps if not provided', () => {
+  test('should apply workflow "data" to steps if not provided (v0.3+)', () => {
     const result = validateWorkflowConfig({
       ...validMinimalConfig,
       data: {url: 'http://httpbin.org/json'},
@@ -174,6 +174,77 @@ describe('validateWorkflowConfig', () => {
     // step 0 has its own data, step 1 should get workflow data
     expect(result.steps[0].data).toEqual({url: 'https://example.com'})
     expect(result.steps[1].data).toEqual({url: 'http://httpbin.org/json'})
+  })
+
+  test('should merge "data" at workflow level with step (v0.3+)', () => {
+    const result = validateWorkflowConfig({
+      ...validMinimalConfig,
+      data: {name: 'My Workflow'},
+      steps: [
+        {
+          name: 'My Step',
+          data: {
+            url: 'http://httpbin.org/json',
+          },
+          action: 'myAction',
+        },
+      ],
+    } as any)
+    expect(result.steps[0].data).toEqual({url: 'http://httpbin.org/json', name: 'My Workflow'})
+  })
+
+  test('should override workflow level with step (step wins) (v0.3+)', () => {
+    const result = validateWorkflowConfig({
+      ...validMinimalConfig,
+      data: {name: 'My Workflow'},
+      steps: [
+        {
+          name: 'My Step',
+          data: {
+            name: 'No, my workflow',
+            url: 'http://httpbin.org/json',
+          },
+          action: 'myAction',
+        },
+      ],
+    } as any)
+    expect(result.steps[0].data).toEqual({url: 'http://httpbin.org/json', name: 'No, my workflow'})
+  })
+
+  test('should not cause issues if "data" is undefined (v0.3+)', () => {
+    const result = validateWorkflowConfig({
+      ...validMinimalConfig,
+      data: undefined,
+    } as any)
+    expect(result.data).toBeUndefined()
+    expect(result.steps[0].data).toBeUndefined()
+  })
+
+  test('should deepmerge data objects', () => {
+    const result = validateWorkflowConfig({
+      ...validMinimalConfig,
+      data: {name: 'My Workflow', nested: {key: 'value', nestedAgain: {key: 'value'}}},
+      steps: [
+        {
+          name: 'My Step',
+          data: {
+            url: 'http://httpbin.org/json',
+            nested: {
+              key: 'changed',
+              nestedAgain: {
+                key: 'changed',
+              },
+            },
+          },
+          action: 'myAction',
+        },
+      ],
+    } as any)
+    expect(result.steps[0].data).toEqual({
+      url: 'http://httpbin.org/json',
+      name: 'My Workflow',
+      nested: {key: 'changed', nestedAgain: {key: 'changed'}},
+    })
   })
 
   test('should validate user workflow config', () => {
