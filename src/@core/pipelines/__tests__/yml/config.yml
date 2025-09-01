@@ -1,0 +1,15 @@
+name: My Workflow
+description: My Workflow Description
+runner: xgsd@v1
+options:
+  retries: 3
+  timeout: 5s
+collect:
+  logs: true
+  run: true
+metadata:
+  production: true
+  version: 1
+steps:
+  - name: Uppercase Data
+    action: myAction
