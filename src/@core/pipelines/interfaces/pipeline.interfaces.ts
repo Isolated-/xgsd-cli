@@ -1,6 +1,6 @@
 import {IRunnable} from '../../@shared/interfaces/runnable.interface'
 import {RunFn} from '../../@shared/types/runnable.types'
-import {PipeFn, PipelineConfig, SourceData} from '../../@types/pipeline.types'
+import {PipelineConfig, SourceData} from '../../@types/pipeline.types'
 
 export interface IPipeline<T extends SourceData = SourceData> {
   config: PipelineConfig<T>
