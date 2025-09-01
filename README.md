@@ -3,7 +3,7 @@
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
 [![Version](https://img.shields.io/npm/v/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
 [![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
-[![tests](https://github.com/Isolated-/xgsd-cli/actions/workflows/test.yml/badge.svg)](https://github.com/Isolated-/xgsd-cli/actions/workflows/test.yml)
+[![CI & Release](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml/badge.svg)](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml)
 
 Built for solos, xGSD is local task orchestration (and soon) built on top of a secure storage system that integrates with whatever storage solution you want/need. If you don't need the complexity (and power) of a cloud solution, xGSD may be for you. No dependencies, or anything to manage just define your pipeline and everything else is taken care of.
 
@@ -224,6 +224,16 @@ If you need a mode introduced please let me know - more modes = more use cases f
 - `chained` - order is preserved like `chained`, however, the output from the _last successful step_ is passed into the input of the next step. This chaining allows for complex workflows and maintains order when things go wrong.
 
 It's worth noting that regardless of the mode used, you'll get full process isolation at the pipeline level and individual steps. _Most_ blocking tasks that would typically stall Node.js shouldn't with the exception of `while (true) {}`. I'm working on a solution for this.
+
+## Inspiration
+
+Over the last five years I've been working toward developing flexible code that is on-par with industry standards and current trends. My goal was to enable custom usercode to run without modification to my own code. A lot of trail and error went into a seemingly simple solution. Whilst no tool specifically led to a solution, a lot of inspiration has come from:
+
+- Github Actions
+- AWS Lambda and cloud alternatives
+- RxJS, Nest.js, and other JavaScript frameworks/libraries
+
+You'll see this in various forms from configuration to isolation, I would've been lost without having these tools available to reverse engineer.
 
 ## Support
 

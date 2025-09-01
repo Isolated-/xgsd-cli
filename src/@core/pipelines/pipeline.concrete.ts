@@ -73,11 +73,11 @@ const orchestrate = async <T extends SourceData = SourceData>(
   }
 
   // perform aggregations
-  config.output = config.steps.reduce((acc: any, step) => ({...acc, ...step.run}), {})
+  config.output = config.steps.reduce((acc: any, step) => ({...acc, ...step.output!}), {})
   config.errors = config.steps.reduce((acc: any, step) => [...acc, ...step.errors!], [])
   config.retries = config.steps.reduce((acc: number, step) => acc + (step.attempt ?? 0), 0)
   config.state = config.errors.length > 0 ? PipelineState.Failed : PipelineState.Completed
-  config.runs = config.steps.map((step) => step.run).filter(Boolean) as any[]
+  config.runs = config.steps.map((step) => step.output).filter(Boolean) as any[]
 
   // for chained mode, input goes through to output
   if (config.mode === PipelineMode.Chained) {

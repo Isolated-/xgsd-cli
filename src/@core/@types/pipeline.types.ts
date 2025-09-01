@@ -17,30 +17,20 @@ export type StripFn<T extends SourceData = SourceData> = (data: T) => Partial<T>
 export type PartialStep<T extends SourceData = SourceData> = Require<PipelineStep<T>, 'fn'>
 
 /**
- *  New PipeFn function vs interface for flexibility.
- *  Will be used for user plugins/extensions in future
- *  In addition to existing use cases.
- *  @since v1
- *  @version v1
- */
-export type PipeFn<T extends SourceData = SourceData> = (
-  context: PipelineConfig<T> & {
-    previous: PipelineStep<T> | null
-    next: (data?: T | null, error?: Error | Error[] | null) => Promise<PipelineStep<T> | null>
-  },
-) => Promise<PipelineStep<T> | null>
-
-/**
  *  Pipeline step configuration (simplified).
  *  Represents a single step in the pipeline.
  *  @since v1
  *  @version v1
  */
 export type PipelineStep<T extends SourceData = SourceData> = {
+  action?: string
   name?: string | undefined
   description?: string | undefined
   startedAt?: string | null | undefined
   endedAt?: string | null | undefined
+  /**
+   *  @deprecated
+   */
   run: RunnerResult<T> | null
   options?: {
     retries?: number
@@ -49,16 +39,35 @@ export type PipelineStep<T extends SourceData = SourceData> = {
   enabled?: boolean
   input: T | null
   output?: T | null
+  /**
+   *  @deprecated use error/errors
+   */
   errorMessage?: string | null
   state: PipelineState
   error?: WrappedError | null
   errors?: WrappedError[]
+
   attempt?: number
+
+  /**
+   *  @deprecated use `options.retries`
+   */
   retries?: number
   fn: RunFn<T, T>
-  action?: string
+
+  /**
+   *  @deprecated no alternative yet
+   */
   validate?: ValidateFn<T>
+
+  /**
+   *  @deprecated no alternative yet
+   */
   transform?<R = T>(data: T): Promise<R> | R
+
+  /**
+   *  @deprecated no alternative yet
+   */
   strip?: StripFn<T>
 }
 
@@ -118,8 +127,15 @@ export type PipelineConfig<T extends SourceData = SourceData> = {
 
 export type FlexiblePipelineOptions = {
   timeout?: number
+  /**
+   *  @deprecated use retries instead
+   */
   maxRetries?: number
   retries?: number
+
+  /**
+   *  @deprecated will be replaced with `error: exit`
+   */
   stopOnError?: boolean
   delay?: (attempt: number) => number
   transformer?: TransformFn
@@ -128,9 +144,15 @@ export type FlexiblePipelineOptions = {
 
 export type FlexiblePipelineConfig<T = SourceData> = {
   name: string | undefined
+  description: string | undefined
   package: string | undefined
   version: string | undefined
+  enabled: boolean
   mode: PipelineMode
+  collect?: {
+    logs?: boolean
+    run?: boolean
+  }
   runner: 'xgsd@v1'
   output: string
   metadata: Record<string, unknown>
