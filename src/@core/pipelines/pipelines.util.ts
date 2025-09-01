@@ -1,5 +1,6 @@
 import {RunFn} from '../@shared/types/runnable.types'
 import {PipelineConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
+import {IPipeline} from './interfaces/pipeline.interfaces'
 import {Pipeline} from './pipeline.concrete'
 
 export const orchestration = async <T extends SourceData = SourceData, R extends SourceData = SourceData>(

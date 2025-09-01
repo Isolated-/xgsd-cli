@@ -6,8 +6,9 @@
  *  @returns
  */
 const myAction = async (context) => {
-  console.log('myAction called', context)
   const crypto = require('crypto')
+
+  console.log('myAction called', context)
 
   const data = context.data
   const hash = crypto.createHash('sha256').update(data).digest('hex')

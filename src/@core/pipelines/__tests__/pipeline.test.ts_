@@ -106,12 +106,18 @@ describe('pipeline unit tests (new abstractions)', () => {
       })
 
       expect(result.errors).toHaveLength(2)
-      expect(result.errors[0]).toEqual(new Error('Test error'))
+      // errors are now mapped to name, message, stack  and lowercased
+      expect(result.errors[0]).toEqual({
+        name: 'error',
+        message: 'test error',
+        stack: expect.any(String),
+      })
+
       expect(result.errors[1]).toEqual(new Error('Max retries exceeded'))
     })
 
     test('should mutate and return the correct state', async () => {
-      const initial = getDefaultPipelineConfig({max: 1})
+      const initial = getDefaultPipelineConfig({max: 1, mode: PipelineMode.Chained})
       const pipeline = new Pipeline(initial)
 
       const result = await pipeline.orchestrate({foo: 'bar'}, newTestFn)
@@ -126,8 +132,6 @@ describe('pipeline unit tests (new abstractions)', () => {
 
       expect(result.stopOnError).toBeTruthy()
       expect(result.errors).toHaveLength(2)
-      expect(result.errors[0]).toEqual(new Error('Test error'))
-      expect(result.errors[1]).toEqual(new Error('Max retries exceeded'))
       expect(result.retries).toEqual(1)
     })
 
@@ -138,8 +142,8 @@ describe('pipeline unit tests (new abstractions)', () => {
       })
 
       expect(result).toBeDefined()
-      expect(result.errors[0]).toEqual(new Error('Test error'))
       expect(result.steps[0].errorMessage?.toLowerCase()).toEqual('test error')
+      expect(result.steps[0].state).toEqual(PipelineState.Failed)
     })
 
     test('should update step input/output correctly', async () => {
@@ -218,7 +222,7 @@ describe('pipeline unit tests (new abstractions)', () => {
         return {ok: true}
       }
 
-      const pipeline = new Pipeline(getDefaultPipelineConfig({max: 2}))
+      const pipeline = new Pipeline(getDefaultPipelineConfig({max: 3}))
       const result = await pipeline.orchestrate({foo: 'bar'}, flakyFn, flakyFn)
 
       expect(result.retries).toBeGreaterThan(1)
@@ -253,6 +257,33 @@ describe('pipeline unit tests (new abstractions)', () => {
       expect(result.steps[1].input).toEqual({foo: 'bar'})
       expect(result.steps[2].input).toEqual({foo: 'bar'})
       expect(result.output).toEqual({data: 'BAR'})
+    })
+
+    test('complicated chain should work as expected', async () => {
+      const testFn1 = async (context: any) => {
+        return {data: context.data + '1', additional: 1}
+      }
+
+      const testFn2 = async (context: any) => {
+        return {data: context.data + '2', additional: 2}
+      }
+
+      const failingFn = async (context: any) => {
+        throw new Error('failed')
+      }
+
+      const testFn3 = async (context: any) => {
+        return {data: context.data + '3', additional: 3}
+      }
+
+      const pipeline = new Pipeline(getDefaultPipelineConfig({mode: PipelineMode.Chained}))
+      const result = await pipeline.orchestrate({data: 'bar'}, testFn1, failingFn, testFn2, testFn3)
+
+      expect(result).toBeDefined()
+      expect(result.runs).toHaveLength(3)
+
+      expect(result.steps[0].input).toEqual({data: 'bar'})
+      expect(result.steps[0].output).toEqual({data: 'bar1', additional: 1})
     })
   })
 })

@@ -1,10 +1,22 @@
 import {config} from 'process'
-import {PipelineConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
+import {
+  FlexiblePipelineConfig,
+  PipelineConfig,
+  PipelineMode,
+  PipelineState,
+  PipelineStep,
+  SourceData,
+} from '../@types/pipeline.types'
 import {IPipeline} from './interfaces/pipeline.interfaces'
 import {getDefaultPipelineConfig} from './pipelines.util'
-import {timedRunnerFn} from '../@shared/runner'
+import {timedRunnerFn, WrappedError} from '../@shared/runner'
 import {debug} from '../util/debug.util'
 import {RunFn} from '../@shared/types/runnable.types'
+import {EventEmitter2} from 'eventemitter2'
+import {fork} from 'child_process'
+import {dirname, join} from 'path'
+import {createWriteStream, ensureDirSync, writeJsonSync, WriteStream} from 'fs-extra'
+import {v4} from 'uuid'
 
 /**
  *  Orchestrates a single step in the pipeline.
@@ -26,7 +38,7 @@ const orchestrateStep = async <T extends SourceData = SourceData>(
   }
 
   const result = await timedRunnerFn(data, fn, {
-    mode: 'isolated',
+    mode: 'local',
     retries: config.stopOnError ? 1 : config.max,
     timeout: config.timeout,
     delay: config.delay ?? ((attempt) => attempt + 100),
@@ -35,7 +47,7 @@ const orchestrateStep = async <T extends SourceData = SourceData>(
   // update step config
   config.steps[index].input = data ?? null
   config.steps[index].errorMessage = result.errors && result.errors.length > 0 ? result.errors[0].message : null
-  config.steps[index].errors = result.errors || []
+  config.steps[index].errors = (result.errors as WrappedError[]) || []
   config.steps[index].run = result.data ?? null
   config.steps[index].output = result.data ?? null
   config.steps[index].state = result.errors && result.errors.length > 0 ? PipelineState.Failed : PipelineState.Succeeded
@@ -75,6 +87,120 @@ const orchestrate = async <T extends SourceData = SourceData>(
   return config
 }
 
+export const userCodeLogCollector = (id: string, date: string, path: string, event: EventEmitter2) => {
+  const logPath = join(path, 'logs')
+  ensureDirSync(logPath)
+
+  const writeStream = createWriteStream(join(logPath, `logs-${date}.log`), {flags: 'a'})
+
+  event.on('message', (msg) => {
+    writeStream.write(`(${msg.log.level}) ${msg.log.message}\n`)
+  })
+}
+
+export const userCodeResultCollector = (id: string, date: string, path: string, event: EventEmitter2) => {
+  const resultPath = join(path)
+  ensureDirSync(resultPath)
+
+  event.on('finish', (result) => {
+    const nodeVersion = process.version
+    const os = process.platform
+
+    const report = {
+      id,
+      runner: result.config.runner || '',
+      name: result.config.name,
+      description: result.config.description || '',
+      package: result.config.package || '',
+      start: result.steps[0]?.startedAt || null,
+      end: result.steps[result.steps.length - 1]?.endedAt || null,
+      duration: result.steps.reduce((acc: number, step: any) => acc + (step.duration || 0), 0),
+      state:
+        result.steps.filter((step: any) => step.state === PipelineState.Completed).length > 0
+          ? PipelineState.Completed
+          : PipelineState.Failed,
+      config: {
+        ...result.config,
+        node: {
+          os,
+          arch: process.arch,
+          version: nodeVersion,
+          processes: process.cpuUsage(),
+          memory: process.memoryUsage(),
+        },
+      },
+      steps: result.steps,
+    }
+
+    writeJsonSync(join(result.config.output, `report-${date}.json`), report, {spaces: 2})
+  })
+}
+
+// remove the export once complete
+export const userCodeOrchestration = async <T extends SourceData = SourceData>(
+  data: any,
+  config: any,
+  event?: EventEmitter2,
+) => {
+  const handler = event ?? new EventEmitter2()
+  const {collect} = config
+
+  const date = new Date().toISOString().replace(/:/g, '-')
+  const id = v4()
+
+  if (collect) {
+    ensureDirSync(config.output)
+  }
+
+  if (collect?.logs) {
+    userCodeLogCollector(id, date, config.output, handler)
+  }
+
+  if (collect?.run) {
+    userCodeResultCollector(id, date, config.output, handler)
+  }
+
+  return runInChildProcess(id, data, config, handler)
+}
+
+export function runInChildProcess<T extends SourceData = SourceData, R = any>(
+  id: string,
+  data: T,
+  config: FlexiblePipelineConfig,
+  event: EventEmitter2,
+): Promise<{result: R}> {
+  let settled = false
+  let retries = 0
+
+  return new Promise((resolve) => {
+    const workerPath = join(__dirname, '..', '@shared', 'runner.process.js')
+    const child = fork(workerPath, [config.package!], {stdio: ['inherit', 'inherit', 'inherit', 'ipc']})
+
+    child.on('message', (msg: any) => {
+      if (settled) return
+
+      switch (msg.type) {
+        case 'LOG':
+          event.emit('message', msg)
+          break
+
+        case 'ATTEMPT':
+          event.emit('attempt', msg.attempt)
+          break
+
+        case 'RESULT':
+          event.emit('finish', msg.result)
+          child.kill()
+          resolve({result: msg.result})
+          break
+      }
+    })
+
+    // Start execution
+    child.send({type: 'RUN', id, data, config})
+  })
+}
+
 export class Pipeline<T extends SourceData = SourceData> implements IPipeline<T> {
   constructor(public config: PipelineConfig<T>) {}
 
@@ -93,6 +219,7 @@ export class Pipeline<T extends SourceData = SourceData> implements IPipeline<T>
         run: null,
         fn: c,
         state: PipelineState.Pending,
+        error: null,
         errors: [],
       })),
       input: input as T,

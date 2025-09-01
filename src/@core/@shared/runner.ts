@@ -1,6 +1,15 @@
+import {SourceData} from '../@types/pipeline.types'
 import {debug} from '../util/debug.util'
 import {RunFn} from './types/runnable.types'
 import {Worker} from 'worker_threads'
+
+/**
+ *  Runner API exports
+ */
+import {execute} from './runner/execute.runner'
+export {execute}
+import {retry} from './runner/retry.runner'
+export {retry}
 
 export type RunnerOpts = {
   errors?: any[]
@@ -22,7 +31,7 @@ export type RunnerResult<T, E = Error> = {
   state?: 'error' | 'timeout'
 }
 
-function runInWorker<T, R>(fn: (data: T) => R | Promise<R>, data: T, ms: number): Promise<R> {
+export async function runInWorker<T, R>(fn: (data: T) => R | Promise<R>, data: T, ms: number): Promise<R> {
   const name = fn.name || 'usercode'
   debug('starting worker process for isolated run', runInWorker.name, name, data as any)
 
@@ -82,7 +91,7 @@ function runInWorker<T, R>(fn: (data: T) => R | Promise<R>, data: T, ms: number)
   })
 }
 
-async function timeout<T>(ms: number, task: () => Promise<T>): Promise<T> {
+export async function timeout<T>(ms: number, task: () => Promise<T>): Promise<T> {
   let timer: NodeJS.Timeout
   return Promise.race<T>([
     task(),
@@ -107,6 +116,13 @@ export const timedRunnerFn = async (data: any, fn: RunFn<any, any>, opts?: Runne
   return result
 }
 
+export type WrappedError<T extends Error = Error> = {
+  original: T
+  name: string
+  message: string
+  stack?: string
+}
+
 /**
  *  Pure runner function, doesn't manage retries or timeouts
  *  Simply calls the provided function with the given data and returns the result.
@@ -123,14 +139,7 @@ export const runner = async (data: any, fn: RunFn<any, any>, opts?: RunnerOpts):
   let logs: any[] = []
 
   try {
-    let result: any
-    if (opts?.mode === 'isolated') {
-      const {result: workerResult, logs: workerLogs} = await runInWorker(fn, data, opts?.timeout ?? 500)
-      result = workerResult
-      logs = workerLogs
-    } else {
-      result = await timeout(opts?.timeout ?? 500, () => Promise.resolve(fn(data)))
-    }
+    let result: any = await timeout(opts?.timeout ?? 500, () => Promise.resolve(fn(data)))
 
     return {data: result, logs}
   } catch (error: any) {

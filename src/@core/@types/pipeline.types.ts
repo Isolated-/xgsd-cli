@@ -1,5 +1,5 @@
 import {IRunnable} from '../@shared/interfaces/runnable.interface'
-import {RunnerResult} from '../@shared/runner'
+import {RunnerResult, WrappedError} from '../@shared/runner'
 import {RunFn} from '../@shared/types/runnable.types'
 import {Require} from './require.type'
 
@@ -37,15 +37,25 @@ export type PipeFn<T extends SourceData = SourceData> = (
  *  @version v1
  */
 export type PipelineStep<T extends SourceData = SourceData> = {
+  name?: string | undefined
+  description?: string | undefined
+  startedAt?: string | null | undefined
+  endedAt?: string | null | undefined
   run: RunnerResult<T> | null
+  config?: {
+    retries: number
+    timeout: number
+  }
   input: T | null
   output?: T | null
   errorMessage?: string | null
   state: PipelineState
-  errors?: any[]
+  error?: WrappedError | null
+  errors?: WrappedError[]
   attempt?: number
   retries?: number
   fn: RunFn<T, T>
+  action?: string
   validate?: ValidateFn<T>
   transform?<R = T>(data: T): Promise<R> | R
   strip?: StripFn<T>
@@ -104,4 +114,32 @@ export type PipelineConfig<T extends SourceData = SourceData> = {
   validator?: ValidateFn<T>
 }
 
-export type SourceData = Record<string, unknown>
+export type FlexiblePipelineOptions = {
+  timeout?: number
+  maxRetries?: number
+  stopOnError?: boolean
+  delay?: (attempt: number) => number
+  transformer?: TransformFn
+  validator?: ValidateFn
+}
+
+export type FlexiblePipelineConfig<T = SourceData> = {
+  name: string | undefined
+  package: string | undefined
+  version: string | undefined
+  mode: PipelineMode
+  runner: 'xgsd@v1'
+  output: string
+  metadata: Record<string, unknown>
+  options: FlexiblePipelineOptions
+  flags: Record<string, boolean>
+  steps: PipelineStep<T>[]
+}
+
+export type FlexiblePipelineResult<T = SourceData, E = Error> = {
+  config: FlexiblePipelineConfig<T>
+  output: T | null | undefined
+  errors: E[]
+}
+
+export type SourceData<T = unknown> = string | number | boolean | null | undefined | T | Record<string, T> | T[]
