@@ -42,10 +42,11 @@ export type PipelineStep<T extends SourceData = SourceData> = {
   startedAt?: string | null | undefined
   endedAt?: string | null | undefined
   run: RunnerResult<T> | null
-  config?: {
-    retries: number
-    timeout: number
+  options?: {
+    retries?: number
+    timeout?: number
   }
+  enabled?: boolean
   input: T | null
   output?: T | null
   errorMessage?: string | null
@@ -68,6 +69,7 @@ export enum PipelineState {
   Failed = 'failed',
   Completed = 'completed',
   Succeeded = 'succeeded',
+  Skipped = 'skipped',
 }
 
 export enum PipelineMode {
@@ -117,6 +119,7 @@ export type PipelineConfig<T extends SourceData = SourceData> = {
 export type FlexiblePipelineOptions = {
   timeout?: number
   maxRetries?: number
+  retries?: number
   stopOnError?: boolean
   delay?: (attempt: number) => number
   transformer?: TransformFn
