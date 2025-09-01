@@ -1,24 +1,11 @@
 import {Args, Command, Flags} from '@oclif/core'
-import {dirname, join} from 'path'
-import {retry, runner, runnerFn, timedRunnerFn, execute as xgsdv1} from '../@core/@shared/runner'
-import {getDefaultPipelineConfig, orchestration} from '../@core/pipelines/pipelines.util'
-import {
-  createWriteStream,
-  ensureDirSync,
-  ensureFileSync,
-  pathExistsSync,
-  readFileSync,
-  readJsonSync,
-  writeFileSync,
-  writeJsonSync,
-} from 'fs-extra'
+import {join} from 'path'
+import {pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
 import {Pipeline, userCodeOrchestration} from '../@core/pipelines/pipeline.concrete'
 import * as Joi from 'joi'
 import {PipelineMode} from '../@core/@types/pipeline.types'
 import {load} from 'js-yaml'
-import {testActionFn} from '../@core/actions/test.action'
 import {EventEmitter2} from 'eventemitter2'
-import {WriteStream} from 'fs'
 import chalk from 'chalk'
 
 export default class Run extends Command {
@@ -63,16 +50,6 @@ export default class Run extends Command {
   public async run(): Promise<any> {
     const {args, flags} = await this.parse(Run)
 
-    if (typeof args.function === 'function') {
-      const result = await timedRunnerFn(flags.data ?? {data: 'some data'}, args.function, {
-        mode: flags.local ? 'local' : 'isolated',
-        retries: 3,
-        timeout: 3000,
-      })
-
-      return result
-    }
-
     const modulePath = join(process.cwd(), args.function)
 
     // this will eventually be refactored
@@ -95,7 +72,10 @@ export default class Run extends Command {
     const main = userCodePackageJson.main
     this.log(`found your main entry point: ${main}, this will be loaded shortly.`)
 
-    const configFilePath = join(process.cwd(), args.function, 'config.yml')
+    let configFilePath = join(process.cwd(), args.function, 'config.yml')
+    if (!pathExistsSync(configFilePath)) {
+      configFilePath = join(process.cwd(), args.function, 'config.yaml')
+    }
 
     if (!pathExistsSync(configFilePath)) {
       this.error(`config.yml not found at ${configFilePath}, either create it or use --pipeline`)
@@ -104,17 +84,30 @@ export default class Run extends Command {
     const configFileYml = readFileSync(configFilePath).toString()
     const configFileJson = load(configFileYml) as Record<string, unknown>
 
+    const max = 30 * 24 * 60 * 60 * 1000
+    const retryValidator = Joi.number().min(0).max(max).default(5)
+    const timeoutValidator = Joi.string()
+      .pattern(/^\d+ms$/)
+      .default('5000ms')
+    const optionsValidator = Joi.object({
+      timeout: timeoutValidator,
+      maxRetries: retryValidator,
+      retries: retryValidator,
+    }).optional()
+
     const validationSchema = Joi.object({
       name: Joi.string().default(userCodePackageJson.name),
       description: Joi.string().optional(),
+      enabled: Joi.boolean().default(true),
       runner: Joi.string().valid('xgsd@v1').default('xgsd@v1'),
       metadata: Joi.object().optional(),
       mode: Joi.string().valid('chained', 'fanout', 'async').default('chained') as Joi.Schema<PipelineMode>,
       config: Joi.object().optional(),
-      options: Joi.object({
-        timeout: Joi.number().default(60000),
-        maxRetries: Joi.number().default(5),
-      }).optional(),
+      options: optionsValidator.default({
+        timeout: 5000,
+        maxRetries: 5,
+        retries: 5,
+      }),
       collect: Joi.object({
         logs: Joi.boolean().default(flags.logs || false),
         run: Joi.boolean().default(flags.save || false),
@@ -122,30 +115,32 @@ export default class Run extends Command {
       steps: Joi.array()
         .items(
           Joi.object({
+            enabled: Joi.boolean().default(true),
             name: Joi.string().required(),
             description: Joi.string().optional(),
             action: Joi.string().required(),
-            config: Joi.object().optional(),
+            options: optionsValidator,
           }),
         )
         .optional(),
     })
 
-    // this shouldn't deal with validation,
-    // just hand it to the runner
-
-    // internal pipeline test
     const data = (flags.data as any) ?? {data: 'some data'}
-
     const {error, value: userConfig} = validationSchema.validate(configFileJson, {
       allowUnknown: true,
       stripUnknown: true,
     })
 
-    const event = new EventEmitter2()
+    if (!userConfig.enabled) {
+      this.log(
+        `${userConfig.name} is currently disabled - if this is a mistake, re-enable it in the config file by marking \`enabled: true\`.`,
+      )
+      this.log(`path to config file: ${configFilePath}`)
+      this.exit(10)
+    }
 
+    const event = new EventEmitter2()
     const name = userConfig.name
-    const date = new Date().toISOString().replace(/:/g, '-')
     const writePath = join(process.cwd(), args.function, 'runs', name.toLowerCase().replace(/\s+/g, '-'))
 
     if (flags.watch) {
@@ -177,11 +172,7 @@ export default class Run extends Command {
       })
     }
 
-    // pipeline + steps should emit progress events,
-    // for update progress spinners etc
-    event.on('progress', (context) => {})
-
-    const wrapped = await userCodeOrchestration(
+    await userCodeOrchestration(
       data,
       {...userConfig, version: userCodePackageJson.version, package: modulePath, output: writePath},
       event,
@@ -189,25 +180,4 @@ export default class Run extends Command {
 
     return {}
   }
-
-  async orchestrate(): Promise<string> {
-    const event = new EventEmitter2()
-    let runId = ''
-
-    event.on('start', (id) => {
-      runId = id
-      this.log(`Pipeline started: ${id}`)
-    })
-
-    event.on('message', (msg) => {
-      // save to file
-    })
-
-    return runId
-  }
-}
-
-export async function orchestrate() {
-  const event = new EventEmitter2()
-  let runId = ''
 }
