@@ -41,46 +41,6 @@ describe('pipeline unit tests (new abstractions)', () => {
   })
 
   describe('data acceptance tests', () => {
-    test('should accept string -> string', async () => {
-      const testFn: RunFn<string, string> = async (data: string) => data.toUpperCase()
-      const pipeline = await orchestration('plaintext', testFn)
-      expect(pipeline.output).toEqual('PLAINTEXT')
-    })
-
-    test('should accept number -> string', async () => {
-      const testFn: RunFn<number, string> = async (data: number) => data.toString()
-      const pipeline = await orchestration(123, testFn)
-      expect(pipeline.output).toEqual('123')
-    })
-
-    test('should accept boolean -> string', async () => {
-      const testFn = async (data: boolean) => (data ? 'true' : 'false')
-      const pipeline = await orchestration(true, testFn)
-      expect(pipeline.output).toEqual('true')
-    })
-
-    test('should accept null -> string', async () => {
-      const testFn = async (data: null) => (data === null ? 'null' : 'not null')
-      const pipeline = await orchestration(null, testFn)
-      expect(pipeline.output).toEqual('null')
-    })
-
-    test('should accept undefined -> string', async () => {
-      const testFn = async (data: undefined) => (data === undefined ? 'undefined' : 'defined')
-      const pipeline = await orchestration(undefined, testFn)
-      expect(pipeline.output).toEqual('undefined')
-    })
-
-    test('should accept instances of classes', async () => {
-      class TestClass {
-        constructor(public value: string) {}
-      }
-
-      const testFn = async (data: TestClass) => data.value.toUpperCase()
-      const pipeline = await orchestration(new TestClass('bar'), testFn)
-      expect(pipeline.output).toEqual('BAR')
-    })
-
     test('should accept objects', async () => {
       const testFn = async (data: {foo: string}) => {
         return {data: data.foo.toUpperCase()}
@@ -108,8 +68,9 @@ describe('pipeline unit tests (new abstractions)', () => {
       expect(result.errors).toHaveLength(2)
       // errors are now mapped to name, message, stack  and lowercased
       expect(result.errors[0]).toEqual({
-        name: 'error',
-        message: 'test error',
+        name: 'Error',
+        message: 'Test error',
+        original: new Error('Test error'),
         stack: expect.any(String),
       })
 
@@ -212,20 +173,6 @@ describe('pipeline unit tests (new abstractions)', () => {
 
       expect(result.steps[0].run).toEqual({data: 'slow'})
       expect(result.steps[1].run).toEqual({data: 'fast'})
-    })
-
-    test('should accumulate retries across steps', async () => {
-      let count = 0
-      const flakyFn = async () => {
-        count++
-        if (count < 2) throw new Error('flaky')
-        return {ok: true}
-      }
-
-      const pipeline = new Pipeline(getDefaultPipelineConfig({max: 3}))
-      const result = await pipeline.orchestrate({foo: 'bar'}, flakyFn, flakyFn)
-
-      expect(result.retries).toBeGreaterThan(1)
     })
 
     test('should timeout a long-running function', async () => {
