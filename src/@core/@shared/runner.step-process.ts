@@ -1,3 +1,4 @@
+import _ = require('lodash')
 import {PipelineState} from '../@types/pipeline.types'
 import {retry, WrappedError} from './runner'
 import * as ms from 'ms'
@@ -73,10 +74,11 @@ process.on('message', async (msg: any) => {
 
   let totalRetries = 0
   let errors: WrappedError[] = []
+  const input = _.merge({}, data, step.data)
 
   try {
     log(`${step.name} - executing step`, 'status')
-    const result = await retry(data, fn, retries, {
+    const result = await retry(input, fn, retries, {
       timeout,
       delay: (attempt: number) => Math.min(1000 * 2 ** attempt, 30000),
       onAttempt: (attempt) => {
@@ -101,7 +103,7 @@ process.on('message', async (msg: any) => {
       name: step.name || '',
       description: step.description || '',
       state: result.error ? PipelineState.Failed : PipelineState.Completed,
-      input: data ?? null,
+      input: input ?? null,
       output: result.data ?? null,
       max: retries,
       attempt: totalRetries,

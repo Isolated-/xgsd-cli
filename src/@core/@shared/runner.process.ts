@@ -5,6 +5,7 @@ import {RetryAttempt} from './runner/retry.runner'
 import {fork} from 'child_process'
 import {v4} from 'uuid'
 import ms = require('ms')
+import _ = require('lodash')
 
 type ChildMessage =
   | {type: 'RUN'; id: string; data: SourceData; config: FlexiblePipelineConfig}
@@ -35,6 +36,7 @@ async function runStep(step: PipelineStep, input: SourceData, pipelineConfig: Fl
           errors.push(msg.error)
           break
         case 'RESULT':
+          stepProcess.kill()
           resolve({step: msg.result, fatal: false, errors})
           break
         case 'ERROR':
@@ -70,11 +72,11 @@ process.on('message', async (context: ChildMessage) => {
   )
 
   let completedSteps: PipelineStep[] = []
-  let input = data
+  let input = _.merge({}, config.data, data)
 
   if (config.mode === 'async') {
     // Run all steps in parallel
-    const stepResults = await Promise.all(config.steps.map((step) => runStep(step, data, config)))
+    const stepResults = await Promise.all(config.steps.map((step) => runStep(step, input, config)))
     completedSteps.push(...stepResults.filter(Boolean).map((r) => r.step))
   }
 
