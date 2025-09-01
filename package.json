@@ -1,7 +1,7 @@
 {
   "name": "@xgsd/cli",
   "description": "Local task orchestration for solo-developers, built on top of xGSD. Get started in minutes.",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "author": "Michael Palmer",
   "bin": {
     "xgsd": "./bin/run.js"
@@ -20,6 +20,7 @@
     "joi": "^18.0.1",
     "js-yaml": "^4.1.0",
     "keytar": "^7.9.0",
+    "lodash": "^4.17.21",
     "moment": "^2.30.1",
     "ms": "^2.1.3",
     "uuid": "^11.1.0"
@@ -31,6 +32,7 @@
     "@types/fs-extra": "^11.0.4",
     "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
+    "@types/lodash": "^4.17.20",
     "@types/ms": "^2.1.0",
     "@types/node": "^18",
     "eslint": "^9",
