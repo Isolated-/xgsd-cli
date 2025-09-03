@@ -20,14 +20,6 @@ async function runStep(idx: number, step: PipelineStep, context: WorkflowContext
   return new Promise<{step: any; fatal: boolean; errors: any[]}>((resolve, reject) => {
     const stepProcess = fork(join(__dirname, 'workflow.step-process.js'))
 
-    const {after, ...data} = step
-    const resolved = resolveStepTemplates(data, {
-      ...context,
-      data: step.data,
-    })
-
-    resolved.input = lodash.merge({}, resolved.data, resolved.with)
-
     let errors: WrappedError[] = []
     stepProcess.on('message', (msg: any) => {
       switch (msg.type) {
@@ -35,11 +27,8 @@ async function runStep(idx: number, step: PipelineStep, context: WorkflowContext
           process.send!({type: 'PARENT:LOG', log: msg.log})
           break
         case 'CHILD:ATTEMPT':
-          const next = Math.ceil(msg.next / 1000)
-
           //logRetry(step.name!, msg.attempt, step.options?.retries || pipelineConfig.options.retries!, next, msg.error)
-
-          errors.push(msg.error)
+          event('retry', msg)
           break
         case 'CHILD:RESULT':
           stepProcess.kill()
@@ -56,8 +45,7 @@ async function runStep(idx: number, step: PipelineStep, context: WorkflowContext
       type: 'START',
       step: {
         index: idx,
-        ...resolved,
-        after,
+        ...step,
       },
       context,
     })
