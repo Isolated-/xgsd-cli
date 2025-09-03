@@ -1,13 +1,14 @@
 {
-  "id": "62c0736e-c89f-4a1f-baae-b4d4dc312cf0",
+  "id": "6ac65122-a2d1-4606-820f-6becae65c5d0",
   "runner": "xgsd@v1",
   "name": "HTTP Request Example",
   "description": "An example workflow that makes an HTTP request",
-  "package": "/xgsd-cli/examples/http",
-  "start": "2025-09-01T23:08:34.432Z",
-  "end": "2025-09-01T23:08:34.483Z",
-  "duration": 470,
-  "state": "completed",
+  "package": "/home/me/xgsd-cli/examples/http",
+  "output": "/home/me/xgsd-cli/examples/http/runs/http-request-example",
+  "start": "2025-09-03T06:12:20.078Z",
+  "end": "2025-09-03T06:12:20.120Z",
+  "duration": 691,
+  "state": "failed",
   "config": {
     "name": "HTTP Request Example",
     "description": "An example workflow that makes an HTTP request",
@@ -26,12 +27,16 @@
       "logs": true,
       "run": true
     },
+    "print": {
+      "input": false,
+      "output": false
+    },
     "steps": [
       {
         "name": "Fetch Data",
-        "description": "no description",
         "action": "fetchData",
         "enabled": true,
+        "description": "no description",
         "data": {
           "url": "https://jsonplaceholder.typicode.com/todos/1"
         },
@@ -39,16 +44,14 @@
           "timeout": 1000,
           "retries": 3
         },
-        "input": {
-          "url": "https://jsonplaceholder.typicode.com/todos/1",
-          "data": "some data"
-        }
+        "if": null,
+        "run": "fetchData"
       },
       {
         "name": "Hash Result",
-        "description": "no description",
         "action": "hashResult",
         "enabled": true,
+        "description": "no description",
         "data": {
           "url": "https://jsonplaceholder.typicode.com/todos/1"
         },
@@ -56,42 +59,37 @@
           "timeout": 1000,
           "retries": 3
         },
-        "input": {
-          "userId": 1,
-          "id": 1,
-          "title": "delectus aut autem",
-          "completed": false
-        }
+        "if": null,
+        "run": "hashResult"
       }
     ],
     "version": "1.0.0",
-    "package": "/xgsd-cli/examples/http",
-    "output": "/xgsd-cli/examples/http/runs/http-request-example",
+    "package": "/home/me/xgsd-cli/examples/http",
+    "output": "/home/me/xgsd-cli/examples/http/runs/http-request-example",
     "node": {
       "os": "linux",
       "arch": "x64",
       "version": "v24.4.1",
       "processes": {
-        "user": 237867,
-        "system": 43524
+        "user": 265613,
+        "system": 34649
       },
       "memory": {
-        "rss": 82407424,
-        "heapTotal": 30744576,
-        "heapUsed": 13611712,
-        "external": 2265470,
-        "arrayBuffers": 47740
+        "rss": 81174528,
+        "heapTotal": 31793152,
+        "heapUsed": 13777416,
+        "external": 2269635,
+        "arrayBuffers": 51905
       }
     }
   },
   "steps": [
     {
+      "id": 0,
       "name": "Fetch Data",
       "description": "no description",
-      "state": "completed",
       "input": {
-        "url": "https://jsonplaceholder.typicode.com/todos/1",
-        "data": "some data"
+        "url": "https://jsonplaceholder.typicode.com/todos/1"
       },
       "output": {
         "userId": 1,
@@ -99,33 +97,27 @@
         "title": "delectus aut autem",
         "completed": false
       },
-      "max": 3,
-      "attempt": 0,
-      "error": null,
       "errors": [],
-      "duration": 419,
-      "startedAt": "2025-09-01T23:08:33.965Z",
-      "endedAt": "2025-09-01T23:08:34.384Z"
+      "start": "2025-09-03T06:12:19.373Z",
+      "end": "2025-09-03T06:12:20.022Z",
+      "duration": 649
     },
     {
+      "id": 1,
       "name": "Hash Result",
       "description": "no description",
-      "state": "completed",
       "input": {
+        "url": "https://jsonplaceholder.typicode.com/todos/1",
         "userId": 1,
         "id": 1,
         "title": "delectus aut autem",
-        "completed": false,
-        "url": "https://jsonplaceholder.typicode.com/todos/1"
+        "completed": false
       },
-      "output": "87399bb757c95c41e6880b8a42d05581b807f36da586e59df268db9f9584bd80",
-      "max": 3,
-      "attempt": 0,
-      "error": null,
+      "output": "ba5dd5a8fde59f46880e3c909a4ba3612937826b9270a8b487dceb8a85073acd",
       "errors": [],
-      "duration": 51,
-      "startedAt": "2025-09-01T23:08:34.432Z",
-      "endedAt": "2025-09-01T23:08:34.483Z"
+      "start": "2025-09-03T06:12:20.078Z",
+      "end": "2025-09-03T06:12:20.120Z",
+      "duration": 42
     }
   ]
 }

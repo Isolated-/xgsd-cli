@@ -1,5 +1,5 @@
 const myAction = (context) => {
-  return context.data.toUpperCase()
+  return context.input.toUpperCase()
 }
 
 module.exports = {myAction}

@@ -1,9 +1,6 @@
 name: HTTP Request Example
 description: An example workflow that makes an HTTP request
 runner: xgsd@v1
-collect:
-  logs: true
-  run: true
 options:
   timeout: 1s
   retries: 3

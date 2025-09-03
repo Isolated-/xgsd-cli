@@ -1,0 +1,8 @@
+(status) Workflow "http request example" (@v1.0.0) started, id: 6ac65122-a2d1-4606-820f-6becae65c5d0. retries: 3, timeout: 1s
+(status) (Fetch Data) no description is running using xgsd@v1, timeout: 1s, retries: 3, enabled: true
+(success) Fetch Data - step completed successfully
+(status) (Hash Result) no description is running using xgsd@v1, timeout: 1s, retries: 3, enabled: true
+(success) Hash Result - step completed successfully
+(status) Workflow "http request example" has completed, id: 6ac65122-a2d1-4606-820f-6becae65c5d0.
+(status) artifacts from this run will be saved to /home/me/xgsd-cli/examples/http/runs/http-request-example
+(success) executed 2 steps, 2 succeeded, 0 failed and 0 skipped, duration: 801ms (HTTP Request Example)
