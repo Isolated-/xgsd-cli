@@ -28,10 +28,9 @@ export type PipelineStep<T extends SourceData = SourceData> = {
   description?: string | undefined
   startedAt?: string | null | undefined
   endedAt?: string | null | undefined
-  /**
-   *  @deprecated
-   */
-  run: RunnerResult<T> | null
+  run: Record<string, unknown> | null
+  if?: boolean | null
+  after?: Record<string, unknown> | null
   options?: {
     retries?: number
     timeout?: number
@@ -39,6 +38,7 @@ export type PipelineStep<T extends SourceData = SourceData> = {
   enabled?: boolean
   input: T | null
   data?: Record<string, T> | null
+  with?: Record<string, unknown> | null
   output?: T | null
   /**
    *  @deprecated use error/errors
@@ -150,6 +150,10 @@ export type FlexibleWorkflowConfig<T = SourceData> = {
   version: string | undefined
   enabled: boolean
   mode: PipelineMode
+  print?: {
+    input?: boolean
+    output?: boolean
+  }
   /**
    *  @note "data" option has been added, merges with any runtime data
    *  @since v0.3
