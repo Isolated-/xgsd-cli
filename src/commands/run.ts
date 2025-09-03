@@ -131,6 +131,8 @@ export default class Run extends Command {
           this.log(flags.plain ? `(${msg.log.level}) ${msg.log.message}` : message)
         }
       })
+
+      event.on('retry', (error) => {})
     }
 
     await userCodeOrchestration(
