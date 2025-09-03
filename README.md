@@ -12,6 +12,8 @@ If you don’t need the full complexity of cloud solutions like **AWS Lambda**, 
 - Define your workflow and **everything else is handled for you**.
 - Ideal for **solo developers, tinkerers, or anyone experimenting with automation**.
 
+xGSD only supports **Node.js**, you'll need to ensure it's installed before you continue.
+
 ## Install
 
 Installing the CLI is straightforward. Just make sure you already have **NPM** (or **Yarn**) installed.
