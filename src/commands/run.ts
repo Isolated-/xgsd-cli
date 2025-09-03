@@ -89,9 +89,10 @@ export default class Run extends Command {
 
     if (!userConfig.enabled) {
       this.log(
-        `${userConfig.name} is currently disabled - if this is a mistake, re-enable it in the config file by marking \`enabled: true\`.`,
+        chalk.bold.red(
+          `${userConfig.name} is currently disabled - if this is a mistake, re-enable it in the config file by marking \`enabled: true\`.`,
+        ),
       )
-      this.log(`path to config file: ${foundPath}`)
       this.exit(1)
     }
 
