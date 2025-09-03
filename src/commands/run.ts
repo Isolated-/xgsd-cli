@@ -69,27 +69,12 @@ export default class Run extends Command {
     }
 
     const userCodePackageJson = readJsonSync(packageJsonPath)
-    this.log(
-      `found your package, info: ${userCodePackageJson.name}@${userCodePackageJson.version} - ${
-        userCodePackageJson.description || 'no description'
-      }`,
-    )
-
-    if (userCodePackageJson.main === undefined) {
-      this.error(`package.json at ${packageJsonPath} is missing a "main" entry`)
-    }
-
-    const main = userCodePackageJson.main
-    this.log(`found your main entry point: ${main}, this will be loaded shortly.`)
-
     const foundPath = findUserWorkflowConfigPath(userModulePath, flags.workflow)
     if (!foundPath) {
       this.error(
         `unable to find a configuration file at ${userModulePath}, please create a new "config.yaml" in your package folder.`,
       )
     }
-
-    this.log(`found your configuration file at ${foundPath}`)
 
     let userConfig
     try {
@@ -107,7 +92,7 @@ export default class Run extends Command {
         `${userConfig.name} is currently disabled - if this is a mistake, re-enable it in the config file by marking \`enabled: true\`.`,
       )
       this.log(`path to config file: ${foundPath}`)
-      this.exit(10)
+      this.exit(1)
     }
 
     const event = new EventEmitter2()
