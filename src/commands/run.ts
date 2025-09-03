@@ -82,7 +82,7 @@ export default class Run extends Command {
     const main = userCodePackageJson.main
     this.log(`found your main entry point: ${main}, this will be loaded shortly.`)
 
-    const foundPath = findUserWorkflowConfigPath(userModulePath)
+    const foundPath = findUserWorkflowConfigPath(userModulePath, flags.workflow)
     if (!foundPath) {
       this.error(
         `unable to find a configuration file at ${userModulePath}, please create a new "config.yaml" in your package folder.`,
@@ -98,7 +98,9 @@ export default class Run extends Command {
       this.error(error.message)
     }
 
-    const data = (flags.data as any) ?? {data: 'some data'}
+    userConfig.name = userConfig.name || userCodePackageJson.name || 'not specified'
+
+    const data = flags.data as any
 
     if (!userConfig.enabled) {
       this.log(
@@ -131,7 +133,11 @@ export default class Run extends Command {
           message = chalk.green(message)
         }
 
-        if (msg.log.level === 'info' || msg.log.level === 'log' || msg.log.level === 'status') {
+        if (msg.log.level === 'status') {
+          message = chalk.magenta(message)
+        }
+
+        if (msg.log.level === 'info' || msg.log.level === 'log') {
           message = chalk.blue(message)
         }
 
