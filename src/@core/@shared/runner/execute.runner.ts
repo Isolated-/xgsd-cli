@@ -1,6 +1,7 @@
 import {SourceData} from '../../@types/pipeline.types'
 import {WrappedError, timeout} from '../runner'
 import {RunFn} from '../types/runnable.types'
+import * as mils from 'ms'
 
 /**
  *  entry point for executing RunFn for both internal
@@ -16,9 +17,19 @@ export async function execute<
   T extends SourceData = SourceData,
   R extends SourceData = SourceData,
   E extends WrappedError = WrappedError,
->(data: T, fn: RunFn<T, R>, transformer?: (data: R) => any, ms?: number): Promise<{data: R | null; error: E | null}> {
+>(
+  data: T,
+  fn: RunFn<T, R>,
+  transformer?: (data: R) => any,
+  ms?: number | string,
+): Promise<{data: R | null; error: E | null}> {
+  let time: number = ms as number
+  if (typeof ms === 'string') {
+    time = mils(ms as mils.StringValue)
+  }
+
   try {
-    const result = await timeout(ms || 1000, () => fn(data))
+    const result = await timeout(time || 100, () => fn(data))
     return {
       data: transformer ? transformer(result) : result,
       error: null,
