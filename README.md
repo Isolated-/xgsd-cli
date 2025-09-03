@@ -1,15 +1,20 @@
-# Workflows with xGSD CLI
+# Workflows with **xGSD CLI**
 
-[![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
-[![Version](https://img.shields.io/npm/v/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
-[![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
+[![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)  
+[![Version](https://img.shields.io/npm/v/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)  
+[![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)  
 [![CI & Release](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml/badge.svg)](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml)
 
-xGSD is workflows (task orchestration) on your machine. If you don't need the full complexity of a cloud solution like AWS Lambda, GCP Functions, Azure Functions, and so on then xGSD may be for you. Zero external dependencies and nothing to manage - define your workflow and everything else is handled for you.
+**xGSD** lets you run workflows (task orchestration) **locally on your machine**.  
+If you don’t need the full complexity of cloud solutions like **AWS Lambda**, **GCP Functions**, or **Azure Functions**, xGSD may be the perfect fit.
+
+- **Zero external dependencies** — nothing to install or manage beyond your workflow.
+- Define your workflow and **everything else is handled for you**.
+- Ideal for **solo developers, tinkerers, or anyone experimenting with automation**.
 
 ## Install
 
-Installing the CLI is straightforward, you'll need to ensure you already have NPM (or yarn) already installed.
+Installing the CLI is straightforward. Just make sure you already have **NPM** (or **Yarn**) installed.
 
 ```bash
 # install with npm
@@ -18,15 +23,15 @@ npm install -g @xgsd/cli
 
 ## Quickstart
 
-Everything is designed so that you can get up and running as quickly as possible and with minimal frustration.
+Everything is designed so that you can get up and running **quickly** and with minimal frustration.
 
-First create a directory for your new workflow (xGSD stores logs and results here):
+First, create a directory for your new workflow (xGSD stores logs and results here):
 
 ```bash
 # make a new directory
 mkdir my-workflow
 
-# then run npm/yarn init:
+# then run npm/yarn init
 npm init
 ```
 
@@ -47,7 +52,7 @@ Create a configuration file in your project folder:
 touch config.yaml
 ```
 
-Since _v0.3.0_, you can use JSON if you prefer. `.yaml` or `.yml` doesn't matter either.
+Since _v0.3.0_, you can use **JSON** if you prefer. File extensions `.yaml` or `.yml` doesn't matter either.
 
 A minimal configuration looks like:
 
@@ -75,11 +80,22 @@ print:
   output: true
 ```
 
-And you're done. Take a look in `examples/http/runs` for an example of what the output of a workflow looks like.
+And finally run your workflow:
+
+```bash
+xgsd run path/to/package --workflow {name} --watch
+```
+
+Or, to try the experimental Docker support, replace `run` with `exec` and remove `--workflow`  
+(this option isn’t currently supported by `exec`).
+
+Since _v0.3.0_, logs and results are collected by default — see **Configuration** to disable them.
 
 ## Configuration
 
-In _v0.3.0_ an entirely new way of configuring workflows was introduced. No breaking changes should have been introduced, however, migrating is easy and recommended.
+In _v0.3.0_, an entirely new way of configuring workflows was introduced.  
+You can continue to use `v0.2` names like `action` vs `run` as they are aliased to prevent breaking changes.  
+Using `v0.2` and `v0.3` mixed isn't recommended though.
 
 ```yaml
 # this workflow works with v0.3.0+, ensure you have @xgsd/cli@0.3.1.
@@ -165,20 +181,35 @@ steps:
       city: ${{ .data.city | censor }}
 ```
 
+### Modes
+
+If you need a mode introduced please let me know — more modes = more use cases for us to use!
+
+- `async` — this mode is absolutely ideal for when ordering doesn't matter. Each step is executed initially in order but no waiting for results, retries, or timeouts. This mode won't allow one failing step to block your entire workflow.
+- `fanout` — this mode and `chained` are very similar and may be confusing for some. The main difference between this mode and `chained` is that in `fanout` the input data is passed to all steps in order. This is ideal for when the result of one step doesn't affect the next.
+- `chained` — order is preserved, however, the output from the _last successful step_ is passed into the input of the next step. This chaining allows for complex workflows and maintains order when things go wrong.
+
+It's worth noting that regardless of the mode used, you'll get full process isolation at the workflow level and individual steps. _Most_ blocking tasks that would typically stall Node.js shouldn't, with the exception of `while (true) {}`. I'm working on a solution for this.
+
 ### Templating
 
-A simple yet effective templating system was introduced in _v0.3.0_, it doesn't rely on any templating libraries so may be limited in some areas, however, it's still pretty powerful. Later versions will focus on improving the syntax, or replacing it entirely.
+A simple yet effective templating system was introduced in _v0.3.0_.  
+It doesn't rely on any templating libraries, so it may be limited in some areas; however, it's still pretty powerful.  
+Later versions will focus on improving the syntax or replacing it entirely.
 
 #### Context
 
-You can reference context properties using the template syntax, the context includes:
+You can reference context properties using the template syntax. The context includes:
 
-- `steps` - all steps that have previously run (may not be useful in fanout or async)
-- `config` - original configuration
-- `data` - the current step input data
-- `output` - the output of the current step
+- `steps` — all steps that have previously run (may not be useful in `fanout` or `async` modes)
+- `config` — original configuration
+- `data` — the current step input data
+- `output` — the output of the current step
 
-This will be extended between `v0.3.0` and `v0.4.0`. To reference these properties using the template syntax `${{ .data.name }}`, you can combine these with helpers like `censor` or `hash` to change the value before it hits your step. For example, a configuration like:
+This will be extended between `v0.3.0` and `v0.4.0`.  
+To reference these properties using the template syntax `${{ .data.name }}`, you can combine them with helpers like `censor` or `hash` to transform the value before it hits your step.
+
+For example, a configuration like:
 
 ```yaml
 data:
@@ -190,7 +221,8 @@ steps:
       name: ${{ .data.name | censor }}
 ```
 
-Would ensure that the next step will only see `{ name: "*********" }`, alternatively you can set it to null or undefined, or whatever else you need it to be.
+Would ensure that the next step will only see `{ name: "*********" }`.  
+Alternatively, you can set it to `null`, `undefined`, or any other value you need.
 
 ### Helpers
 
@@ -269,28 +301,63 @@ You can chain helpers (`|`) in order; **order matters** (e.g., `json | hash | sl
 
 ## Support
 
-If you're struggling with this CLI, want to give feedback, need changes to enable your workflow, or anything else shoot me an email [**mike@xgsd.io**](mailto:mike@xgsd.io), I'll try to help wherever I can. If you want to make changes to xGSD, feel free to make a pull request [do that here](https://github.com/Isolated-/xgsd-cli).
+If you're struggling with this CLI, want to give feedback, need changes to enable your workflow, or anything else, shoot me an email at [**mike@xgsd.io**](mailto:mike@xgsd.io). I’ll try to help wherever I can.
+
+If you want to make changes to xGSD, feel free to make a pull request [**do that here**](https://github.com/Isolated-/xgsd-cli).
 
 No analytic data is, or will be, collected from your machine. Please feel free to reach out with suggestions, criticism, or just to let me know what you're using this for.
 
+## Stability
+
+**xGSD isn’t fragile — it’s just immature.**
+
+xGSD is steadily moving toward production stability, but it’s still an **early-stage project** (`< v1.0.0`).  
+That means you should expect the occasional **bug, missing feature, or breaking change** along the way.
+
+It’s built and maintained by a **solo developer** — I’ll give it 100%, but sometimes things slip through.  
+For example, in `v0.3.0` I reworked the process handler and (oops) forgot to re-implement async mode 🙃.  
+I wish I’d never make mistakes, but they’re part of the process — and when they happen, I **fix them fast**.  
+(`v0.3.1` patched the async mode issue right after release.)
+
+If your workflow is **mission-critical**, you may want to wait until later versions.  
+But if you’re a **solo operator, tinkerer, or just curious**, _this is exactly the right time to jump in_.  
+Run xGSD on a Raspberry Pi as your own **serverless platform without vendor lock-in**, orchestrate your personal stack, or hack together new workflows — and please share feedback when you hit an edge case. **That’s how xGSD gets better.**
+
+If you’ve been down the frustrating road of debugging **brittle cloud jobs** — wiring retries, catching every edge case, and making sure nothing silently fails — you’ll feel right at home here.  
+xGSD is built to take that pain away, so you can **focus on building things that matter instead of babysitting error handlers.**
+
 ## Privacy & Security
 
-Most of the features in this project are a response to the UKs changes in regulation toward providers and are designed to mitigate the threats posed by Online Safety Act (OSA), Investigatory Powers Act (IPA), and the proposed Chat Control.
+Most of the features in this project are a response to the UK’s regulatory changes and are designed to mitigate the threats posed by the **Online Safety Act (OSA)**, **Investigatory Powers Act (IPA)**, and the proposed **Chat Control**.
 
-A full security overview will be published once everything is up and running. Please feel free to check the code ([here](https://github.com/Isolated-/xgsd-cli)) if you're concerned about how your data is managed. In short:
+A full security overview will be published once everything is up and running. Please feel free to check the code ([here](https://github.com/Isolated-/xgsd-cli)) if you're concerned about how your data is managed.
 
-**We do not and will not support weakening of encryption, state-owned backdoors, or any form of violating our users right to privacy.**
+In short:
+
+**We do not and will not support weakening of encryption, state-owned backdoors, or any form of violating our users' right to privacy.**
+
+## Inspiration
+
+Over the last five years, I’ve been working toward developing flexible code that is on-par with industry standards and current trends. My goal was to enable **custom user code** to run without modification to my own code. A lot of trial and error went into a seemingly simple solution.
+
+Whilst no single tool directly led to the solution, a lot of inspiration has come from:
+
+- **GitHub Actions**
+- **AWS Lambda** and other cloud alternatives
+- **RxJS**, **Nest.js**, and other JavaScript frameworks/libraries
+
+You’ll see this influence in various forms—from configuration to isolation. I would’ve been lost without these tools available to reverse engineer.
 
 ## Changes & Versioning
 
-Changes aren't currently recorded - they will be soon and managed in `CHANGELOG.md`, for now here's what's new in `v0.3.0`:
+Changes aren't currently recorded — they will be soon and managed in `CHANGELOG.md`. For now, here's what's new in **v0.3.0**:
 
-- **Docker support** has been added in experimental state, feel free to check it out with `xgsd exec {normal run args}`. Consider this _unstable_ until `v0.4.0+`
-- **Configuration** templating syntax has been added in addition to `with`, `if`, `after` at step level. All options support template syntax.
-- **Multiple workflows** can now be added, simply remove your `config.yml` and place workflow configurations in a `workflows/` in your package folder. Then run your workflow with `xgsd run {package} --workflow {name}`.
-- **Streamlined logging & reporting** some logging has been removed and reports have been reduced to allow for easier human reading.
+- **Docker support** has been added in experimental state. Feel free to try it with `xgsd exec {normal run args}`. Consider this _unstable_ until `v0.4.0+`.
+- **Configuration templating syntax** has been added, in addition to `with`, `if`, `after` at the step level. All options support template syntax.
+- **Multiple workflows** can now be added. Simply remove your `config.yml` and place workflow configurations in a `workflows/` folder in your package. Then run your workflow with `xgsd run {package} --workflow {name}`.
+- **Streamlined logging & reporting** — some logging has been removed and reports have been reduced for easier human reading.
 
-`v0.3.x` will continue to expand the templating syntax, stablise docker support, and introduce any missing configuration options. Feel free to suggest or make changes (see **Support**).
+`v0.3.x` will continue to expand the templating syntax, stabilize Docker support, and introduce any missing configuration options. Feel free to suggest improvements or make changes (see **Support**).
 
 ### Versioning
 
