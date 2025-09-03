@@ -162,7 +162,11 @@ export const userCodeResultCollector = (ctx: WorkflowContext<any>, date: string,
 }
 
 export const captureEvents = (context: WorkflowContext<any>) => {
-  context.stream.on('event', (event) => {})
+  context.stream.on('event', (event) => {
+    if (event.event === 'retry') {
+      context.stream.emit('retry', event.payload)
+    }
+  })
 }
 
 // remove the export once complete
