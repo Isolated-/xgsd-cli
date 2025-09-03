@@ -20,7 +20,7 @@ const fatal = (message: string) => {
   })
 }
 
-function dispatchMessage(type: 'error' | 'result' | 'attempt' | 'log', payload: any, child: boolean = false) {
+function dispatchMessage(type: 'error' | 'start' | 'result' | 'attempt' | 'log', payload: any, child: boolean = false) {
   process.send!({
     type: `CHILD:${type.toUpperCase()}`,
     ...payload,
@@ -53,6 +53,8 @@ export async function processStep(
   prepared.state = PipelineState.Running
   const retries = options.retries!
   const timeout = options.timeout!
+
+  dispatchMessage('start', {step: prepared, context})
 
   const errors: WrappedError[] = []
   const result = await retry(prepared.input, step.fn!, retries, {
@@ -164,16 +166,7 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
 
   const delay = (attempt: number) => 1000 * 2 ** attempt
   const onAttempt = async (attempt: RetryAttempt) => {
-    // log the attempt
-    log(
-      `${step.name || 'no name'} is currently failing, attempt: ${attempt.attempt + 1}/${
-        step.options?.retries
-      }, next retry in: ${ms(attempt.nextMs)}`,
-      'warn',
-    )
-
-    log(`${step.name} failing with error: ${attempt.error.message}`, 'warn')
-    dispatchMessage('attempt', attempt)
+    dispatchMessage('attempt', {attempt, step})
   }
 
   step.fn = fn
