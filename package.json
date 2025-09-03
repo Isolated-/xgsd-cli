@@ -58,7 +58,12 @@
   ],
   "homepage": "https://github.com/xgsd/cli",
   "keywords": [
-    "oclif"
+    "oclif",
+    "serverless",
+    "workflow",
+    "orchestration",
+    "nodejs",
+    "cli"
   ],
   "license": "MIT",
   "main": "dist/index.js",
