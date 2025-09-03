@@ -7,7 +7,19 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [v0.3.1] - Unreleased
 
-Bugfixes, stable Docker, and more.
+`v0.3.0` introduced a number of new changes and `async` mode was temporarily removed and wasn't ever added back in. This has now been fixed, if you're missing `async` mode then redownload the CLI:
+
+```bash
+# remove it
+npm uninstall -g @xgsd/cli
+
+# re-install it
+npm install -g @xgsd/cli@0.3.1
+```
+
+### Fixed
+
+- Fixes lack of async support caused by developer error (sorry if this affected you).
 
 ---
 
