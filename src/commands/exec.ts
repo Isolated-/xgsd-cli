@@ -58,6 +58,7 @@ export default class Exec extends Command {
   static override description = 'Run a workflow in a Docker container (proof of concept, very limited)'
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
+    confirm: Flags.boolean({char: 'y', description: 'confirm before running'}),
     watch: Flags.boolean({char: 'w', description: 'watch for changes (streams logs to console)'}),
   }
 
@@ -66,6 +67,12 @@ export default class Exec extends Command {
       flags,
       args: {package: packageName},
     } = await this.parse(Exec)
+
+    if (!flags.confirm) {
+      this.error(
+        'this is a proof of concept and may result in unpredicted behavior, to continue please confirm with --confirm or -y',
+      )
+    }
 
     const workflowPath = path.resolve(packageName || '.')
     if (!existsSync(path.join(workflowPath, 'package.json'))) {
