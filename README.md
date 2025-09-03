@@ -5,7 +5,7 @@
 [![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
 [![CI & Release](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml/badge.svg)](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml)
 
-xGSD is workflows (task orchestration) local on your machine. If you don't need the full complexity of a cloud solution like AWS Lambda, GCP Functions, Azure Functions, and so on then xGSD may be for you. Zero external dependencies and nothing to manage - define your workflow and everything else is handled for you.
+xGSD is workflows (task orchestration) on your machine. If you don't need the full complexity of a cloud solution like AWS Lambda, GCP Functions, Azure Functions, and so on then xGSD may be for you. Zero external dependencies and nothing to manage - define your workflow and everything else is handled for you.
 
 ## Install
 
@@ -307,6 +307,7 @@ Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable re
 ### Usage
 
 <!-- usage -->
+
 ```sh-session
 $ npm install -g @xgsd/cli
 $ xgsd COMMAND
@@ -318,14 +319,16 @@ USAGE
   $ xgsd COMMAND
 ...
 ```
+
 <!-- usagestop -->
 
 ### Commands
 
 <!-- commands -->
-* [`xgsd exec PACKAGE`](#xgsd-exec-package)
-* [`xgsd help [COMMAND]`](#xgsd-help-command)
-* [`xgsd run FUNCTION`](#xgsd-run-function)
+
+- [`xgsd exec PACKAGE`](#xgsd-exec-package)
+- [`xgsd help [COMMAND]`](#xgsd-help-command)
+- [`xgsd run FUNCTION`](#xgsd-run-function)
 
 ## `xgsd exec PACKAGE`
 
@@ -404,4 +407,5 @@ EXAMPLES
 ```
 
 _See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.3.0/src/commands/run.ts)_
+
 <!-- commandsstop -->
