@@ -122,7 +122,7 @@ export default class Run extends Command {
         }
 
         if (msg.log.level === 'error' || msg.log.level === 'fail' || msg.log.level === 'retry') {
-          message = chalk.red(message)
+          message = chalk.bold.red(message)
         }
 
         if (msg.log.level === 'warn') {
@@ -130,7 +130,7 @@ export default class Run extends Command {
         }
 
         if (msg.log.level === 'success') {
-          message = chalk.green(message)
+          message = chalk.bold.green(message)
         }
 
         if (msg.log.level === 'status') {
@@ -152,6 +152,13 @@ export default class Run extends Command {
       {...userConfig, version: userCodePackageJson.version, package: userModulePath, output: writePath},
       event,
     )
+
+    if (!flags.plain) {
+      this.log(chalk.bold.green(`your run for "${userConfig.name}" has completed!`))
+      return
+    }
+
+    this.log(`your run for "${userConfig.name}" has completed!`)
 
     return {}
   }
