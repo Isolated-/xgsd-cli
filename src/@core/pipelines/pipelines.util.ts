@@ -9,6 +9,7 @@ import {Require} from '../@types/require.type'
 import * as Joi from 'joi'
 import ms = require('ms')
 import * as _ from 'lodash'
+import {run} from '@oclif/core'
 
 export const orchestration = async <T extends SourceData = SourceData, R extends SourceData = SourceData>(
   input: T,
@@ -115,6 +116,11 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
       logs: Joi.boolean().optional(),
       run: Joi.boolean().optional(),
     }).optional(),
+    print: Joi.object({
+      input: Joi.boolean().optional(),
+      output: Joi.boolean().optional(),
+      errors: Joi.boolean().optional(),
+    }).optional(),
     steps: Joi.array()
       .items(
         Joi.object({
@@ -122,8 +128,12 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
           name: Joi.string().required(),
           description: Joi.string().optional(),
           data: Joi.object().optional(),
-          action: Joi.string().required(),
+          if: Joi.alternatives().try(Joi.boolean(), Joi.string()).optional(),
+          with: Joi.object().optional(),
+          after: Joi.object().optional(),
+          action: Joi.string().optional(),
           options: optionsValidators,
+          run: Joi.string().optional(),
         }),
       )
       .min(1)
@@ -153,21 +163,28 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
       retries: config.options?.retries || 5,
     },
     collect: {
-      logs: config.collect?.logs ?? false,
-      run: config.collect?.run ?? false,
+      logs: config.collect?.logs ?? true,
+      run: config.collect?.run ?? true,
+    },
+    print: {
+      input: config.print?.input ?? false,
+      output: config.print?.output ?? false,
     },
   }
 
   const steps = config.steps.map((step) => ({
+    ...step,
     name: step.name,
     description: step.description || 'no description',
-    action: step.action,
+    action: step.run || step.action || null,
     enabled: step.enabled ?? true,
-    data: header.data || step.data ? _.merge({}, header.data, step.data) : undefined,
+    data: header.data || step.data ? _.merge({}, header.data, step.data, step.with) : undefined,
     options: {
       timeout: step.options?.timeout || header.options.timeout,
       retries: step.options?.retries || header.options.retries,
     },
+    if: step.if ?? null,
+    run: step.action || step.run || null,
   }))
 
   return {
