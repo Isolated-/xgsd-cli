@@ -94,27 +94,41 @@ process.on('message', async (msg: ParentMessage<SourceData>) => {
     log(`Workflow "${context.name.toLowerCase()}", input: ${JSON.stringify(input)}`, 'info')
   }
 
+  if (config.mode === 'async') {
+    const steps = await Promise.all(
+      config.steps.map(async (step, idx) => {
+        step.data = input
+
+        return runStep(idx, step, context)
+      }),
+    )
+
+    results = steps.filter(Boolean).map((s) => s.step)
+  }
+
   let idx = 0
   // let child process deal with step input/output
-  for (const step of config.steps) {
-    step.data = input
+  if (config.mode !== 'async') {
+    for (const step of config.steps) {
+      step.data = input
 
-    const result = await runStep(idx, step, {
-      ...context,
-      steps: results,
-    })
+      const result = await runStep(idx, step, {
+        ...context,
+        steps: results,
+      })
 
-    if (result.step.errors && result.step.errors.length !== 0) {
-      log(`Workflow "${context.name.toLowerCase()}", step "${step.name}" exited with errors`, 'warn')
-      errors.push(...result.step.errors)
+      if (result.step.errors && result.step.errors.length !== 0) {
+        log(`Workflow "${context.name.toLowerCase()}", step "${step.name}" exited with errors`, 'warn')
+        errors.push(...result.step.errors)
+      }
+
+      if (config.mode === 'chained') {
+        input = lodash.merge({}, input, result.step.output)
+      }
+
+      results.push(result.step)
+      idx++
     }
-
-    if (config.mode === 'chained') {
-      input = lodash.merge({}, input, result.step.output)
-    }
-
-    results.push(result.step)
-    idx++
   }
 
   const failed = results.filter((step) => step.errors && step.errors.length > 0 && !step.output)
