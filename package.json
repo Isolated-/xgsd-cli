@@ -1,6 +1,6 @@
 {
   "name": "@xgsd/cli",
-  "description": "Local task orchestration for solo-developers, built on top of xGSD. Get started in minutes.",
+  "description": "Local workflow orchestration for solo-developers, built on top of xGSD. Get started in minutes. Create an action, define a workflow, and xgsd run it!",
   "version": "0.3.0",
   "author": "Michael Palmer",
   "bin": {
@@ -67,15 +67,9 @@
     "dirname": "xgsd",
     "commands": "./dist/commands",
     "plugins": [
-      "@oclif/plugin-help",
-      "@oclif/plugin-plugins"
+      "@oclif/plugin-help"
     ],
-    "topicSeparator": " ",
-    "topics": {
-      "hello": {
-        "description": "Say hello to the world and others"
-      }
-    }
+    "topicSeparator": " "
   },
   "repository": "xgsd/cli",
   "scripts": {
