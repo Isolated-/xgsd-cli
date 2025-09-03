@@ -1,249 +1,298 @@
-# Local Task Orchestration with xGSD CLI
+# Workflows with xGSD CLI
 
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
 [![Version](https://img.shields.io/npm/v/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
 [![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
 [![CI & Release](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml/badge.svg)](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml)
 
-Built for solos, xGSD is local task orchestration (and soon) built on top of a secure storage system that integrates with whatever storage solution you want/need. If you don't need the complexity (and power) of a cloud solution, xGSD may be for you. No dependencies, or anything to manage just define your pipeline and everything else is taken care of.
+xGSD is workflows (task orchestration) local on your machine. If you don't need the full complexity of a cloud solution like AWS Lambda, GCP Functions, Azure Functions, and so on then xGSD may be for you. Zero external dependencies and nothing to manage - define your workflow and everything else is handled for you.
 
-_Please note this is a work in progress, expect some ugly errors here and there but please report any that you find outside of your pipeline - this allows me to make xGSD better for everyone. See **Support** for details_.
+## Install
 
-This project will slowly evolve into a full suite of tools for solos, from task orchestration to goal planning with AI that works, xGSD will be here to take the boring work away and leave you with the fun bits.
+Installing the CLI is straightforward, you'll need to ensure you already have NPM (or yarn) already installed.
 
-## Installation
-
-Getting started is easy, first you'll need the xGSD CLI:
-
-```sh
-# using nodejs
+```bash
+# install with npm
 npm install -g @xgsd/cli
-
-# using yarn
-yarn install -g @xgsd/cli
-
-# using apt (coming soon)
-sudo update -y && sudo upgrade -y
-sudo apt install xgsd
 ```
-
-Once you've done that you're ready to start building with xGSD.
 
 ## Quickstart
 
-Before you get started, create a new folder for your pipeline the same you would any npm package:
+Everything is designed so that you can get up and running as quickly as possible and with minimal frustration.
 
-```sh
-mkdir mypipeline
-npm init -y
+First create a directory for your new workflow (xGSD stores logs and results here):
+
+```bash
+# make a new directory
+mkdir my-workflow
+
+# then run npm/yarn init:
+npm init
 ```
 
-Create a configuration file (save this as `config.yml` in the root of your package):
-
-```yaml
-# basic info
-name: My First Pipeline
-description: A simple pipeline to demonstrate xGSD capabilities
-runner: xgsd@v1
-
-# metadata is for your use
-metadata:
-  version: 1
-  production: false
-
-# enable/disable the pipeline
-enabled: true
-
-# can be async, fanout or chained
-# async is perfect when the ordering doesn't matter
-# use fanout when ordering matters but output isn't needed downstream
-# output of last successful step is fed into the input of the next with chained
-mode: chained
-
-# store logs and result
-# currently these are stored in your package
-collect:
-  logs: true
-  run: true
-
-# these are passed to all steps
-# timeout is for each step in ms
-options:
-  timeout: 5s
-  retries: 3
-
-# step config should be simple
-# and require little to no info beyond name + action
-steps:
-  - name: Uppercase Data
-    description: converts the input data to uppercase
-    action: upperCaseAction
-    enabled: true # works here too
-  - name: Hash Data
-    description: hashes the input data
-    action: hashDataAction
-  - name: Fetch Some API Data
-    description: get some data from httpbin.org
-    action: fetchData
-    options: # individual step options
-      - timeout: 15s
-```
-
-And declare your functions/actions:
+Then create your action:
 
 ```js
-const crypto = require('crypto')
-const axios = require('axios')
-
-const upperCaseAction = async (context) => {
-  return {data: context.data.toUpperCase()}
-}
-
-const hashDataAction = (context) => {
-  return {
-    data: crypto.createHash('sha256').update(context.data).digest('hex'),
-    url: 'http://httpbin.org/json',
-  }
-}
-
-const fetchData = async (context) => {
-  const response = await axios.get(context.url)
-  return response.data
-}
-
-module.exports = {
-  upperCaseAction,
-  hashDataAction,
-  fetchData,
+// index.js (must match main in package.json)
+const axios = require('axios');
+const myHttpAction = (context) => {
+    const response = await axios.get(context.url);
+    return response.data;
 }
 ```
 
-And finally run your pipeline with `$ xgsd run path/to/module -d path/to/data.json -w`. More documentation will be available soon, if you find any problems let me know (see **Support**). Here's an example of what this quickstart should log:
+Create a configuration file in your project folder:
 
 ```
-(status) My First Pipeline (1.0.0) is running using runner "xgsd@v1" in async mode, timeout: 5000ms, retries: 3.
-(status) Uppercase Data - converts the input data to uppercase is running using xgsd@v1, timeout: 5000ms, retries: 3
-(status) Fetch Some API Data - get some data from httpbin.org is running using xgsd@v1, timeout: 5000ms, retries: 3
-(status) Hash Data - hashes the input data is running using xgsd@v1, timeout: 5000ms, retries: 3
-(status) Hash Data - executing step
-(success) Hash Data - step completed successfully in 0 attempts
-(status) Uppercase Data - executing step
-(success) Uppercase Data - step completed successfully in 0 attempts
-(status) Fetch Some API Data - executing step
-(warn) Fetch Some API Data - retry attempt 1/3, next retry in 1s, error: Timeout
-(warn) Fetch Some API Data - retry attempt 2/3, next retry in 2s, error: Timeout
-(success) Fetch Some API Data - step completed successfully in 2 attempts
-(info) the run id for My First Pipeline is 996e0a16-7bac-4804-9072-e7ea9f202981
-(info) logs and results if collected will be saved to /home/you/pipeine/runs/my-first-pipeline
-(info) the duration in your report may be slightly different to below
-(status) executed 3 steps, 3 succeeded and 0 failed, duration: 5.64s
+touch config.yaml
 ```
 
-The run result will be available providing `collect.run = true`, it's too long to include is this section but it includes everything you need to know about what happened, what went wrong, and how it was handled. Everything has been designed so you can focus on business logic, and xGSD will ensures it works.
+Since _v0.3.0_, you can use JSON if you prefer. `.yaml` or `.yml` doesn't matter either.
 
-## Use Cases
+A minimal configuration looks like:
 
-xGSD is flexible and isn't designed for a specific use case, it's designed for solo developers and getting stuff done. That said, here's some ideas/what we use it for:
-
-- **Storage** - when secure storage is available, a lot of the processing work will be offloaded to internal pipelines.
-- **Home orchestration** - using Lambda for home-based IoT? This could be a viable (and free) alternative.
-- **Data transformation pipelines** – quick way to build ETL-style jobs (e.g. clean → transform → export).
-- **API glue** – chain together external APIs without needing a full backend service.
-- **Prototyping automations** – test an idea locally in hours instead of spinning up infra in AWS/GCP.
-- **CI/CD experiments** – run ad-hoc build/test/deploy sequences without a full CI service.
-- **Research workflows** – automate repetitive fetch → parse → store tasks when working with APIs, datasets, or scraping.
-- **Developer utilities** – wrap up personal scripts (formatting, linting, packaging, etc.) into a pipeline that’s easier to re-run.
-- **Scheduled jobs** – cron-like pipelines to perform regular maintenance or reporting.
-- **Offline-first automation** – run workflows without cloud dependencies (useful in privacy-conscious setups).
-
-I would love to know what you end up using it for!
-
-## Testing
-
-Pipelines, actions, and storage are covered with extensive tests. You can run them with:
-
-```sh
-# regular (all tests)
-yarn test
-
-# watch mode
-yarn test:watch
-
-# generate docs
-yarn docs
+```yaml
+steps:
+  - name: My Http Action
+    run: myHttpAction
 ```
+
+Results will be written to `my-workflow/runs/{name}` unless you disable collection with:
+
+```yaml
+# insert this at the top of your config
+collect:
+  logs: false
+  run: false
+```
+
+Since _v0.3.0_, you can also print input and output data (off by default):
+
+```yaml
+# insert this at the top
+print:
+  input: true
+  output: true
+```
+
+And you're done. Take a look in `examples/http/runs` for an example of what the output of a workflow looks like.
 
 ## Configuration
 
-YAML is used to configure your pipeline. JSON support will be added, however, YAML is ideal for right now as it's easy to read and write and doesn't involve as much boilerplate as JSON.
-
-- `name` - used for display (optional, defaults to package name)
-- `description` - used for display (optional)
-- `runner` - currently only `xgsd@v1` is supported (optional/recommended)
-- `metadata` - map/object of whatever you like (optional)
-- `mode` - must be one of **async**, **fanout**, and **chained**.(default: `chained`)
-- `enabled` - disable/enable the pipeline (default: `true`)
-- `error` (planned, not implemented yet) - determine what happens on error (continue|exit)
-- `options` (optional)
-  - `timeout` - the amount of milliseconds to wait before timing out (optional, default: `5s`)
-  - `retries` - the maximum number of retries/attempts (optional, default: `5`)
-- `collect` (optional)
-  - `logs` - must be `true` or `false` or left undefined (default: `false`)
-  - `run` - must be `true` or `false` or left undefined (default: `false`)
-- `steps`
-  - `name` - used for display (**required**)
-  - `description` - used for display (optional)
-  - `with` (planned, not implemented yet) - map of data to send alongside regular input.
-  - `error` (planned, not implemented yet) - determine what happens on error (continue|exit)
-  - `action` - must match your function, e.g. `myAction` (**required**)
-  - `enabled` - enable/disable at step level (default: `true`)
-  - `options`
-    - `timeout` - same as `options`, if undefined then `options.timeout` is used.
-    - `retries` - same as `options`, if undefined then `options.retries` is used.
-
-Whilst many options are available, you only need:
+In _v0.3.0_ an entirely new way of configuring workflows was introduced. No breaking changes should have been introduced, however, migrating is easy and recommended.
 
 ```yaml
+# this workflow works with v0.3.0+, ensure you have @xgsd/cli@0.3.1.
+# it demonstrates the use of all configuration options/features
+# remember that beyond steps[].name and steps[].run, everything is optional.
+name: Chained workflow
+
+# description is used in logging, mainly for your use
+description: A simple workflow to demonstrate the capabilities of the system.
+
+# recommended
+runner: xgsd@v1
+
+# quick enable/disable workflows
+enabled: true
+
+# three modes: async|fanout|chained (see Modes)
+mode: chained
+
+# applies to all steps without their own options
+options:
+  timeout: 5s # or 5000
+  retries: 3
+  backoff: linear # <- this is coming in v0.3.1
+
+# a map of anything you like
+# this data isn't used at all by xGSD
+metadata:
+  production: true
+
+# turn off log/run collection (defaults to on in v0.3.0)
+collect:
+  run: true
+  logs: true
+
+# v0.3.0 introduced a way of passing additional data into your workflow
+# you can use this in addition to runtime data (xgsd run {package} --data {data}.json)
+# all steps receive this data unless you exclude it in `with` or `after` (set it to null/undefined)
+# please note data must be an object
+data:
+  location: 'New York'
+
+# v0.3.0 introduces this option
+# used for logging input/output before and after a step
+# useful for debugging
+print:
+  input: true
+  output: true
+
+# everything above is optional, steps is the only config needed
+# must be an array with atleast `name` and `run` (or `action` if you're on < v0.3.0)
 steps:
-  - name: Uppercase Data
-    action: upperCaseAction
-  - name: Hash Data
-    action: hashDataAction
-  - name: Fetch Some API Data
-    action: fetchData
+  - name: Get Location Data # can be anything you like, keep it path safe
+    # v0.3.0 introduces this option along with templating
+    with:
+      city: ${{ .data.location }}
+    # run or action = the same thing, depending on which you prefer
+    run: getLocationData
+    # this is used for transforming the output
+    after:
+      city: ${{ .data.city }}
+      latitude: ${{ .output[0].lat }}
+      longitude: ${{ .output[0].lon }}
+    # apply options at step level too
+    options:
+      timeout: 15s
+      retries: 25
+  - name: Get Weather Data
+    with:
+      city: ${{ .config.data.location }}
+      latitude: ${{ steps[0].output.latitude }}
+      longitude: ${{ steps[0].output.longitude }}
+    run: getWeatherData
+    after:
+      location: null
+      city: ${{ .data.location }}
+      temperature: ${{ .output.current_weather.temperature }}
+  - name: Create Temperature Message
+    run: createTemperatureMessage
+    with:
+      # here a helper is used (censor)
+      # as the name implies, this will censor the city name (replaces with * currently)
+      city: ${{ .data.city | censor }}
 ```
 
-To get started. It is recommended to include a `runner` to ensure backward compatability. New runner versions may be added and this will protect your pipeline against any changes in default runner used.
+### Templating
 
-## Modes
+A simple yet effective templating system was introduced in _v0.3.0_, it doesn't rely on any templating libraries so may be limited in some areas, however, it's still pretty powerful. Later versions will focus on improving the syntax, or replacing it entirely.
 
-If you need a mode introduced please let me know - more modes = more use cases for us to use!
+#### Context
 
-- `async` - this mode is absolutely ideal for when ordering doesn't matter. Each step is executed initially in order but no waiting for results, retries, or timeouts. This mode won't allow one failing step to block up your entire pipeline.
-- `fanout` - this mode and `chained` are very similar and may be confusing for some, the main difference between this mode and `chained` is in `fanout` the input data is passed to all steps in order. This is ideal for when the result of one step doesn't affect the next.
-- `chained` - order is preserved like `chained`, however, the output from the _last successful step_ is passed into the input of the next step. This chaining allows for complex workflows and maintains order when things go wrong.
+You can reference context properties using the template syntax, the context includes:
 
-It's worth noting that regardless of the mode used, you'll get full process isolation at the pipeline level and individual steps. _Most_ blocking tasks that would typically stall Node.js shouldn't with the exception of `while (true) {}`. I'm working on a solution for this.
+- `steps` - all steps that have previously run (may not be useful in fanout or async)
+- `config` - original configuration
+- `data` - the current step input data
+- `output` - the output of the current step
 
-## Inspiration
+This will be extended between `v0.3.0` and `v0.4.0`. To reference these properties using the template syntax `${{ .data.name }}`, you can combine these with helpers like `censor` or `hash` to change the value before it hits your step. For example, a configuration like:
 
-Over the last five years I've been working toward developing flexible code that is on-par with industry standards and current trends. My goal was to enable custom usercode to run without modification to my own code. A lot of trail and error went into a seemingly simple solution. Whilst no tool specifically led to a solution, a lot of inspiration has come from:
+```yaml
+data:
+  name: Sensitive
+steps:
+  - name: Use Name and Hash
+    run: useNameAndHash
+    after:
+      name: ${{ .data.name | censor }}
+```
 
-- Github Actions
-- AWS Lambda and cloud alternatives
-- RxJS, Nest.js, and other JavaScript frameworks/libraries
+Would ensure that the next step will only see `{ name: "*********" }`, alternatively you can set it to null or undefined, or whatever else you need it to be.
 
-You'll see this in various forms from configuration to isolation, I would've been lost without having these tools available to reverse engineer.
+### Helpers
+
+You can chain helpers (`|`) in order; **order matters** (e.g., `json | hash | slice(0,8)` is different from `hash | json`).
+
+> **Remember:**
+>
+> - Always start with **an input**: a number (`15`), a string (`"hello"`), or a path (`.input.user.name`).
+> - For string arguments, use **double quotes**: `"number"`, `"world"`.
+> - Passing arrays/objects as _inline literals_ isn’t supported as the **first input** — use a path instead (e.g., `.input.items`).
+> - Helpers that conceptually need no input (e.g., `uuid`, `now`) can be called with `""` as the input: `{{ "" | uuid }}`.
+
+#### Compare
+
+- `gt` – **Usage**: `{{ 15 | gt(20) }} → false`
+- `gte` – **Usage**: `{{ 15 | gte(20) }} → false`
+- `lt` – **Usage**: `{{ 15 | lt(20) }} → true`
+- `lte` – **Usage**: `{{ 15 | lte(15) }} → true`
+- `eq` – **Usage**: `{{ 15 | eq(15) }} → true`
+- `neq` – **Usage**: `{{ 15 | neq(15) }} → false`
+- `type` – **Usage**: `{{ 15 | type("number") }} → true`
+- `!empty` – **Usage**: `{{ "" | !empty }} → false`
+- `!null` – **Usage**: `{{ null | !null }} → false`
+
+#### Numbers
+
+- `add` – **Usage**: `{{ 15 | add(5) }} → 20`
+- `sub` – **Usage**: `{{ 15 | sub(5) }} → 10`
+- `mul` – **Usage**: `{{ 15 | mul(2) }} → 30`
+- `div` – **Usage**: `{{ 15 | div(3) }} → 5`
+
+#### Strings
+
+- `upper` – **Usage**: `{{ "hello" | upper }} → "HELLO"`
+- `lower` – **Usage**: `{{ "HELLO" | lower }} → "hello"`
+- `trim` – **Usage**: `{{ "  hello  " | trim }} → "hello"`
+- `hash` – **Usage**: `{{ "mypassword" | hash }} → "34819d7beeab…"` _(sha256 hex)_
+- `censor` – **Usage**: `{{ "secret" | censor }} → "******"`
+- `truncate` – **Usage**: `{{ "abcdefghijklmnop" | truncate(3,3) }} → "abc...nop"`
+- `replace` – **Usage**: `{{ "hello world" | replace("world","user") }} → "hello user"`
+- `length` – **Usage**: `{{ "hello" | length }} → 5`
+- `slice` – **Usage**: `{{ "hello" | slice(1,3) }} → "el"`
+- `json` – _Stringify or parse_:
+  - Stringify object from context: `{{ .input.user | json }} → "{\"name\":\"Alice\"}"`
+  - Parse string JSON from context: `{{ .input.rawJson | json }}` → _(returns an object in the pipeline)_
+
+#### Objects
+
+- `json` – **Usage**: `{{ .input.user | json }} → "{\"name\":\"Alice\"}"`
+- `merge` – **Usage**: `{{ .input.user | merge(.input.patch) }} → {…merged object…}`  
+  _(Use a context path for the second arg; inline object literals aren’t supported as args.)_
+
+#### Arrays
+
+- `slice` – **Usage**: `{{ .input.items | slice(1,3) }} → [item2,item3]`
+- `length` – **Usage**: `{{ .input.items | length }} → 3`
+- `concat` – **Usage**: `{{ .input.items | concat(.input.moreItems) }} → [ …combined… ]`
+
+#### Utility
+
+- `uuid` – **Usage**: `{{ "" | uuid }} → "3fa85f64-5717-4562-b3fc-2c963f66afa6"`
+- `now` – **Usage**: `{{ "" | now }} → "2025-09-02T18:55:00.123Z"`
+- `default` – **Usage**: `{{ null | default("fallback") }} → "fallback"`
+- `concat` (strings/arrays) – **Usage**:
+  - Strings: `{{ "hello" | concat(", world") }} → "hello, world"`
+  - Arrays: `{{ .input.a | concat(.input.b) }} → [ … ]`
+- `length` – _(works for strings/arrays/objects)_:
+  - `{{ .input.obj | length }} → 3` _(counts keys)_
+
+#### Chaining examples
+
+- Email fingerprint:  
+  `{{ .input.user.email | lower | hash | slice(0,8) }}` → `"a1b2c3d4"`
+- Compact user blob:  
+  `{{ .input.user | json | hash | truncate(6,4) }}` → `"1fa2b3...9c0d"`
 
 ## Support
 
 If you're struggling with this CLI, want to give feedback, need changes to enable your workflow, or anything else shoot me an email [**mike@xgsd.io**](mailto:mike@xgsd.io), I'll try to help wherever I can. If you want to make changes to xGSD, feel free to make a pull request [do that here](https://github.com/Isolated-/xgsd-cli).
 
-## Feedback
+No analytic data is, or will be, collected from your machine. Please feel free to reach out with suggestions, criticism, or just to let me know what you're using this for.
 
-No analytic data is, or will be, collected from your machine. Please feel free to reach out with suggestions, criticism, or just to let me know what you're using this for (see **Support**).
+## Privacy & Security
 
-## Versioning
+Most of the features in this project are a response to the UKs changes in regulation toward providers and are designed to mitigate the threats posed by Online Safety Act (OSA), Investigatory Powers Act (IPA), and the proposed Chat Control.
+
+A full security overview will be published once everything is up and running. Please feel free to check the code ([here](https://github.com/Isolated-/xgsd-cli)) if you're concerned about how your data is managed. In short:
+
+**We do not and will not support weakening of encryption, state-owned backdoors, or any form of violating our users right to privacy.**
+
+## Changes & Versioning
+
+Changes aren't currently recorded - they will be soon and managed in `CHANGELOG.md`, for now here's what's new in `v0.3.0`:
+
+- **Docker support** has been added in experimental state, feel free to check it out with `xgsd exec {normal run args}`. Consider this _unstable_ until `v0.4.0+`
+- **Configuration** templating syntax has been added in addition to `with`, `if`, `after` at step level. All options support template syntax.
+- **Multiple workflows** can now be added, simply remove your `config.yml` and place workflow configurations in a `workflows/` in your package folder. Then run your workflow with `xgsd run {package} --workflow {name}`.
+- **Streamlined logging & reporting** some logging has been removed and reports have been reduced to allow for easier human reading.
+
+`v0.3.x` will continue to expand the templating syntax, stablise docker support, and introduce any missing configuration options. Feel free to suggest or make changes (see **Support**).
+
+### Versioning
 
 This project follows [Semantic Versioning](https://semver.org/):
 
@@ -253,18 +302,56 @@ This project follows [Semantic Versioning](https://semver.org/):
 
 Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable releases.
 
-## Privacy & Security
+## CLI
 
-Most of the features in this project are a response to the UKs changes in regulation toward providers and are designed to mitigate the threats posed by Online Safety Act (OSA), Investigatory Powers Act (IPA), and the proposed Chat Control.
+### Usage
 
-A full security overview will be published once everything is up and running. Please feel free to check the code ([here](https://github.com/Isolated-/xgsd-cli)) if you're concerned about how your data is managed. In short: **We do not and will not support weakening of encryption, state-owned backdoors, or any form of violating our users right to privacy.**
+<!-- usage -->
+```sh-session
+$ npm install -g @xgsd/cli
+$ xgsd COMMAND
+running command...
+$ xgsd (--version)
+@xgsd/cli/0.3.0 linux-x64 node-v24.4.1
+$ xgsd --help [COMMAND]
+USAGE
+  $ xgsd COMMAND
+...
+```
+<!-- usagestop -->
 
-## Commands
+### Commands
 
-- [`xgsd help [COMMAND]`](#xgsd-help-command)
-- [`xgsd run FUNCTION`](#xgsd-run-function)
+<!-- commands -->
+* [`xgsd exec PACKAGE`](#xgsd-exec-package)
+* [`xgsd help [COMMAND]`](#xgsd-help-command)
+* [`xgsd run FUNCTION`](#xgsd-run-function)
 
-### `xgsd help [COMMAND]`
+## `xgsd exec PACKAGE`
+
+Run a workflow in a Docker container (proof of concept, very limited)
+
+```
+USAGE
+  $ xgsd exec PACKAGE [-y] [-w]
+
+ARGUMENTS
+  PACKAGE  package to run
+
+FLAGS
+  -w, --watch    watch for changes (streams logs to console)
+  -y, --confirm  confirm before running
+
+DESCRIPTION
+  Run a workflow in a Docker container (proof of concept, very limited)
+
+EXAMPLES
+  $ xgsd exec
+```
+
+_See code: [src/commands/exec.ts](https://github.com/xgsd/cli/blob/v0.3.0/src/commands/exec.ts)_
+
+## `xgsd help [COMMAND]`
 
 Display help for xgsd.
 
@@ -284,20 +371,21 @@ DESCRIPTION
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.32/src/commands/help.ts)_
 
-### `xgsd run FUNCTION`
+## `xgsd run FUNCTION`
 
-Run pipelines that you've created with error handling, retries, timeouts, isolation, and more.
+Run workflows and your code with full confidence. Error handling, retries, timeouts, and isolation - all built in.
 
 ```
 USAGE
   $ xgsd run FUNCTION [--json] [-f] [-n <value>] [-d <value>] [-w] [-l info|status|warn|error|success...]
-    [-p]
+    [-e <value>] [-p]
 
 ARGUMENTS
   FUNCTION  function to run
 
 FLAGS
   -d, --data=<value>           data file to use (must be a path)
+  -e, --workflow=<value>       you can specify a workflow by name when you have a workflows/ folder in our NPM package
   -f, --force
   -l, --log-level=<option>...  [default: info,status,warn,error,success] log level
                                <options: info|status|warn|error|success>
@@ -309,10 +397,11 @@ GLOBAL FLAGS
   --json  Format output as json.
 
 DESCRIPTION
-  Run pipelines that you've created with error handling, retries, timeouts, isolation, and more.
+  Run workflows and your code with full confidence. Error handling, retries, timeouts, and isolation - all built in.
 
 EXAMPLES
-  $ xgsd run my-pipeline -d data.json -w
+  $ xgsd run
 ```
 
-_See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.1.1-alpha.0/src/commands/run.ts)_
+_See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.3.0/src/commands/run.ts)_
+<!-- commandsstop -->

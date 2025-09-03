@@ -28,16 +28,17 @@ export type PipelineStep<T extends SourceData = SourceData> = {
   description?: string | undefined
   startedAt?: string | null | undefined
   endedAt?: string | null | undefined
-  /**
-   *  @deprecated
-   */
-  run: RunnerResult<T> | null
+  run: Record<string, unknown> | null
+  if?: boolean | null
+  after?: Record<string, unknown> | null
   options?: {
     retries?: number
     timeout?: number
   }
   enabled?: boolean
   input: T | null
+  data?: Record<string, T> | null
+  with?: Record<string, unknown> | null
   output?: T | null
   /**
    *  @deprecated use error/errors
@@ -125,7 +126,7 @@ export type PipelineConfig<T extends SourceData = SourceData> = {
   validator?: ValidateFn<T>
 }
 
-export type FlexiblePipelineOptions = {
+export type FlexibleWorkflowOptions = {
   timeout?: number
   /**
    *  @deprecated use retries instead
@@ -142,13 +143,22 @@ export type FlexiblePipelineOptions = {
   validator?: ValidateFn
 }
 
-export type FlexiblePipelineConfig<T = SourceData> = {
+export type FlexibleWorkflowConfig<T = SourceData> = {
   name: string | undefined
   description: string | undefined
   package: string | undefined
   version: string | undefined
   enabled: boolean
   mode: PipelineMode
+  print?: {
+    input?: boolean
+    output?: boolean
+  }
+  /**
+   *  @note "data" option has been added, merges with any runtime data
+   *  @since v0.3
+   */
+  data?: Record<string, T> | null
   collect?: {
     logs?: boolean
     run?: boolean
@@ -156,13 +166,13 @@ export type FlexiblePipelineConfig<T = SourceData> = {
   runner: 'xgsd@v1'
   output: string
   metadata: Record<string, unknown>
-  options: FlexiblePipelineOptions
+  options: FlexibleWorkflowOptions
   flags: Record<string, boolean>
   steps: PipelineStep<T>[]
 }
 
-export type FlexiblePipelineResult<T = SourceData, E = Error> = {
-  config: FlexiblePipelineConfig<T>
+export type FlexibleWorkflowResult<T = SourceData, E = Error> = {
+  config: FlexibleWorkflowConfig<T>
   output: T | null | undefined
   errors: E[]
 }

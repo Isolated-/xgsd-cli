@@ -1,0 +1,123 @@
+{
+  "id": "6ac65122-a2d1-4606-820f-6becae65c5d0",
+  "runner": "xgsd@v1",
+  "name": "HTTP Request Example",
+  "description": "An example workflow that makes an HTTP request",
+  "package": "/home/me/xgsd-cli/examples/http",
+  "output": "/home/me/xgsd-cli/examples/http/runs/http-request-example",
+  "start": "2025-09-03T06:12:20.078Z",
+  "end": "2025-09-03T06:12:20.120Z",
+  "duration": 691,
+  "state": "failed",
+  "config": {
+    "name": "HTTP Request Example",
+    "description": "An example workflow that makes an HTTP request",
+    "runner": "xgsd@v1",
+    "metadata": {},
+    "mode": "chained",
+    "enabled": true,
+    "data": {
+      "url": "https://jsonplaceholder.typicode.com/todos/1"
+    },
+    "options": {
+      "timeout": 1000,
+      "retries": 3
+    },
+    "collect": {
+      "logs": true,
+      "run": true
+    },
+    "print": {
+      "input": false,
+      "output": false
+    },
+    "steps": [
+      {
+        "name": "Fetch Data",
+        "action": "fetchData",
+        "enabled": true,
+        "description": "no description",
+        "data": {
+          "url": "https://jsonplaceholder.typicode.com/todos/1"
+        },
+        "options": {
+          "timeout": 1000,
+          "retries": 3
+        },
+        "if": null,
+        "run": "fetchData"
+      },
+      {
+        "name": "Hash Result",
+        "action": "hashResult",
+        "enabled": true,
+        "description": "no description",
+        "data": {
+          "url": "https://jsonplaceholder.typicode.com/todos/1"
+        },
+        "options": {
+          "timeout": 1000,
+          "retries": 3
+        },
+        "if": null,
+        "run": "hashResult"
+      }
+    ],
+    "version": "1.0.0",
+    "package": "/home/me/xgsd-cli/examples/http",
+    "output": "/home/me/xgsd-cli/examples/http/runs/http-request-example",
+    "node": {
+      "os": "linux",
+      "arch": "x64",
+      "version": "v24.4.1",
+      "processes": {
+        "user": 265613,
+        "system": 34649
+      },
+      "memory": {
+        "rss": 81174528,
+        "heapTotal": 31793152,
+        "heapUsed": 13777416,
+        "external": 2269635,
+        "arrayBuffers": 51905
+      }
+    }
+  },
+  "steps": [
+    {
+      "id": 0,
+      "name": "Fetch Data",
+      "description": "no description",
+      "input": {
+        "url": "https://jsonplaceholder.typicode.com/todos/1"
+      },
+      "output": {
+        "userId": 1,
+        "id": 1,
+        "title": "delectus aut autem",
+        "completed": false
+      },
+      "errors": [],
+      "start": "2025-09-03T06:12:19.373Z",
+      "end": "2025-09-03T06:12:20.022Z",
+      "duration": 649
+    },
+    {
+      "id": 1,
+      "name": "Hash Result",
+      "description": "no description",
+      "input": {
+        "url": "https://jsonplaceholder.typicode.com/todos/1",
+        "userId": 1,
+        "id": 1,
+        "title": "delectus aut autem",
+        "completed": false
+      },
+      "output": "ba5dd5a8fde59f46880e3c909a4ba3612937826b9270a8b487dceb8a85073acd",
+      "errors": [],
+      "start": "2025-09-03T06:12:20.078Z",
+      "end": "2025-09-03T06:12:20.120Z",
+      "duration": 42
+    }
+  ]
+}

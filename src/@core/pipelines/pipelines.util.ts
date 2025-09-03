@@ -1,6 +1,6 @@
 import {extname, join, resolve} from 'path'
 import {RunFn} from '../@shared/types/runnable.types'
-import {FlexiblePipelineConfig, PipelineConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
+import {FlexibleWorkflowConfig, PipelineConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
 import {IPipeline} from './interfaces/pipeline.interfaces'
 import {Pipeline} from './pipeline.concrete'
 import {pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
@@ -8,6 +8,8 @@ import {load} from 'js-yaml'
 import {Require} from '../@types/require.type'
 import * as Joi from 'joi'
 import ms = require('ms')
+import * as _ from 'lodash'
+import {run} from '@oclif/core'
 
 export const orchestration = async <T extends SourceData = SourceData, R extends SourceData = SourceData>(
   input: T,
@@ -66,11 +68,11 @@ export const findUserWorkflowConfigPath = (basePath: string, workflow?: string):
   return null
 }
 
-export const loadUserWorkflowConfig = (path: string, workflow?: string): FlexiblePipelineConfig => {
+export const loadUserWorkflowConfig = (path: string, workflow?: string): FlexibleWorkflowConfig => {
   const configPath = findUserWorkflowConfigPath(path, workflow)
-
   if (!configPath) {
-    throw new Error("configuration path doesn't exist at " + path)
+    let expectedPath = join(path, 'workflows', workflow || 'config')
+    throw new Error("configuration path doesn't exist at " + expectedPath)
   }
 
   const ext = extname(configPath)
@@ -83,13 +85,13 @@ export const loadUserWorkflowConfig = (path: string, workflow?: string): Flexibl
     fileContents = load(data.toString())
   }
 
-  return fileContents as FlexiblePipelineConfig
+  return fileContents as FlexibleWorkflowConfig
 }
 
 export const validRunners = ['xgsd@v1']
 export const validModes = ['chained', 'fanout', 'async']
 
-export const validateWorkflowConfig = (config: FlexiblePipelineConfig): FlexiblePipelineConfig => {
+export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): FlexibleWorkflowConfig => {
   const optionsValidators = Joi.object({
     timeout: Joi.string()
       .pattern(/^\d+ms$|^\d+s$|^\d+m$|^\d+h$|^\d+d$|^\d+w$|^\d+mo$/)
@@ -106,6 +108,7 @@ export const validateWorkflowConfig = (config: FlexiblePipelineConfig): Flexible
       .valid(...validRunners)
       .optional(),
     metadata: Joi.object().optional(),
+    data: Joi.object().optional(),
     mode: Joi.string().valid(...validModes),
     config: Joi.object().optional(),
     options: optionsValidators,
@@ -113,14 +116,24 @@ export const validateWorkflowConfig = (config: FlexiblePipelineConfig): Flexible
       logs: Joi.boolean().optional(),
       run: Joi.boolean().optional(),
     }).optional(),
+    print: Joi.object({
+      input: Joi.boolean().optional(),
+      output: Joi.boolean().optional(),
+      errors: Joi.boolean().optional(),
+    }).optional(),
     steps: Joi.array()
       .items(
         Joi.object({
           enabled: Joi.boolean().default(true),
           name: Joi.string().required(),
           description: Joi.string().optional(),
-          action: Joi.string().required(),
+          data: Joi.object().optional(),
+          if: Joi.alternatives().try(Joi.boolean(), Joi.string()).optional(),
+          with: Joi.object().optional(),
+          after: Joi.object().optional(),
+          action: Joi.string().optional(),
           options: optionsValidators,
+          run: Joi.string().optional(),
         }),
       )
       .min(1)
@@ -136,37 +149,46 @@ export const validateWorkflowConfig = (config: FlexiblePipelineConfig): Flexible
   return getWorkflowConfigDefaults(value)
 }
 
-export const getWorkflowConfigDefaults = (config: Require<FlexiblePipelineConfig, 'steps'>): FlexiblePipelineConfig => {
+export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig, 'steps'>): FlexibleWorkflowConfig => {
   let header = {
     name: config.name ?? '',
     description: config.description ?? '',
     runner: config.runner ?? 'xgsd@v1',
     metadata: config.metadata ?? {},
     mode: config.mode ?? PipelineMode.Chained,
-    enabled: config.enabled ?? true,
+    enabled: config.enabled || true,
+    data: config.data,
     options: {
       timeout: ms(config.options?.timeout || ('5s' as any)) || 5000,
       retries: config.options?.retries || 5,
     },
     collect: {
-      logs: config.collect?.logs ?? false,
-      run: config.collect?.run ?? false,
+      logs: config.collect?.logs ?? true,
+      run: config.collect?.run ?? true,
+    },
+    print: {
+      input: config.print?.input ?? false,
+      output: config.print?.output ?? false,
     },
   }
 
   const steps = config.steps.map((step) => ({
+    ...step,
     name: step.name,
     description: step.description || 'no description',
-    action: step.action,
+    action: step.run || step.action || null,
     enabled: step.enabled ?? true,
+    data: header.data || step.data ? _.merge({}, header.data, step.data, step.with) : undefined,
     options: {
       timeout: step.options?.timeout || header.options.timeout,
       retries: step.options?.retries || header.options.retries,
     },
+    if: step.if ?? null,
+    run: step.action || step.run || null,
   }))
 
   return {
     ...header,
     steps,
-  } as FlexiblePipelineConfig
+  } as FlexibleWorkflowConfig
 }
