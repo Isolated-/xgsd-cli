@@ -28,8 +28,9 @@ export type PipelineStep<T extends SourceData = SourceData> = {
   description?: string | undefined
   startedAt?: string | null | undefined
   endedAt?: string | null | undefined
-  run: Record<string, unknown> | null
-  if?: boolean | null
+  duration?: number | null | undefined
+  run: string | null
+  if?: string | boolean | null
   after?: Record<string, unknown> | null
   options?: {
     retries?: number
