@@ -17,6 +17,8 @@ import {fork} from 'child_process'
 import {dirname, join} from 'path'
 import {createWriteStream, ensureDirSync, writeJsonSync, WriteStream} from 'fs-extra'
 import {v4} from 'uuid'
+import {reject} from 'lodash'
+import {WorkflowContext} from '../@shared/context.builder'
 
 /**
  *  Orchestrates a single step in the pipeline.
@@ -98,11 +100,16 @@ export const userCodeLogCollector = (id: string, date: string, path: string, eve
   })
 }
 
-export const userCodeResultCollector = (id: string, date: string, path: string, event: EventEmitter2) => {
-  const resultPath = join(path)
-  ensureDirSync(resultPath)
+export const userCodeErrorCollector = (context: WorkflowContext<any>) => {
+  context.stream.on('error', (error) => {
+    console.error('error received', error)
+  })
+}
 
-  event.on('finish', (result) => {
+export const userCodeResultCollector = (ctx: WorkflowContext<any>, date: string, path: string) => {
+  const resultPath = join(path)
+
+  ctx.stream.on('finish', (result) => {
     const nodeVersion = process.version
     const os = process.platform
 
@@ -110,11 +117,12 @@ export const userCodeResultCollector = (id: string, date: string, path: string, 
     const lastEndedAt = result.steps.filter((step: any) => step.endedAt).pop()?.endedAt || null
 
     const report = {
-      id,
-      runner: result.config.runner || '',
-      name: result.config.name,
-      description: result.config.description || '',
-      package: result.config.package || '',
+      id: ctx.id,
+      runner: ctx.runner,
+      name: ctx.name,
+      description: ctx.description,
+      package: ctx.package,
+      output: ctx.config.output,
       start: firstStartedAt,
       end: lastEndedAt,
       duration: result.steps.reduce((acc: number, step: any) => acc + (step.duration || 0), 0),
@@ -123,7 +131,7 @@ export const userCodeResultCollector = (id: string, date: string, path: string, 
           ? PipelineState.Completed
           : PipelineState.Failed,
       config: {
-        ...result.config,
+        ...ctx.config,
         node: {
           os,
           arch: process.arch,
@@ -132,11 +140,29 @@ export const userCodeResultCollector = (id: string, date: string, path: string, 
           memory: process.memoryUsage(),
         },
       },
-      steps: result.steps,
+      steps: result.steps.map((step: any) => ({
+        id: step.index,
+        name: step.name,
+        description: step.description,
+        input: step.input || null,
+        output: step.output || null,
+        errors: step.errors
+          ? step.errors.map((e: WrappedError) => ({name: e.name, message: e.message, stack: e.stack}))
+          : [],
+        state: step.state,
+        start: step.startedAt,
+        end: step.endedAt,
+        duration: step.duration,
+      })),
     }
 
-    writeJsonSync(join(result.config.output, `report-${date}.json`), report, {spaces: 2})
+    ensureDirSync(ctx.config.output)
+    writeJsonSync(join(ctx.config.output, `report-${date}.json`), report, {spaces: 2})
   })
+}
+
+export const captureEvents = (context: WorkflowContext<any>) => {
+  context.stream.on('event', (event) => {})
 }
 
 // remove the export once complete
@@ -151,19 +177,86 @@ export const userCodeOrchestration = async <T extends SourceData = SourceData>(
   const date = new Date().toISOString().replace(/:/g, '-')
   const id = v4()
 
+  // create new context
+  const ctx = new WorkflowContext(config, handler)
+
   if (collect) {
     ensureDirSync(config.output)
   }
 
   if (collect?.logs) {
-    userCodeLogCollector(id, date, config.output, handler)
+    userCodeLogCollector(id, date, config.output, ctx.stream)
   }
 
   if (collect?.run) {
-    userCodeResultCollector(id, date, config.output, handler)
+    userCodeResultCollector(ctx, date, config.output)
   }
 
-  return runInChildProcess(id, data, config, handler)
+  captureEvents(ctx)
+
+  return runWorkflow(data, ctx)
+}
+
+export type ParentMessage<T> =
+  | {
+      type: 'PARENT:START'
+      context: WorkflowContext<T>
+    }
+  | {
+      type: 'PARENT:RESULT'
+      context: WorkflowContext<T>
+      output: T
+      result: PipelineStep<T>[]
+    }
+  | {
+      type: 'PARENT:ERROR'
+      context: WorkflowContext<T>
+      error: WrappedError
+    }
+  | {
+      type: 'PARENT:LOG'
+      context: WorkflowContext<T>
+      message: {level: string; message: string}
+    }
+  | {
+      type: 'PARENT:RUN'
+      data: T
+      context: WorkflowContext<T>
+    }
+
+export function runWorkflow<T extends SourceData = SourceData>(data: T, context: WorkflowContext<T>) {
+  // NOTE: reject() is only used for fatal errors
+  return new Promise((resolve, reject) => {
+    const workerPath = join(__dirname, '..', '@shared', 'workflow.process.js')
+    const child = fork(workerPath, [context.package!], {stdio: ['inherit', 'inherit', 'inherit', 'ipc']})
+
+    child.on('message', (msg: any) => {
+      switch (msg.type) {
+        case 'PARENT:LOG':
+          context.stream.emit('message', msg)
+          break
+
+        case 'PARENT:RESULT':
+          context.stream.emit('finish', msg.result)
+          child.kill()
+          resolve({result: msg.result})
+          break
+
+        case 'PARENT:ERROR':
+          context.stream.emit('error', msg)
+          break
+
+        case 'PARENT:EVENT':
+          context.stream.emit('event', {
+            event: msg.event,
+            payload: msg.payload,
+          })
+          break
+      }
+    })
+
+    child.send({type: 'PARENT:RUN', data, context})
+  })
 }
 
 export function runInChildProcess<T extends SourceData = SourceData, R = any>(
@@ -180,8 +273,6 @@ export function runInChildProcess<T extends SourceData = SourceData, R = any>(
     const child = fork(workerPath, [config.package!], {stdio: ['inherit', 'inherit', 'inherit', 'ipc']})
 
     child.on('message', (msg: any) => {
-      if (settled) return
-
       switch (msg.type) {
         case 'LOG':
           event.emit('message', msg)
@@ -191,16 +282,21 @@ export function runInChildProcess<T extends SourceData = SourceData, R = any>(
           event.emit('attempt', msg.attempt)
           break
 
-        case 'RESULT':
+        case 'PARENT:RESULT':
           event.emit('finish', msg.result)
           child.kill()
           resolve({result: msg.result})
+          break
+        case 'ERROR':
+          //event.emit('error', msg.error)
+          console.log('error received', msg.error)
+          child.kill()
           break
       }
     })
 
     // Start execution
-    child.send({type: 'RUN', id, data, config})
+    child.send({type: 'PARENT:RUN', id, data, config})
   })
 }
 
