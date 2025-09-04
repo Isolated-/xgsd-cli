@@ -127,11 +127,6 @@ export const userCodeLogCollector = (context: WorkflowContext<any>, path: string
   let humanLog = join(logPath, context.hash, `logs-${unit === 'h' ? hour : day}.log`)
   let jsonlLog = join(logPath, `logs-${day}.combined.jsonl`)
 
-  if (unit === 'h') {
-    logPath = join(logPath, hour)
-  }
-
-  console.log(value, unit)
   ensureDirSync(logPath)
 
   const logger = createLogger({
