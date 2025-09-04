@@ -133,6 +133,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
           name: Joi.string().required(),
           description: Joi.string().optional(),
           data: Joi.object().optional(),
+          env: Joi.object().pattern(Joi.string(), Joi.string()).optional(),
           if: Joi.alternatives().try(Joi.boolean(), Joi.string()).optional(),
           with: Joi.object().optional(),
           after: Joi.object().optional(),
@@ -189,6 +190,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
     action: step.run || step.action || null,
     enabled: step.enabled ?? true,
     data: header.data || step.data ? _.merge({}, header.data, step.data, step.with) : undefined,
+    env: step.env || null,
     options: {
       timeout: step.options?.timeout || header.options.timeout,
       retries: step.options?.retries || header.options.retries,
