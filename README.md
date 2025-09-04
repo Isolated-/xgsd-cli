@@ -216,7 +216,7 @@ If you need a mode introduced please let me know — more modes = more use cases
 - `fanout` — this mode and `chained` are very similar and may be confusing for some. The main difference between this mode and `chained` is that in `fanout` the input data is passed to all steps in order. This is ideal for when the result of one step doesn't affect the next.
 - `chained` — order is preserved, however, the output from the _last successful step_ is passed into the input of the next step. This chaining allows for complex workflows and maintains order when things go wrong.
 
-It's worth noting that regardless of the mode used, you'll get full process isolation at the workflow level and individual steps. _Most_ blocking tasks that would typically stall Node.js shouldn't, with the exception of `while (true) {}`. I'm working on a solution for this.
+It's worth noting that regardless of the mode used, you'll get full process isolation at the workflow level and individual steps.
 
 ### Templating
 
