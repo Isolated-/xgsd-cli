@@ -11,6 +11,8 @@ import {
   loadUserWorkflowConfig,
   validateWorkflowConfig,
 } from '../@core/pipelines/pipelines.util'
+import winston = require('winston')
+import prettyBytes from 'pretty-bytes'
 
 export default class Run extends Command {
   static override args = {
@@ -43,9 +45,9 @@ export default class Run extends Command {
       char: 'l',
       description: 'log level',
       aliases: ['level', 'logs', 'logLevel'],
-      options: ['info', 'status', 'warn', 'error', 'success'],
+      options: ['info', 'status', 'warn', 'error', 'success', 'user'],
       multiple: true,
-      default: ['info', 'status', 'warn', 'error', 'success'],
+      default: ['info', 'status', 'warn', 'error', 'success', 'user'],
     }),
 
     workflow: Flags.string({
@@ -107,6 +109,10 @@ export default class Run extends Command {
           return
         }
 
+        if (msg.log.level === 'user') {
+          message = chalk.bold.cyan(message)
+        }
+
         if (msg.log.level === 'error' || msg.log.level === 'fail' || msg.log.level === 'retry') {
           message = chalk.bold.red(message)
         }
@@ -131,13 +137,17 @@ export default class Run extends Command {
           this.log(flags.plain ? `(${msg.log.level}) ${msg.log.message}` : message)
         }
       })
-
-      event.on('retry', (error) => {})
     }
 
     await userCodeOrchestration(
       data,
-      {...userConfig, version: userCodePackageJson.version, package: userModulePath, output: writePath},
+      {
+        ...userConfig,
+        version: userConfig.version || userCodePackageJson.version,
+        package: userModulePath,
+        output: writePath,
+        cli: this.config.version,
+      },
       event,
     )
 
