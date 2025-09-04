@@ -55,11 +55,14 @@ export default class Exec extends Command {
   static override args = {
     package: Args.string({description: 'package to run', required: true}),
   }
-  static override description = 'Run a workflow in a Docker container (proof of concept, very limited)'
+  static override description =
+    'Run a workflow in a Docker container (proof of concept, very limited). Container is removed after exec for each run.'
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
     confirm: Flags.boolean({char: 'y', description: 'confirm before running'}),
     watch: Flags.boolean({char: 'w', description: 'watch for changes (streams logs to console)'}),
+
+    workflow: Flags.string({char: 'e', description: 'workflow to run'}),
   }
 
   public async run(): Promise<void> {
@@ -83,46 +86,28 @@ export default class Exec extends Command {
     ensureDockerRunning()
     ensureImageExists()
 
-    const version = getDockerVersion()
-
-    this.log(`workflow path is ${workflowPath}`)
-    this.log(`workflow is starting with ${version.client}`)
-
     const args = ['run', '--rm', '-v', `${workflowPath}:/app/workflow`, 'xgsd:v1', 'run', '.']
     if (flags.watch) args.push('--watch')
+    if (flags.workflow) args.push('--workflow', flags.workflow)
 
     const docker = spawn('docker', args, {stdio: 'inherit'})
 
     docker.stdout?.on('data', (data) => process.stdout.write(data))
     docker.stderr?.on('data', (data) => process.stderr.write(data))
 
-    docker.on('close', (code) => {
-      if (code !== 0) {
-        console.error(`Docker exited with code ${code}`)
-      } else {
-        console.log('Workflow container completed successfully')
-      }
-    })
+    docker.on('close', (code) => {})
 
     docker.on('close', async (code) => {
       if (code !== 0) {
         return
       }
 
-      this.log('Workflow finished successfully ✅')
-
       // Collect run results/artifacts
       const runsDir = path.join(workflowPath, 'runs')
       if (existsSync(runsDir)) {
-        this.log(`Collecting run results from: ${runsDir}`)
-        const files = readdirSync(runsDir)
-        for (const file of files) {
-          const filePath = path.join(runsDir, file)
-          const stats = statSync(filePath)
-          this.log(` - ${file} (${stats.size} bytes)`)
-        }
+        this.log(`collecting run results from: ${runsDir}.`)
       } else {
-        this.log('⚠️ No runs directory found, container may not have written artifacts')
+        this.log('no runs directory found, container may not have written artifacts')
       }
     })
 
