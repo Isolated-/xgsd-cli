@@ -5,7 +5,15 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-### [v0.3.2] - 2025-09-04
+## [`v0.3.3`] - 2025-09-05
+
+`v0.3.3` and `v0.3.2` were released together.
+
+### Added
+
+- **Environment variables** can be passed into the process running your workflow step. \*Keeping sensitive information in your configuration file isn't recommended - this will be extended with **secret management\***.
+
+## [v0.3.2] - 2025-09-04
 
 `v0.3.2` focused on improving existing features and ensuring stability.
 

@@ -104,11 +104,11 @@ Here’s how it works:
 - If a step goes completely silent — no events, no results, no errors — the watchdog kicks in and **kills the process** with a `hard timeout`.
 - This doesn’t interfere with soft timeouts (network delays, retries, backoff) — those are handled as expected.
 
-## Dangling Processes (`< v0.3.2`)
+## Dangling Processes (`< v0.3.3`)
 
-`v0.3.2` fixes a major issue where processes were not exiting correctly if xGSD fails to exit gracefully (e.g. an error occurred before execution of your workflow). You may not have noticed this problem but you should upgrade to `v0.3.2` to prevent this happening. These processes will not exit on their own for sometime and will consume large amounts of memory `< 2GB` in a matter of seconds.
+`v0.3.2` fixes a major issue where processes were not exiting correctly if xGSD fails to exit gracefully (e.g. an error occurred before execution of your workflow). You may not have noticed this problem but you should upgrade to `v0.3.2` to prevent this happening. These processes will not exit on their own for sometime and will consume large amounts of memory `< 2GB` in a matter of seconds. `v0.3.2` version was corrupted was it was released as `v0.3.3` with new `env` option at step level.
 
-**Upgrade to `v0.3.2` to avoid this issue.**
+**Upgrade to `v0.3.3` to avoid this issue.**
 
 ## Configuration
 
@@ -188,6 +188,9 @@ steps:
       timeout: 15s
       retries: 25
   - name: Get Weather Data
+    env:
+      # v0.3.3 added this option
+      MY_ENV_VAR: 'value'
     with:
       city: ${{ .config.data.location }}
       latitude: ${{ steps[0].output.latitude }}
