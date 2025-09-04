@@ -5,6 +5,33 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+### [v0.3.2] - 2025-09-04
+
+`v0.3.2` focused on improving existing features and ensuring stability.
+
+### Added
+
+- **Docker support** is now enabled for `--workflow` flag.
+- **Backoff configuration** is now supported with three options: `linear`, `exponential` and `squaring`. These will be extended in future in addition to setting minimums and maximums.
+
+### Changed
+
+- **Workflow events** are now emitted from with the process handlers. This will be used for webhooks in later versions.
+- **Configuration** now supports `version` at the top level (defaults to your package.json version otherwise). Configuration hash is also provided in logs and reports to enable easier debugging.
+- **Logging** no longer outputs files to a flat folder, instead log files are grouped by day and config hash, in addition to the hour (if `logs.bucket` = `1h`). Right now only `1h` and `1d` options are supported.
+- **Application logging** is now streamed into your log file enabling traceability.
+- **Daily logs** are now collected for _all_ workflows, this enables easier debugging as you no longer need to piece together information across files.
+
+### Fixed
+
+- **Workflow step process** has been refactored for testability, **disabled steps** will no longer cause the child process to hang indefinitely, and `if` and `enabled` work in the same way (step level only).
+- **Quickstart example** has been fixed, most of `README.md` has been refactored for clarity.
+- **Errors** in workflow (not your application) no longer bring the entire system down.
+- **Hard blocking code** (`while (true) {}`) will no longer halt your workflow. **Note**: unlike soft blocks (timer/network/promises/etc), there is currently no retry logic.
+- **Memory leak** caused only when the process doesn't exit gracefully has now been fixed. Process will ungracefully exit if failure occurs.
+
+---
+
 ## [v0.3.1] - 2025-09-03
 
 `v0.3.0` introduced a number of new changes and `async` mode was temporarily removed and wasn't ever added back in. This has now been fixed, if you're missing `async` mode then redownload the CLI:
@@ -19,9 +46,9 @@ npm install -g @xgsd/cli@0.3.1
 
 ### Fixed
 
+- Fixes Quickstart example (adding command) documentation in README.md.
 - Fixes lack of async support caused by developer error (sorry if this affected you).
 - Fixes workflow-level enable/disable caused by `enabled: config.enabled || true` (should've been `config.enabled ?? true`)
-- Improves Quickstart documentation in README.md.
 
 ---
 
