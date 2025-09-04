@@ -85,7 +85,7 @@ export const handleStepError = (context: WorkflowContext, step: PipelineStep, er
 export const handleStepStarted = (context: WorkflowContext, step: PipelineStep) => {
   let name = step.name ? step.name : 'unknown'
 
-  const timeout = getDurationString(step.options?.timeout!)
+  const timeout = getDurationString(step.options?.timeout || context.config.options.timeout!)
   const retries = step.options?.retries!
 
   log(`${name} - has started, timeout: ${timeout}, retries: ${retries}.`, 'info', context, step)
@@ -98,7 +98,7 @@ export const handleStepStarted = (context: WorkflowContext, step: PipelineStep) 
 
 export const handleStepComplete = (context: WorkflowContext, step: PipelineStep) => {
   let name = step.name ? step.name : 'unknown'
-  const duration = getDurationString(step.duration!)
+  const duration = getDurationString(step.duration || 0)
 
   if (context.config.print?.output) {
     log(`${name} output data: ${JSON.stringify(step.output || {})}`, 'info', context, step)
@@ -109,7 +109,7 @@ export const handleStepComplete = (context: WorkflowContext, step: PipelineStep)
 
 export const handleStepFailed = (context: WorkflowContext, step: PipelineStep, error: WrappedError) => {
   const name = step.name || step.run
-  const duration = getDurationString(step.duration!)
+  const duration = getDurationString(step.duration || 0)
 
   if (context.config.print?.output && step.output) {
     log(`${name} output data: ${JSON.stringify(step.output || {})}`, 'info', context, step)
@@ -120,10 +120,9 @@ export const handleStepFailed = (context: WorkflowContext, step: PipelineStep, e
 
 export const handleStepFailing = (context: WorkflowContext, step: PipelineStep, attempt: RetryAttempt) => {
   let name = step.name ? step.name : step.run
-  const duration = getDurationString(attempt.nextMs!)
+
+  const duration = getDurationString(attempt.nextMs || 0)
   const maxRetries = step.options?.retries
-  const max = attempt.nextMs + step.options?.timeout!
-  const timeout = getDurationString(max)
 
   // don't log if it's the final attempt and there are no retries
   if (attempt.finalAttempt && attempt.attempt === 0) return
@@ -131,7 +130,7 @@ export const handleStepFailing = (context: WorkflowContext, step: PipelineStep, 
   // next in was a bit misleading when we have exponential backoff
   // so changed to just show the delay time
   log(
-    `${name} is failing, attempt: ${attempt.attempt + 1}/${maxRetries} next in ${duration} (max: ${timeout}). Error: ${
+    `${name} is failing, attempt: ${attempt.attempt + 1}/${maxRetries} next in ${duration}. Error: ${
       attempt.error?.message
     }`,
     'warn',
