@@ -5,9 +5,12 @@ import * as ms from 'ms'
 import {resolveStepData, resolveStepTemplates, resolveTemplate} from './runner.process'
 import {WorkflowContext} from './context.builder'
 import {RetryAttempt} from './runner/retry.runner'
+import {WorkflowEvent} from '../workflows/workflow.events'
+import {WorkflowError, WorkflowErrorCode} from './workflow.process'
+import prettyBytes from 'pretty-bytes'
 
 const log = (message: string, level: string = 'info') => {
-  dispatchMessage('log', {log: {level, message}}, true)
+  dispatchMessage('log', {log: {level, message, timestamp: new Date().toISOString()}}, true)
 }
 
 const fatal = (message: string) => {
@@ -20,10 +23,25 @@ const fatal = (message: string) => {
   })
 }
 
-function dispatchMessage(type: 'error' | 'start' | 'result' | 'attempt' | 'log', payload: any, child: boolean = false) {
+function dispatchMessage(
+  type: 'error' | 'start' | 'result' | 'attempt' | 'log' | 'event',
+  payload: any,
+  child: boolean = false,
+) {
   process.send!({
     type: `CHILD:${type.toUpperCase()}`,
     ...payload,
+  })
+}
+
+export const event = (
+  name: string,
+  context: {attempt?: RetryAttempt; error?: WrappedError; step: PipelineStep; context: WorkflowContext},
+) => {
+  process.send!({
+    type: 'CHILD:EVENT',
+    event: name,
+    payload: context,
   })
 }
 
@@ -54,7 +72,7 @@ export async function processStep(
   const retries = options.retries!
   const timeout = options.timeout!
 
-  dispatchMessage('start', {step: prepared, context})
+  event(WorkflowEvent.StepRunning, {step: prepared, context})
 
   const errors: WrappedError[] = []
   const result = await retry(prepared.input, step.fn!, retries, {
@@ -64,7 +82,7 @@ export async function processStep(
       attempt?.(a)
       prepared.state = PipelineState.Retrying
       prepared.attempt = a.attempt + 1
-      errors.push(a.error)
+      errors.push(a.error) // this can be removed in v0.4+ (streaming to logs is implemented)
     },
   })
 
@@ -137,11 +155,21 @@ export async function importUserModule(step: PipelineStep, context: WorkflowCont
   const action = step.run ?? step.action!
   const fn = userModule[action]
   if (!fn) {
-    throw new Error('FUNCTION_NOT_FOUND')
+    throw new WorkflowError(`${action} function not found in module`, WorkflowErrorCode.FunctionNotFound)
   }
 
   return fn
 }
+
+process.on('uncaughtException', (error) => {
+  fatal(`uncaught exception: ${error.message}`)
+  process.exit(1) // <- fixes memory leak on uncaught exceptions
+})
+
+process.on('unhandledRejection', (reason: any, promise) => {
+  fatal(`unhandled rejection: ${reason?.message || reason}`)
+  process.exit(1) // <- fixes memory leak on unhandled rejections
+})
 
 // this method now just deals with logging back up stream
 process.on('message', async (msg: {type: string; step: PipelineStep; context: WorkflowContext}) => {
@@ -153,33 +181,24 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
   try {
     fn = await importUserModule(step, context)
   } catch (error: any) {
-    fatal(`failed to load user module for step: ${step.name}, error: ${error.message}`)
+    console.log(error)
     return
   }
 
-  log(
-    `(${step.name}) ${step.description || 'no description'} is running using ${context.config.runner}, timeout: ${
-      step.options?.timeout ?? context.config.options.timeout
-    }, retries: ${step.options?.retries ?? context.config.options.retries}, enabled: ${step.enabled ?? true}`,
-    'status',
-  )
-
   const delay = (attempt: number) => 1000 * 2 ** attempt
   const onAttempt = async (attempt: RetryAttempt) => {
-    dispatchMessage('attempt', {attempt, step})
+    event(WorkflowEvent.StepRetry, {attempt, step, context})
+    event(WorkflowEvent.StepError, {error: attempt.error, step, context})
   }
 
+  event(WorkflowEvent.StepStarted, {step, context})
   step.fn = fn
   const result = await processStep(step, context, delay, onAttempt)
 
-  if (result.errors && result.errors.length !== 0) {
-    log(`(${step.name}) failed with error: ${result.errors[0].message}`, 'error')
-  }
-
-  log(`(${step.name}) step ${result.state}, took ${ms(result.duration as number)}`, 'info')
-
-  if (context.config.print?.output) {
-    log(`${step.name} output data: ${result.output ? JSON.stringify(result.output) : 'no output'}`, 'info')
+  if (result.errors && result.errors.length > 0 && !result.output) {
+    event(WorkflowEvent.StepFailed, {step: result, context})
+  } else {
+    event(WorkflowEvent.StepCompleted, {step: result, context})
   }
 
   dispatchMessage('result', {result: {step: result}})
@@ -327,7 +346,7 @@ process.on('message_old', async (msg: any) => {
     }
 
     log(`${step.name} - step completed successfully`, 'success')
-    process.send!({
+    /**process.send!({
       type: 'CHILD:RESULT',
       result: {
         state: PipelineState.Completed,
@@ -336,7 +355,7 @@ process.on('message_old', async (msg: any) => {
           errors,
         },
       },
-    })
+    })**/
   } catch (error) {
     fatal(`error occurred while executing step: ${step.name}, error: ${JSON.stringify(error)}`)
   }
