@@ -28,7 +28,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 - **Quickstart example** has been fixed, most of `README.md` has been refactored for clarity.
 - **Errors** in workflow (not your application) no longer bring the entire system down.
 - **Hard blocking code** (`while (true) {}`) will no longer halt your workflow. **Note**: unlike soft blocks (timer/network/promises/etc), there is currently no retry logic.
-- **Memory leak** caused only when the process doesn't exit gracefully has now been fixed. Process will ungracefully exit if failure occurs.
+- **Memory leak & dangling processes** caused only when the process doesn't exit gracefully has now been fixed (e.g. errors in xGSD). Process will ungracefully exit if failure occurs.
 
 ---
 
