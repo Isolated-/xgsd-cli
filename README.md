@@ -104,6 +104,12 @@ Here’s how it works:
 - If a step goes completely silent — no events, no results, no errors — the watchdog kicks in and **kills the process** with a `hard timeout`.
 - This doesn’t interfere with soft timeouts (network delays, retries, backoff) — those are handled as expected.
 
+## Dangling Processes (`< v0.3.2`)
+
+`v0.3.2` fixes a major issue where processes were not exiting correctly if xGSD fails to exit gracefully (e.g. an error occurred before execution of your workflow). You may not have noticed this problem but you should upgrade to `v0.3.2` to prevent this happening. These processes will not exit on their own for sometime and will consume large amounts of memory `< 2GB` in a matter of seconds.
+
+**Upgrade to `v0.3.2` to avoid this issue.**
+
 ## Configuration
 
 In _v0.3.0_, an entirely new way of configuring workflows was introduced.  
@@ -127,6 +133,11 @@ enabled: true
 
 # three modes: async|fanout|chained (see Modes)
 mode: chained
+
+# v0.3.2 adds these options
+logs:
+  bucket: 1h # or 1d (more will come)
+  path: /home/me/.logs/my-workflow
 
 # applies to all steps without their own options
 options:
