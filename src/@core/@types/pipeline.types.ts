@@ -23,12 +23,14 @@ export type PartialStep<T extends SourceData = SourceData> = Require<PipelineSte
  *  @version v1
  */
 export type PipelineStep<T extends SourceData = SourceData> = {
+  index?: number
   action?: string
   name?: string | undefined
   description?: string | undefined
   startedAt?: string | null | undefined
   endedAt?: string | null | undefined
   duration?: number | null | undefined
+  env?: Record<string, string> | null
   run: string | null
   if?: string | boolean | null
   after?: Record<string, unknown> | null
