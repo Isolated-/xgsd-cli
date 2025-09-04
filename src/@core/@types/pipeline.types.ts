@@ -164,6 +164,10 @@ export type FlexibleWorkflowConfig<T = SourceData> = {
     logs?: boolean
     run?: boolean
   }
+  logs?: {
+    bucket?: string
+    path?: string
+  }
   runner: 'xgsd@v1'
   output: string
   metadata: Record<string, unknown>
