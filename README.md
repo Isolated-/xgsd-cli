@@ -93,6 +93,17 @@ Or, to try the experimental Docker support, replace `run` with `exec` and remove
 
 Since _v0.3.0_, logs and results are collected by default — see **Configuration** to disable them.
 
+## Watchdog Protection
+
+Everyone’s been there: you forget a `break` in a loop, or a step never returns, and suddenly the whole process is hung forever.  
+To save you from that headache, xGSD runs each step under a **watchdog**.
+
+Here’s how it works:
+
+- If a step keeps emitting events (retries, backoff, logs, etc.), it’s considered alive and continues normally.
+- If a step goes completely silent — no events, no results, no errors — the watchdog kicks in and **kills the process** with a `hard timeout`.
+- This doesn’t interfere with soft timeouts (network delays, retries, backoff) — those are handled as expected.
+
 ## Configuration
 
 In _v0.3.0_, an entirely new way of configuring workflows was introduced.  
