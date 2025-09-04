@@ -65,19 +65,22 @@ describe('workflow step process unit tests', () => {
         step.options = {timeout: '5s' as any}
         const result = prepareStepData(step, ctx)
         expect(async () => await result).not.toThrow()
-        console.log(result.options)
       })
     })
 
     describe('when completing the process', () => {
       test('should finalize step data correctly', async () => {
+        step.fn = async (context) => {
+          return new Promise((resolve) => setTimeout(resolve, 100))
+        }
+
         const result = await processStep(step, ctx)
         expect(result.output).toBeDefined()
         expect(result.output.email).toBe('****************')
         expect(result.state).toBe(PipelineState.Completed)
         expect(result.startedAt).toBeDefined()
         expect(result.endedAt).toBeDefined()
-        expect(result.duration).toBeGreaterThan(0)
+        expect(result.duration).toBeGreaterThan(0) // <- this fails on fast tests, added 100ms delay above
       })
 
       test('when after is empty, undefined, null, or false, output should be returned without mutation', async () => {
