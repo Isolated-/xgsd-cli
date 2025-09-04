@@ -26,6 +26,34 @@ const event = (name: string, payload: object) => {
   process.send!({type: 'PARENT:EVENT', event: name, payload})
 }
 
+export enum WorkflowErrorCode {
+  HardTimeout = 'CODE_HARD_TIMEOUT',
+  ModuleNotFound = 'CODE_MODULE_NOT_FOUND',
+  FunctionNotFound = 'CODE_FUNCTION_NOT_FOUND',
+}
+
+export class WorkflowError extends Error {
+  code: string
+  name: string
+  message: string
+  stack?: string
+  original?: Error
+
+  constructor(message: string, code: WorkflowErrorCode, original?: Error) {
+    super(message)
+    this.name = 'WorkflowError'
+    this.message = message
+    this.code = code
+    this.original = original
+
+    if (original && original.stack) {
+      this.stack = original.stack
+    } else {
+      Error.captureStackTrace(this, this.constructor)
+    }
+  }
+}
+
 async function runStep(idx: number, step: PipelineStep, context: WorkflowContext) {
   return new Promise<{step: any; fatal: boolean; errors: any[]}>((resolve, reject) => {
     const stepProcess = fork(join(__dirname, 'workflow.step-process.js'), {
@@ -41,6 +69,7 @@ async function runStep(idx: number, step: PipelineStep, context: WorkflowContext
 
     const timerHandler = () => {
       stepProcess.kill()
+      const error = new WorkflowError('hard timeout limit reached', WorkflowErrorCode.HardTimeout)
 
       const updated = {
         ...step,
@@ -49,55 +78,41 @@ async function runStep(idx: number, step: PipelineStep, context: WorkflowContext
         endedAt: new Date().toISOString(),
         duration: new Date().getTime() - new Date(startedAt).getTime(),
         state: PipelineState.Failed,
-        error: {
-          name: 'timeout',
-          message: 'hard timeout limit reached',
-        },
-        errors: [new Error('hard timeout limit reached')].map((e) => ({
-          original: e,
-          name: e.name,
-          message: e.message,
-          stack: e.stack,
-        })),
+        error,
+        errors: [error],
       }
 
-      event(WorkflowEvent.StepFailed, {step: updated, attempt: {error: updated.error, retries: 0, nextMs: 0}})
+      event(WorkflowEvent.StepFailed, {
+        step: updated,
+        attempt: {error: updated.error, retries: 0, nextMs: 0, finalAttempt: true},
+      })
+
       resolve({
-        step: {
-          ...step,
-          index: idx,
-          startedAt: step.startedAt || startedAt,
-          endedAt: new Date().toISOString(),
-          duration: new Date().getTime() - new Date(step.startedAt || startedAt).getTime(),
-          state: PipelineState.Failed,
-          error: {
-            name: 'timeout',
-            message: 'hard timeout limit reached',
-          },
-          errors: [new Error('hard timeout limit reached')].map((e) => ({
-            original: e,
-            name: e.name,
-            message: e.message,
-            stack: e.stack,
-          })),
-        },
+        step: updated,
         fatal: true,
         errors: [],
       })
     }
 
-    let timer = setTimeout(timerHandler, timeout)
-
-    let errors: WrappedError[] = []
+    let timer = setTimeout(() => {}, timeout! * 10000)
     stepProcess.on('message', (msg: any) => {
       switch (msg.type) {
         case 'CHILD:EVENT':
           event(msg.event, msg.payload)
           if (msg.event === WorkflowEvent.StepRetry) {
             clearTimeout(timer)
-            timer = setTimeout(timerHandler, msg.payload.attempt.nextMs + 500)
+            // adds nextMs + original timeout to give some buffer time on retries
+            // leave timeout in place so hard timeout doesn't kick it
+            timer = setTimeout(timerHandler, timeout! + msg.payload.attempt.nextMs + 500)
             return
           }
+
+          // adds to give some buffer time on retries
+          if (msg.event === WorkflowEvent.StepStarted) {
+            clearTimeout(timer)
+            timer = setTimeout(timerHandler, timeout! + 1000)
+          }
+
           break
         case 'CHILD:RESULT':
           stepProcess.kill()
@@ -130,6 +145,10 @@ async function runStep(idx: number, step: PipelineStep, context: WorkflowContext
       if (msg) {
         log(msg, 'error', context, step)
       }
+    })
+
+    process.on('exit', () => {
+      stepProcess.kill()
     })
 
     stepProcess.send({
