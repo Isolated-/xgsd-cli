@@ -336,7 +336,8 @@ export function runWorkflow<T extends SourceData = SourceData>(data: T, context:
     process.on('SIGINT', () => child.kill())
     process.on('exit', () => child.kill())
 
-    child.send({type: 'PARENT:RUN', data, context})
+    // send context without stream of events to reduce IPC comms
+    child.send({type: 'PARENT:RUN', data, context: context.serialise!()})
   })
 }
 
