@@ -1,5 +1,5 @@
 import {Args, Command, Flags} from '@oclif/core'
-import {join} from 'path'
+import {join, resolve} from 'path'
 import {mkdtempSync, pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
 import {userCodeOrchestration} from '../@core/pipelines/pipeline.concrete'
 import {EventEmitter2} from 'eventemitter2'
@@ -9,8 +9,31 @@ import {
   loadUserWorkflowConfig,
   validateWorkflowConfig,
 } from '../@core/pipelines/pipelines.util'
+import {userLogThemes} from '../constants'
+import {BaseCommand} from '../base'
 
-export default class Run extends Command {
+export const prettyPrintLogs = (event: EventEmitter2, flags: Record<string, any>, cmd: Run) => {
+  if (!flags.watch) {
+    return
+  }
+
+  event.on('message', (msg) => {
+    let message = `${msg.log.message}`
+    if (!flags.level || !flags.level.includes(msg.log.level)) {
+      return
+    }
+
+    if ((flags.level && flags.plain) || !userLogThemes[msg.log.level]) {
+      cmd.log(`(${msg.log.level}) ${msg.log.message}`)
+      return
+    }
+
+    message = userLogThemes[msg.log.level](message)
+    cmd.log(message)
+  })
+}
+
+export default class Run extends BaseCommand<typeof Command> {
   static override args = {
     function: Args.string({
       description: 'function to run',
@@ -22,10 +45,6 @@ export default class Run extends Command {
     'Run workflows and your code with full confidence. Error handling, retries, timeouts, and isolation - all built in.'
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
-    // flag with no value (-f, --force)
-    force: Flags.boolean({char: 'f'}),
-    // flag with a value (-n, --name=VALUE)
-    name: Flags.string({char: 'n', description: 'name to print'}),
     data: Flags.string({
       char: 'd',
       description: 'data file to use (must be a path)',
@@ -35,33 +54,17 @@ export default class Run extends Command {
         return readJsonSync(input)
       },
     }),
-
-    watch: Flags.boolean({char: 'w', description: 'watch for changes (streams logs to console)'}),
-    'log-level': Flags.string({
-      char: 'l',
-      description: 'log level',
-      aliases: ['level', 'logs', 'logLevel'],
-      options: ['info', 'status', 'warn', 'error', 'success', 'user'],
-      multiple: true,
-      default: ['info', 'status', 'warn', 'error', 'success', 'user'],
-    }),
-
-    workflow: Flags.string({
-      char: 'e',
-      description: 'you can specify a workflow by name when you have a workflows/ folder in your NPM package',
-      required: false,
-    }),
-
-    plain: Flags.boolean({char: 'p', description: 'run in plain mode (no colours)'}),
   }
 
   public async run(): Promise<any> {
-    const {args, flags} = await this.parse(Run)
+    const flags = this.flags!
+    const args = this.args!
 
-    const userModulePath = join(process.cwd(), args.function)
+    const path = resolve(args.function)
+    const userModulePath = path
 
     // this will eventually be refactored
-    const packageJsonPath = join(process.cwd(), args.function, 'package.json')
+    const packageJsonPath = join(path, 'package.json')
     if (!pathExistsSync(packageJsonPath)) {
       this.error(`package.json not found at ${packageJsonPath}, you'll need an NPM package before continuing.`)
     }
@@ -96,64 +99,18 @@ export default class Run extends Command {
 
     const event = new EventEmitter2()
     const name = userConfig.name
-    const writePath = join(process.cwd(), args.function, 'runs', name!.toLowerCase().replace(/\s+/g, '-'))
+    const writePath = join(path, 'runs', name!)
 
-    if (flags.watch) {
-      event.on('message', (msg) => {
-        let message = `${msg.log.message}`
-        if (!flags['log-level'].includes(msg.log.level)) {
-          return
-        }
-
-        if (msg.log.level === 'user') {
-          message = chalk.bold.cyan(message)
-        }
-
-        if (msg.log.level === 'error' || msg.log.level === 'fail' || msg.log.level === 'retry') {
-          message = chalk.bold.red(message)
-        }
-
-        if (msg.log.level === 'warn') {
-          message = chalk.yellow(message)
-        }
-
-        if (msg.log.level === 'success') {
-          message = chalk.bold.green(message)
-        }
-
-        if (msg.log.level === 'status') {
-          message = chalk.magenta(message)
-        }
-
-        if (msg.log.level === 'info' || msg.log.level === 'log') {
-          message = chalk.blue(message)
-        }
-
-        if (flags['log-level'].includes(msg.log.level)) {
-          this.log(flags.plain ? `(${msg.log.level}) ${msg.log.message}` : message)
-        }
-      })
-    }
-
-    await userCodeOrchestration(
+    prettyPrintLogs(event, flags, this)
+    return userCodeOrchestration(
       data,
       {
         ...userConfig,
         version: userConfig.version || userCodePackageJson.version,
         package: userModulePath,
         output: writePath,
-        cli: this.config.version,
       },
       event,
     )
-
-    if (!flags.plain) {
-      this.log(chalk.bold.green(`your run for "${userConfig.name}" has completed!`))
-      return
-    }
-
-    this.log(`your run for "${userConfig.name}" has completed!`)
-
-    return {}
   }
 }
