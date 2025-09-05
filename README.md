@@ -1,15 +1,22 @@
-# Workflows with xGSD CLI
+# Workflows with **xGSD CLI**
 
-[![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
-[![Version](https://img.shields.io/npm/v/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
-[![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)
+[![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)  
+[![Version](https://img.shields.io/npm/v/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)  
+[![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)  
 [![CI & Release](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml/badge.svg)](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml)
 
-xGSD is workflows (task orchestration) local on your machine. If you don't need the full complexity of a cloud solution like AWS Lambda, GCP Functions, Azure Functions, and so on then xGSD may be for you. Zero external dependencies and nothing to manage - define your workflow and everything else is handled for you.
+**xGSD** lets you run workflows (task orchestration) **locally on your machine**.  
+If you don’t need the full complexity of cloud solutions like **AWS Lambda**, **GCP Functions**, or **Azure Functions**, xGSD may be the perfect fit.
+
+- **Zero external dependencies** — nothing to install or manage beyond your workflow.
+- Define your workflow and **everything else is handled for you**.
+- Ideal for **solo developers, tinkerers, or anyone experimenting with automation**.
+
+xGSD only supports **Node.js**, you'll need to ensure it's installed before you continue.
 
 ## Install
 
-Installing the CLI is straightforward, you'll need to ensure you already have NPM (or yarn) already installed.
+Installing the CLI is straightforward. Just make sure you already have **NPM** (or **Yarn**) installed.
 
 ```bash
 # install with npm
@@ -18,15 +25,15 @@ npm install -g @xgsd/cli
 
 ## Quickstart
 
-Everything is designed so that you can get up and running as quickly as possible and with minimal frustration.
+Everything is designed so that you can get up and running **quickly** and with minimal frustration.
 
-First create a directory for your new workflow (xGSD stores logs and results here):
+First, create a directory for your new workflow (xGSD stores logs and results here):
 
 ```bash
 # make a new directory
 mkdir my-workflow
 
-# then run npm/yarn init:
+# then run npm/yarn init
 npm init
 ```
 
@@ -47,7 +54,7 @@ Create a configuration file in your project folder:
 touch config.yaml
 ```
 
-Since _v0.3.0_, you can use JSON if you prefer. `.yaml` or `.yml` doesn't matter either.
+Since _v0.3.0_, you can use **JSON** if you prefer. File extensions `.yaml` or `.yml` doesn't matter either.
 
 A minimal configuration looks like:
 
@@ -75,11 +82,39 @@ print:
   output: true
 ```
 
-And you're done. Take a look in `examples/http/runs` for an example of what the output of a workflow looks like.
+And finally run your workflow:
+
+```bash
+xgsd run path/to/package --workflow {name} --watch
+```
+
+Or, to try the experimental Docker support, replace `run` with `exec` and remove `--workflow`  
+(this option isn’t currently supported by `exec`).
+
+Since _v0.3.0_, logs and results are collected by default — see **Configuration** to disable them.
+
+## Watchdog Protection
+
+Everyone’s been there: you forget a `break` in a loop, or a step never returns, and suddenly the whole process is hung forever.  
+To save you from that headache, xGSD runs each step under a **watchdog**.
+
+Here’s how it works:
+
+- If a step keeps emitting events (retries, backoff, logs, etc.), it’s considered alive and continues normally.
+- If a step goes completely silent — no events, no results, no errors — the watchdog kicks in and **kills the process** with a `hard timeout`.
+- This doesn’t interfere with soft timeouts (network delays, retries, backoff) — those are handled as expected.
+
+## Dangling Processes (`< v0.3.3`)
+
+`v0.3.2` fixes a major issue where processes were not exiting correctly if xGSD fails to exit gracefully (e.g. an error occurred before execution of your workflow). You may not have noticed this problem but you should upgrade to `v0.3.2` to prevent this happening. These processes will not exit on their own for sometime and will consume large amounts of memory `< 2GB` in a matter of seconds. `v0.3.2` version was corrupted was it was released as `v0.3.3` with new `env` option at step level.
+
+**Upgrade to `v0.3.3` to avoid this issue.**
 
 ## Configuration
 
-In _v0.3.0_ an entirely new way of configuring workflows was introduced. No breaking changes should have been introduced, however, migrating is easy and recommended.
+In _v0.3.0_, an entirely new way of configuring workflows was introduced.  
+You can continue to use `v0.2` names like `action` vs `run` as they are aliased to prevent breaking changes.  
+Using `v0.2` and `v0.3` mixed isn't recommended though.
 
 ```yaml
 # this workflow works with v0.3.0+, ensure you have @xgsd/cli@0.3.1.
@@ -98,6 +133,11 @@ enabled: true
 
 # three modes: async|fanout|chained (see Modes)
 mode: chained
+
+# v0.3.2 adds these options
+logs:
+  bucket: 1h # or 1d (more will come)
+  path: /home/me/.logs/my-workflow
 
 # applies to all steps without their own options
 options:
@@ -148,6 +188,9 @@ steps:
       timeout: 15s
       retries: 25
   - name: Get Weather Data
+    env:
+      # v0.3.3 added this option
+      MY_ENV_VAR: 'value'
     with:
       city: ${{ .config.data.location }}
       latitude: ${{ steps[0].output.latitude }}
@@ -165,20 +208,35 @@ steps:
       city: ${{ .data.city | censor }}
 ```
 
+### Modes
+
+If you need a mode introduced please let me know — more modes = more use cases for us to use!
+
+- `async` — this mode is absolutely ideal for when ordering doesn't matter. Each step is executed initially in order but no waiting for results, retries, or timeouts. This mode won't allow one failing step to block your entire workflow.
+- `fanout` — this mode and `chained` are very similar and may be confusing for some. The main difference between this mode and `chained` is that in `fanout` the input data is passed to all steps in order. This is ideal for when the result of one step doesn't affect the next.
+- `chained` — order is preserved, however, the output from the _last successful step_ is passed into the input of the next step. This chaining allows for complex workflows and maintains order when things go wrong.
+
+It's worth noting that regardless of the mode used, you'll get full process isolation at the workflow level and individual steps.
+
 ### Templating
 
-A simple yet effective templating system was introduced in _v0.3.0_, it doesn't rely on any templating libraries so may be limited in some areas, however, it's still pretty powerful. Later versions will focus on improving the syntax, or replacing it entirely.
+A simple yet effective templating system was introduced in _v0.3.0_.  
+It doesn't rely on any templating libraries, so it may be limited in some areas; however, it's still pretty powerful.  
+Later versions will focus on improving the syntax or replacing it entirely.
 
 #### Context
 
-You can reference context properties using the template syntax, the context includes:
+You can reference context properties using the template syntax. The context includes:
 
-- `steps` - all steps that have previously run (may not be useful in fanout or async)
-- `config` - original configuration
-- `data` - the current step input data
-- `output` - the output of the current step
+- `steps` — all steps that have previously run (may not be useful in `fanout` or `async` modes)
+- `config` — original configuration
+- `data` — the current step input data
+- `output` — the output of the current step
 
-This will be extended between `v0.3.0` and `v0.4.0`. To reference these properties using the template syntax `${{ .data.name }}`, you can combine these with helpers like `censor` or `hash` to change the value before it hits your step. For example, a configuration like:
+This will be extended between `v0.3.0` and `v0.4.0`.  
+To reference these properties using the template syntax `${{ .data.name }}`, you can combine them with helpers like `censor` or `hash` to transform the value before it hits your step.
+
+For example, a configuration like:
 
 ```yaml
 data:
@@ -190,7 +248,8 @@ steps:
       name: ${{ .data.name | censor }}
 ```
 
-Would ensure that the next step will only see `{ name: "*********" }`, alternatively you can set it to null or undefined, or whatever else you need it to be.
+Would ensure that the next step will only see `{ name: "*********" }`.  
+Alternatively, you can set it to `null`, `undefined`, or any other value you need.
 
 ### Helpers
 
@@ -269,28 +328,53 @@ You can chain helpers (`|`) in order; **order matters** (e.g., `json | hash | sl
 
 ## Support
 
-If you're struggling with this CLI, want to give feedback, need changes to enable your workflow, or anything else shoot me an email [**mike@xgsd.io**](mailto:mike@xgsd.io), I'll try to help wherever I can. If you want to make changes to xGSD, feel free to make a pull request [do that here](https://github.com/Isolated-/xgsd-cli).
+If you're struggling with this CLI, want to give feedback, need changes to enable your workflow, or anything else, shoot me an email at [**mike@xgsd.io**](mailto:mike@xgsd.io). I’ll try to help wherever I can.
+
+If you want to make changes to xGSD, feel free to make a pull request [**do that here**](https://github.com/Isolated-/xgsd-cli).
 
 No analytic data is, or will be, collected from your machine. Please feel free to reach out with suggestions, criticism, or just to let me know what you're using this for.
 
-## Privacy & Security
+## Stability
 
-Most of the features in this project are a response to the UKs changes in regulation toward providers and are designed to mitigate the threats posed by Online Safety Act (OSA), Investigatory Powers Act (IPA), and the proposed Chat Control.
+**xGSD isn’t fragile — it’s just immature.**
 
-A full security overview will be published once everything is up and running. Please feel free to check the code ([here](https://github.com/Isolated-/xgsd-cli)) if you're concerned about how your data is managed. In short:
+xGSD is steadily moving toward production stability, but it’s still an **early-stage project** (`< v1.0.0`).  
+That means you should expect the occasional **bug, missing feature, or breaking change** along the way.
 
-**We do not and will not support weakening of encryption, state-owned backdoors, or any form of violating our users right to privacy.**
+It’s built and maintained by a **solo developer** — I’ll give it 100%, but sometimes things slip through.  
+For example, in `v0.3.0` I reworked the process handler and (oops) forgot to re-implement async mode 🙃.  
+I wish I’d never make mistakes, but they’re part of the process — and when they happen, I **fix them fast**.  
+(`v0.3.1` patched the async mode issue right after release.)
+
+If your workflow is **mission-critical**, you may want to wait until later versions.  
+But if you’re a **solo operator, tinkerer, or just curious**, _this is exactly the right time to jump in_.  
+Run xGSD on a Raspberry Pi as your own **serverless platform without vendor lock-in**, orchestrate your personal stack, or hack together new workflows — and please share feedback when you hit an edge case. **That’s how xGSD gets better.**
+
+If you’ve been down the frustrating road of debugging **brittle cloud jobs** — wiring retries, catching every edge case, and making sure nothing silently fails — you’ll feel right at home here.  
+xGSD is built to take that pain away, so you can **focus on building things that matter instead of babysitting error handlers.**
+
+## Inspiration
+
+Over the last five years, I’ve been working toward developing flexible code that is on-par with industry standards and current trends. My goal was to enable **custom user code** to run without modification to my own code. A lot of trial and error went into a seemingly simple solution.
+
+Whilst no single tool directly led to the solution, a lot of inspiration has come from:
+
+- **GitHub Actions**
+- **AWS Lambda** and other cloud alternatives
+- **RxJS**, **Nest.js**, and other JavaScript frameworks/libraries
+
+You’ll see this influence in various forms—from configuration to isolation. I would’ve been lost without these tools available to reverse engineer.
 
 ## Changes & Versioning
 
-Changes aren't currently recorded - they will be soon and managed in `CHANGELOG.md`, for now here's what's new in `v0.3.0`:
+Changes aren't currently recorded — they will be soon and managed in `CHANGELOG.md`. For now, here's what's new in **v0.3.0**:
 
-- **Docker support** has been added in experimental state, feel free to check it out with `xgsd exec {normal run args}`. Consider this _unstable_ until `v0.4.0+`
-- **Configuration** templating syntax has been added in addition to `with`, `if`, `after` at step level. All options support template syntax.
-- **Multiple workflows** can now be added, simply remove your `config.yml` and place workflow configurations in a `workflows/` in your package folder. Then run your workflow with `xgsd run {package} --workflow {name}`.
-- **Streamlined logging & reporting** some logging has been removed and reports have been reduced to allow for easier human reading.
+- **Docker support** has been added in experimental state. Feel free to try it with `xgsd exec {normal run args}`. Consider this _unstable_ until `v0.4.0+`.
+- **Configuration templating syntax** has been added, in addition to `with`, `if`, `after` at the step level. All options support template syntax.
+- **Multiple workflows** can now be added. Simply remove your `config.yml` and place workflow configurations in a `workflows/` folder in your package. Then run your workflow with `xgsd run {package} --workflow {name}`.
+- **Streamlined logging & reporting** — some logging has been removed and reports have been reduced for easier human reading.
 
-`v0.3.x` will continue to expand the templating syntax, stablise docker support, and introduce any missing configuration options. Feel free to suggest or make changes (see **Support**).
+`v0.3.x` will continue to expand the templating syntax, stabilize Docker support, and introduce any missing configuration options. Feel free to suggest improvements or make changes (see **Support**).
 
 ### Versioning
 
@@ -312,7 +396,7 @@ $ npm install -g @xgsd/cli
 $ xgsd COMMAND
 running command...
 $ xgsd (--version)
-@xgsd/cli/0.3.0 linux-x64 node-v24.4.1
+@xgsd/cli/0.3.4-build.8 linux-x64 node-v24.4.1
 $ xgsd --help [COMMAND]
 USAGE
   $ xgsd COMMAND
@@ -325,31 +409,44 @@ USAGE
 <!-- commands -->
 * [`xgsd exec PACKAGE`](#xgsd-exec-package)
 * [`xgsd help [COMMAND]`](#xgsd-help-command)
+* [`xgsd plugins`](#xgsd-plugins)
+* [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
+* [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
+* [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
+* [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
+* [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
+* [`xgsd plugins reset`](#xgsd-plugins-reset)
+* [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
+* [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
+* [`xgsd plugins update`](#xgsd-plugins-update)
 * [`xgsd run FUNCTION`](#xgsd-run-function)
+* [`xgsd update [CHANNEL]`](#xgsd-update-channel)
+* [`xgsd version`](#xgsd-version)
 
 ## `xgsd exec PACKAGE`
 
-Run a workflow in a Docker container (proof of concept, very limited)
+Run a workflow in a Docker container (proof of concept, very limited). Container is removed after exec for each run.
 
 ```
 USAGE
-  $ xgsd exec PACKAGE [-y] [-w]
+  $ xgsd exec PACKAGE [-y] [-w] [-e <value>]
 
 ARGUMENTS
   PACKAGE  package to run
 
 FLAGS
-  -w, --watch    watch for changes (streams logs to console)
-  -y, --confirm  confirm before running
+  -e, --workflow=<value>  workflow to run
+  -w, --watch             watch for changes (streams logs to console)
+  -y, --confirm           confirm before running
 
 DESCRIPTION
-  Run a workflow in a Docker container (proof of concept, very limited)
+  Run a workflow in a Docker container (proof of concept, very limited). Container is removed after exec for each run.
 
 EXAMPLES
   $ xgsd exec
 ```
 
-_See code: [src/commands/exec.ts](https://github.com/xgsd/cli/blob/v0.3.0/src/commands/exec.ts)_
+_See code: [src/commands/exec.ts](https://github.com/xgsd/cli/blob/v0.3.4-build.8/src/commands/exec.ts)_
 
 ## `xgsd help [COMMAND]`
 
@@ -371,24 +468,314 @@ DESCRIPTION
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.32/src/commands/help.ts)_
 
+## `xgsd plugins`
+
+List installed plugins.
+
+```
+USAGE
+  $ xgsd plugins [--json] [--core]
+
+FLAGS
+  --core  Show core plugins.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  List installed plugins.
+
+EXAMPLES
+  $ xgsd plugins
+```
+
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/index.ts)_
+
+## `xgsd plugins add PLUGIN`
+
+Installs a plugin into xgsd.
+
+```
+USAGE
+  $ xgsd plugins add PLUGIN... [--json] [-f] [-h] [-s | -v]
+
+ARGUMENTS
+  PLUGIN...  Plugin to install.
+
+FLAGS
+  -f, --force    Force npm to fetch remote resources even if a local copy exists on disk.
+  -h, --help     Show CLI help.
+  -s, --silent   Silences npm output.
+  -v, --verbose  Show verbose npm output.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Installs a plugin into xgsd.
+
+  Uses npm to install plugins.
+
+  Installation of a user-installed plugin will override a core plugin.
+
+  Use the XGSD_NPM_LOG_LEVEL environment variable to set the npm loglevel.
+  Use the XGSD_NPM_REGISTRY environment variable to set the npm registry.
+
+ALIASES
+  $ xgsd plugins add
+
+EXAMPLES
+  Install a plugin from npm registry.
+
+    $ xgsd plugins add myplugin
+
+  Install a plugin from a github url.
+
+    $ xgsd plugins add https://github.com/someuser/someplugin
+
+  Install a plugin from a github slug.
+
+    $ xgsd plugins add someuser/someplugin
+```
+
+## `xgsd plugins:inspect PLUGIN...`
+
+Displays installation properties of a plugin.
+
+```
+USAGE
+  $ xgsd plugins inspect PLUGIN...
+
+ARGUMENTS
+  PLUGIN...  [default: .] Plugin to inspect.
+
+FLAGS
+  -h, --help     Show CLI help.
+  -v, --verbose
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Displays installation properties of a plugin.
+
+EXAMPLES
+  $ xgsd plugins inspect myplugin
+```
+
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/inspect.ts)_
+
+## `xgsd plugins install PLUGIN`
+
+Installs a plugin into xgsd.
+
+```
+USAGE
+  $ xgsd plugins install PLUGIN... [--json] [-f] [-h] [-s | -v]
+
+ARGUMENTS
+  PLUGIN...  Plugin to install.
+
+FLAGS
+  -f, --force    Force npm to fetch remote resources even if a local copy exists on disk.
+  -h, --help     Show CLI help.
+  -s, --silent   Silences npm output.
+  -v, --verbose  Show verbose npm output.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Installs a plugin into xgsd.
+
+  Uses npm to install plugins.
+
+  Installation of a user-installed plugin will override a core plugin.
+
+  Use the XGSD_NPM_LOG_LEVEL environment variable to set the npm loglevel.
+  Use the XGSD_NPM_REGISTRY environment variable to set the npm registry.
+
+ALIASES
+  $ xgsd plugins add
+
+EXAMPLES
+  Install a plugin from npm registry.
+
+    $ xgsd plugins install myplugin
+
+  Install a plugin from a github url.
+
+    $ xgsd plugins install https://github.com/someuser/someplugin
+
+  Install a plugin from a github slug.
+
+    $ xgsd plugins install someuser/someplugin
+```
+
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/install.ts)_
+
+## `xgsd plugins link PATH`
+
+Links a plugin into the CLI for development.
+
+```
+USAGE
+  $ xgsd plugins link PATH [-h] [--install] [-v]
+
+ARGUMENTS
+  PATH  [default: .] path to plugin
+
+FLAGS
+  -h, --help          Show CLI help.
+  -v, --verbose
+      --[no-]install  Install dependencies after linking the plugin.
+
+DESCRIPTION
+  Links a plugin into the CLI for development.
+
+  Installation of a linked plugin will override a user-installed or core plugin.
+
+  e.g. If you have a user-installed or core plugin that has a 'hello' command, installing a linked plugin with a 'hello'
+  command will override the user-installed or core plugin implementation. This is useful for development work.
+
+
+EXAMPLES
+  $ xgsd plugins link myplugin
+```
+
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/link.ts)_
+
+## `xgsd plugins remove [PLUGIN]`
+
+Removes a plugin from the CLI.
+
+```
+USAGE
+  $ xgsd plugins remove [PLUGIN...] [-h] [-v]
+
+ARGUMENTS
+  PLUGIN...  plugin to uninstall
+
+FLAGS
+  -h, --help     Show CLI help.
+  -v, --verbose
+
+DESCRIPTION
+  Removes a plugin from the CLI.
+
+ALIASES
+  $ xgsd plugins unlink
+  $ xgsd plugins remove
+
+EXAMPLES
+  $ xgsd plugins remove myplugin
+```
+
+## `xgsd plugins reset`
+
+Remove all user-installed and linked plugins.
+
+```
+USAGE
+  $ xgsd plugins reset [--hard] [--reinstall]
+
+FLAGS
+  --hard       Delete node_modules and package manager related files in addition to uninstalling plugins.
+  --reinstall  Reinstall all plugins after uninstalling.
+```
+
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/reset.ts)_
+
+## `xgsd plugins uninstall [PLUGIN]`
+
+Removes a plugin from the CLI.
+
+```
+USAGE
+  $ xgsd plugins uninstall [PLUGIN...] [-h] [-v]
+
+ARGUMENTS
+  PLUGIN...  plugin to uninstall
+
+FLAGS
+  -h, --help     Show CLI help.
+  -v, --verbose
+
+DESCRIPTION
+  Removes a plugin from the CLI.
+
+ALIASES
+  $ xgsd plugins unlink
+  $ xgsd plugins remove
+
+EXAMPLES
+  $ xgsd plugins uninstall myplugin
+```
+
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/uninstall.ts)_
+
+## `xgsd plugins unlink [PLUGIN]`
+
+Removes a plugin from the CLI.
+
+```
+USAGE
+  $ xgsd plugins unlink [PLUGIN...] [-h] [-v]
+
+ARGUMENTS
+  PLUGIN...  plugin to uninstall
+
+FLAGS
+  -h, --help     Show CLI help.
+  -v, --verbose
+
+DESCRIPTION
+  Removes a plugin from the CLI.
+
+ALIASES
+  $ xgsd plugins unlink
+  $ xgsd plugins remove
+
+EXAMPLES
+  $ xgsd plugins unlink myplugin
+```
+
+## `xgsd plugins update`
+
+Update installed plugins.
+
+```
+USAGE
+  $ xgsd plugins update [-h] [-v]
+
+FLAGS
+  -h, --help     Show CLI help.
+  -v, --verbose
+
+DESCRIPTION
+  Update installed plugins.
+```
+
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.46/src/commands/plugins/update.ts)_
+
 ## `xgsd run FUNCTION`
 
 Run workflows and your code with full confidence. Error handling, retries, timeouts, and isolation - all built in.
 
 ```
 USAGE
-  $ xgsd run FUNCTION [--json] [-f] [-n <value>] [-d <value>] [-w] [-l info|status|warn|error|success...]
-    [-e <value>] [-p]
+  $ xgsd run FUNCTION [--json] [-f] [-n <value>] [-d <value>] [-w] [-l
+    info|status|warn|error|success|user...] [-e <value>] [-p]
 
 ARGUMENTS
   FUNCTION  function to run
 
 FLAGS
   -d, --data=<value>           data file to use (must be a path)
-  -e, --workflow=<value>       you can specify a workflow by name when you have a workflows/ folder in our NPM package
+  -e, --workflow=<value>       you can specify a workflow by name when you have a workflows/ folder in your NPM package
   -f, --force
-  -l, --log-level=<option>...  [default: info,status,warn,error,success] log level
-                               <options: info|status|warn|error|success>
+  -l, --log-level=<option>...  [default: info,status,warn,error,success,user] log level
+                               <options: info|status|warn|error|success|user>
   -n, --name=<value>           name to print
   -p, --plain                  run in plain mode (no colours)
   -w, --watch                  watch for changes (streams logs to console)
@@ -403,5 +790,63 @@ EXAMPLES
   $ xgsd run
 ```
 
-_See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.3.0/src/commands/run.ts)_
+_See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.3.4-build.8/src/commands/run.ts)_
+
+## `xgsd update [CHANNEL]`
+
+update the xgsd CLI
+
+```
+USAGE
+  $ xgsd update [CHANNEL] [--force |  | [-a | -v <value> | -i]] [-b ]
+
+FLAGS
+  -a, --available        See available versions.
+  -b, --verbose          Show more details about the available versions.
+  -i, --interactive      Interactively select version to install. This is ignored if a channel is provided.
+  -v, --version=<value>  Install a specific version.
+      --force            Force a re-download of the requested version.
+
+DESCRIPTION
+  update the xgsd CLI
+
+EXAMPLES
+  Update to the stable channel:
+
+    $ xgsd update stable
+
+  Update to a specific version:
+
+    $ xgsd update --version 1.0.0
+
+  Interactively select version:
+
+    $ xgsd update --interactive
+
+  See available versions:
+
+    $ xgsd update --available
+```
+
+_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/v4.7.4/src/commands/update.ts)_
+
+## `xgsd version`
+
+```
+USAGE
+  $ xgsd version [--json] [--verbose]
+
+FLAGS
+  --verbose  Show additional information about the CLI.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+FLAG DESCRIPTIONS
+  --verbose  Show additional information about the CLI.
+
+    Additionally shows the architecture, node version, operating system, and versions of plugins that the CLI is using.
+```
+
+_See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/v2.2.32/src/commands/version.ts)_
 <!-- commandsstop -->

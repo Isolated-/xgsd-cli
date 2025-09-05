@@ -1,67 +1,184 @@
 import {FlexibleWorkflowConfig, PipelineState, PipelineStep, SourceData} from '../@types/pipeline.types'
 import {ParentMessage} from '../pipelines/pipeline.concrete'
 import * as ms from 'ms'
-import {WrappedError} from './runner'
-import * as lodash from 'lodash'
 import {resolveStepData, resolveStepTemplates} from './runner.process'
-import {fork} from 'child_process'
+import {fork, ForkOptions} from 'child_process'
 import {WorkflowContext} from './context.builder'
 import {join} from 'path'
+import {WorkflowEvent} from '../workflows/workflow.events'
+import {deepmerge} from '../util/object.util'
 
-const log = (message: string, level: 'info' | 'status' | 'retry' | 'success' | 'warn' | 'error' = 'info') => {
-  process.send!({type: 'PARENT:LOG', log: {level, message, timestamp: new Date().toISOString()}})
+const log = (
+  message: string,
+  level: 'info' | 'status' | 'retry' | 'success' | 'warn' | 'error' | 'user' = 'info',
+  context: WorkflowContext,
+  step: PipelineStep,
+) => {
+  process.send!({
+    type: 'PARENT:LOG',
+    log: {context: context.id, step: step.name || step.run, level, message, timestamp: new Date().toISOString()},
+  })
 }
 
 const event = (name: string, payload: object) => {
   process.send!({type: 'PARENT:EVENT', event: name, payload})
 }
 
-async function runStep(idx: number, step: PipelineStep, context: WorkflowContext) {
-  return new Promise<{step: any; fatal: boolean; errors: any[]}>((resolve, reject) => {
-    const stepProcess = fork(join(__dirname, 'workflow.step-process.js'))
+export enum WorkflowErrorCode {
+  HardTimeout = 'CODE_HARD_TIMEOUT',
+  ModuleNotFound = 'CODE_MODULE_NOT_FOUND',
+  FunctionNotFound = 'CODE_FUNCTION_NOT_FOUND',
+}
 
-    const {after, ...data} = step
-    const resolved = resolveStepTemplates(data, {
-      ...context,
-      data: step.data,
-    })
+export class WorkflowError extends Error {
+  code: string
+  name: string
+  message: string
+  stack?: string
+  original?: Error
 
-    resolved.input = lodash.merge({}, resolved.data, resolved.with)
+  constructor(message: string, code: WorkflowErrorCode, original?: Error) {
+    super(message)
+    this.name = 'WorkflowError'
+    this.message = message
+    this.code = code
+    this.original = original
 
-    let errors: WrappedError[] = []
-    stepProcess.on('message', (msg: any) => {
-      switch (msg.type) {
-        case 'CHILD:LOG':
-          process.send!({type: 'PARENT:LOG', log: msg.log})
-          break
-        case 'CHILD:ATTEMPT':
-          const next = Math.ceil(msg.next / 1000)
+    if (original && original.stack) {
+      this.stack = original.stack
+    } else {
+      Error.captureStackTrace(this, this.constructor)
+    }
+  }
+}
 
-          //logRetry(step.name!, msg.attempt, step.options?.retries || pipelineConfig.options.retries!, next, msg.error)
+export class ProcessManager {
+  process: any
+  startedAt: number
 
-          errors.push(msg.error)
-          break
-        case 'CHILD:RESULT':
-          stepProcess.kill()
-          resolve({step: msg.result.step, fatal: false, errors: msg.result.step.errors})
-          break
-        case 'CHILD:ERROR':
-          stepProcess.kill()
-          resolve({step: null, fatal: true, errors})
-          break
-      }
-    })
+  constructor(
+    public step: PipelineStep,
+    public context: WorkflowContext,
+    public path: string,
+    public timeoutMs?: number,
+  ) {
+    this.startedAt = Date.now()
+  }
 
-    stepProcess.send({
-      type: 'START',
-      step: {
-        index: idx,
-        ...resolved,
-        after,
+  fork(args: ForkOptions[] = []) {
+    this.process = fork(this.path, {
+      stdio: args.length ? (['pipe', 'pipe', 'pipe', 'ipc'] as any) : (['pipe', 'pipe', 'pipe', 'ipc'] as any),
+      env: {
+        GSD_WORKFLOW_ID: this.context.id,
+        GSD_WORKFLOW_HASH: this.context.hash,
+        ...this.step.env,
       },
-      context,
+      execArgv: ['--max-old-space-size=256'],
     })
+
+    this.process.stdout?.on('data', (chunk: Buffer) => {
+      const msg = chunk.toString().trim()
+      if (msg) log(msg, 'user', this.context, this.step)
+    })
+
+    this.process.stderr?.on('data', (chunk: Buffer) => {
+      const msg = chunk.toString().trim()
+      if (msg) log(msg, 'error', this.context, this.step)
+    })
+
+    process.on('exit', () => {
+      this.process.kill()
+    })
+  }
+
+  run(prefix: string = 'CHILD'): Promise<{step: any; fatal: boolean; errors: any[]}> {
+    return new Promise((resolve) => {
+      let timer: NodeJS.Timeout | null = null
+
+      const timerHandler = () => {
+        this.process.kill()
+        const error = new WorkflowError('hard timeout limit reached', WorkflowErrorCode.HardTimeout)
+        const updated = {
+          ...this.step,
+          startedAt: new Date(this.startedAt).toISOString(),
+          endedAt: new Date().toISOString(),
+          duration: Date.now() - this.startedAt,
+          state: PipelineState.Failed,
+          error,
+          errors: [error],
+        }
+
+        event(WorkflowEvent.StepFailed, {
+          step: updated,
+          attempt: {error: updated.error, retries: 0, nextMs: 0, finalAttempt: true},
+        })
+
+        resolve({step: updated, fatal: true, errors: []})
+      }
+
+      if (this.timeoutMs) {
+        timer = setTimeout(timerHandler, this.timeoutMs)
+      }
+
+      this.process.on('message', (msg: any) => {
+        switch (msg.type) {
+          case `${prefix}:EVENT`:
+            event(msg.event, msg.payload)
+
+            if (msg.event === WorkflowEvent.StepRetry) {
+              if (timer) clearTimeout(timer)
+              timer = setTimeout(timerHandler, this.timeoutMs! + msg.payload.attempt.nextMs + 500)
+            }
+
+            if (msg.event === WorkflowEvent.StepStarted) {
+              if (timer) clearTimeout(timer)
+              timer = setTimeout(timerHandler, this.timeoutMs! + 1000)
+            }
+            break
+
+          case `${prefix}:RESULT`:
+            this.process.kill()
+            if (timer) clearTimeout(timer)
+            resolve({step: msg.result.step, fatal: false, errors: msg.result.step.errors})
+            break
+
+          case `${prefix}:ERROR`:
+            this.process.kill()
+            if (timer) clearTimeout(timer)
+            resolve({
+              step: {...this.step, state: PipelineState.Failed},
+              fatal: true,
+              errors: [msg.error],
+            })
+            break
+        }
+      })
+
+      // send start command
+      this.process.send({type: 'START', step: this.step, context: this.context})
+    })
+  }
+}
+
+async function runStep(idx: number, step: PipelineStep, context: WorkflowContext) {
+  const startedAt = new Date().toISOString()
+  let timeoutMs: number | undefined
+  if (step.options?.timeout) {
+    timeoutMs =
+      typeof step.options.timeout === 'string' ? ms(step.options.timeout as ms.StringValue) : step.options.timeout
+  }
+
+  const envResolved = resolveStepData(step.env || {}, {
+    context,
+    step,
   })
+
+  step.env = envResolved as Record<string, string>
+
+  const path = join(__dirname, 'workflow.step-process.js')
+  const manager = new ProcessManager({...step, index: idx, startedAt}, context, path, timeoutMs)
+  manager.fork()
+  return manager.run()
 }
 
 process.on('message', async (msg: ParentMessage<SourceData>) => {
@@ -70,80 +187,55 @@ process.on('message', async (msg: ParentMessage<SourceData>) => {
   const {context, data} = msg
   const {config} = context
 
-  const timeout = config.options.timeout
-  const retries = config.options.retries
-
-  const pipelineStartMs = performance.now()
-
-  log(
-    `Workflow "${context.name.toLowerCase()}" (@v${config.version}) started, id: ${
-      context.id
-    }. retries: ${retries}, timeout: ${ms(timeout as number)}`,
-    'status',
-  )
-
+  context.start = new Date().toISOString()
   context.state = PipelineState.Running
-  event('workflow.start', context)
+  event(WorkflowEvent.WorkflowStarted, {context})
 
-  let errors: WrappedError[] = []
   let results: PipelineStep[] = []
 
   // input data must be an object (validate on command side)
-  let input = lodash.merge({}, config.data, data)
-  if (config.print?.input) {
-    log(`Workflow "${context.name.toLowerCase()}", input: ${JSON.stringify(input)}`, 'info')
+  let input = deepmerge(config.data, data) || {}
+
+  if (config.mode === 'async') {
+    const steps = await Promise.all(
+      config.steps.map(async (step, idx) => {
+        step.data = input as any
+        return runStep(idx, step, context)
+      }),
+    )
+
+    results = steps.filter(Boolean).map((s) => s.step)
   }
 
   let idx = 0
   // let child process deal with step input/output
-  for (const step of config.steps) {
-    step.data = input
+  if (config.mode !== 'async') {
+    for (const step of config.steps) {
+      step.data = input as any
 
-    const result = await runStep(idx, step, {
-      ...context,
-      steps: results,
-    })
+      const result = await runStep(idx, step, {
+        ...context,
+        steps: results,
+      })
 
-    if (result.step.errors && result.step.errors.length !== 0) {
-      log(`Workflow "${context.name.toLowerCase()}", step "${step.name}" exited with errors`, 'warn')
-      errors.push(...result.step.errors)
+      if (config.mode === 'chained') {
+        input = deepmerge(input, result.step.output)!
+      }
+
+      results.push(result.step)
+      idx++
     }
-
-    if (config.mode === 'chained') {
-      input = lodash.merge({}, input, result.step.output)
-    }
-
-    results.push(result.step)
-    idx++
   }
 
-  const failed = results.filter((step) => step.errors && step.errors.length > 0 && !step.output)
-  const skipped = results.filter((step) => step.state === PipelineState.Skipped)
-  const succeeded = results.length - (failed.length + skipped.length)
-
-  log(`Workflow "${context.name.toLowerCase()}" has completed, id: ${context.id}.`, 'status')
-
-  if (config.collect && config.output) {
-    log(`artifacts from this run will be saved to ${config.output}`, 'status')
-  } else {
-    log(
-      `artifacts from this run will not be saved, enable then with collect.logs and collect.run in your config`,
-      'info',
-    )
-  }
-
-  log(
-    `executed ${config.steps.length} steps, ${succeeded} succeeded, ${failed.length} failed and ${
-      skipped.length
-    } skipped, duration: ${ms(Math.ceil(performance.now() - pipelineStartMs))} (${context.name})`,
-    'success',
-  )
-
+  context.end = new Date().toISOString()
+  context.duration = new Date(context.end).getTime() - new Date(context.start).getTime()
   context.state = PipelineState.Completed
-  event('workflow.end', context)
+
+  event(WorkflowEvent.WorkflowCompleted, {context, steps: results})
   process.send!({
     type: 'PARENT:RESULT',
     result: {
+      context,
       config,
       steps: results,
     },

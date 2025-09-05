@@ -1,4 +1,3 @@
-import {config} from 'process'
 import {
   FlexibleWorkflowConfig,
   PipelineConfig,
@@ -8,17 +7,18 @@ import {
   SourceData,
 } from '../@types/pipeline.types'
 import {IPipeline} from './interfaces/pipeline.interfaces'
-import {getDefaultPipelineConfig} from './pipelines.util'
+import {calculateAverageWorkflowTimeFromPath, getDefaultPipelineConfig, getDurationString} from './pipelines.util'
 import {timedRunnerFn, WrappedError} from '../@shared/runner'
-import {debug} from '../util/debug.util'
 import {RunFn} from '../@shared/types/runnable.types'
 import {EventEmitter2} from 'eventemitter2'
 import {fork} from 'child_process'
-import {dirname, join} from 'path'
-import {createWriteStream, ensureDirSync, writeJsonSync, WriteStream} from 'fs-extra'
-import {v4} from 'uuid'
-import {reject} from 'lodash'
+import {join} from 'path'
+import {ensureDirSync, pathExistsSync, writeJsonSync} from 'fs-extra'
 import {WorkflowContext} from '../@shared/context.builder'
+import {captureEvents, WorkflowEvent} from '../workflows/workflow.events'
+import {createLogger, transports, format} from 'winston'
+import moment = require('moment')
+import {WorkflowError} from '../@shared/workflow.process'
 
 /**
  *  Orchestrates a single step in the pipeline.
@@ -89,20 +89,91 @@ const orchestrate = async <T extends SourceData = SourceData>(
   return config
 }
 
-export const userCodeLogCollector = (id: string, date: string, path: string, event: EventEmitter2) => {
-  const logPath = join(path, 'logs')
+export const userCodeLogCollector = (context: WorkflowContext<any>, path: string, event: EventEmitter2) => {
+  const date = new Date()
+
+  const today = date.toISOString().split('T')[0]
+  const dateString = date.toISOString()
+
+  const bucketStr = context.config.logs?.bucket || '1d'
+  const value = bucketStr.slice(0, bucketStr.length - 1)
+  const unit = bucketStr.charAt(bucketStr.length - 1).toLowerCase()
+  const bucket = moment(date)
+    .subtract(bucketStr)
+    .startOf(unit as any)
+
+  const day = bucket.format('YYYY-MM-DD')
+  const hour = bucket.format('HH:mm')
+
+  let logPath = join(context.config.logs?.path || path, 'logs', today)
+  let humanLog = join(logPath, context.hash, `logs-${unit === 'h' ? hour : day}.log`)
+  let jsonlLog = join(logPath, `logs-${day}.combined.jsonl`)
+
   ensureDirSync(logPath)
 
-  const writeStream = createWriteStream(join(logPath, `logs-${date}.log`), {flags: 'a'})
+  const logger = createLogger({
+    level: 'user',
+    format: format.combine(
+      format.timestamp(),
+      // readable for humans
+      format.printf(({level, message, timestamp, ...meta}) => {
+        const extras = Object.keys(meta).length ? JSON.stringify(meta) : ''
+        return `(${level}) ${message} (${timestamp}) ${extras}`
+      }),
+    ),
+    levels: {
+      error: 0,
+      warn: 1,
+      info: 2,
+      status: 3,
+      success: 4,
+      user: 5,
+      debug: 6,
+    },
+    transports: [
+      // human-readable log file
+      new transports.File({filename: humanLog}),
+      // structured JSONL log file
+      new transports.File({
+        filename: jsonlLog,
+        format: format.combine(
+          format.timestamp(),
+          format.json(), // one JSON object per line
+        ),
+      }),
+    ],
+  })
 
   event.on('message', (msg) => {
-    writeStream.write(`(${msg.log.level}) ${msg.log.message}\n`)
+    logger.log({
+      level: msg.log.level,
+      message: msg.log.message,
+      cli: context.cli,
+      config: context.hash,
+      timestamp: msg.log.timestamp,
+      node: process.version,
+      os: process.platform,
+      runner: `xgsd@v1`,
+      context: msg.log.context,
+      step: msg.log.step,
+      docker: pathExistsSync('/.dockerenv'),
+    })
   })
-}
 
-export const userCodeErrorCollector = (context: WorkflowContext<any>) => {
-  context.stream.on('error', (error) => {
-    console.error('error received', error)
+  event.on('error', (msg) => {
+    logger.log({
+      level: 'error',
+      name: msg.error.name,
+      message: msg.error.message,
+      step: msg.step.name || msg.step.run,
+      context: msg.context.id,
+      cli: msg.context.cli,
+      config: msg.context.hash,
+      node: process.version,
+      os: process.platform,
+      runner: 'xgsd@v1',
+      docker: pathExistsSync('/.dockerenv'),
+    })
   })
 }
 
@@ -113,19 +184,21 @@ export const userCodeResultCollector = (ctx: WorkflowContext<any>, date: string,
     const nodeVersion = process.version
     const os = process.platform
 
-    const firstStartedAt = result.steps.filter((step: any) => step.startedAt).pop()?.startedAt || null
-    const lastEndedAt = result.steps.filter((step: any) => step.endedAt).pop()?.endedAt || null
+    const ctx = result.context
 
     const report = {
       id: ctx.id,
+      hash: ctx.hash,
+      version: ctx.version,
+      docker: ctx.docker,
       runner: ctx.runner,
       name: ctx.name,
       description: ctx.description,
       package: ctx.package,
       output: ctx.config.output,
-      start: firstStartedAt,
-      end: lastEndedAt,
-      duration: result.steps.reduce((acc: number, step: any) => acc + (step.duration || 0), 0),
+      start: ctx.start,
+      end: ctx.end,
+      duration: ctx.duration,
       state:
         result.steps.filter((step: any) => step.state === PipelineState.Completed).length > 0
           ? PipelineState.Completed
@@ -147,7 +220,12 @@ export const userCodeResultCollector = (ctx: WorkflowContext<any>, date: string,
         input: step.input || null,
         output: step.output || null,
         errors: step.errors
-          ? step.errors.map((e: WrappedError) => ({name: e.name, message: e.message, stack: e.stack}))
+          ? step.errors.map((e: WorkflowError) => ({
+              code: e.code || 'unknown',
+              name: e.name,
+              message: e.message,
+              stack: e.stack,
+            }))
           : [],
         state: step.state,
         start: step.startedAt,
@@ -161,10 +239,6 @@ export const userCodeResultCollector = (ctx: WorkflowContext<any>, date: string,
   })
 }
 
-export const captureEvents = (context: WorkflowContext<any>) => {
-  context.stream.on('event', (event) => {})
-}
-
 // remove the export once complete
 export const userCodeOrchestration = async <T extends SourceData = SourceData>(
   data: any,
@@ -175,17 +249,16 @@ export const userCodeOrchestration = async <T extends SourceData = SourceData>(
   const {collect} = config
 
   const date = new Date().toISOString().replace(/:/g, '-')
-  const id = v4()
 
   // create new context
-  const ctx = new WorkflowContext(config, handler)
+  const ctx = new WorkflowContext(config, handler, 'v' + config.cli)
 
   if (collect) {
     ensureDirSync(config.output)
   }
 
   if (collect?.logs) {
-    userCodeLogCollector(id, date, config.output, ctx.stream)
+    userCodeLogCollector(ctx, config.output, ctx.stream)
   }
 
   if (collect?.run) {
@@ -245,7 +318,6 @@ export function runWorkflow<T extends SourceData = SourceData>(data: T, context:
         case 'PARENT:ERROR':
           context.stream.emit('error', msg)
           break
-
         case 'PARENT:EVENT':
           context.stream.emit('event', {
             event: msg.event,
@@ -254,6 +326,15 @@ export function runWorkflow<T extends SourceData = SourceData>(data: T, context:
           break
       }
     })
+
+    child.on('error', (error) => {
+      child.kill()
+    })
+
+    // do this more gracefully in future (fixes code errors causing pipe issues)
+    process.on('SIGTERM', () => child.kill())
+    process.on('SIGINT', () => child.kill())
+    process.on('exit', () => child.kill())
 
     child.send({type: 'PARENT:RUN', data, context})
   })

@@ -1,15 +1,14 @@
-import {extname, join, resolve} from 'path'
+import {dirname, extname, join, resolve} from 'path'
 import {RunFn} from '../@shared/types/runnable.types'
 import {FlexibleWorkflowConfig, PipelineConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
 import {IPipeline} from './interfaces/pipeline.interfaces'
 import {Pipeline} from './pipeline.concrete'
-import {pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
+import {ensureDirSync, pathExistsSync, readdirSync, readFileSync, readJsonSync} from 'fs-extra'
 import {load} from 'js-yaml'
 import {Require} from '../@types/require.type'
 import * as Joi from 'joi'
 import ms = require('ms')
-import * as _ from 'lodash'
-import {run} from '@oclif/core'
+import {deepmerge} from '../util/object.util'
 
 export const orchestration = async <T extends SourceData = SourceData, R extends SourceData = SourceData>(
   input: T,
@@ -104,6 +103,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
     name: Joi.string().optional(),
     description: Joi.string().optional(),
     enabled: Joi.boolean().optional(),
+    version: Joi.string().optional(),
     runner: Joi.string()
       .valid(...validRunners)
       .optional(),
@@ -115,6 +115,10 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
     collect: Joi.object({
       logs: Joi.boolean().optional(),
       run: Joi.boolean().optional(),
+    }).optional(),
+    logs: Joi.object({
+      bucket: Joi.string().allow('1h', '1d'),
+      path: Joi.string(),
     }).optional(),
     print: Joi.object({
       input: Joi.boolean().optional(),
@@ -128,6 +132,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
           name: Joi.string().required(),
           description: Joi.string().optional(),
           data: Joi.object().optional(),
+          env: Joi.object().pattern(Joi.string(), Joi.string()).optional(),
           if: Joi.alternatives().try(Joi.boolean(), Joi.string()).optional(),
           with: Joi.object().optional(),
           after: Joi.object().optional(),
@@ -153,10 +158,11 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
   let header = {
     name: config.name ?? '',
     description: config.description ?? '',
+    version: config.version,
     runner: config.runner ?? 'xgsd@v1',
     metadata: config.metadata ?? {},
     mode: config.mode ?? PipelineMode.Chained,
-    enabled: config.enabled || true,
+    enabled: config.enabled ?? true,
     data: config.data,
     options: {
       timeout: ms(config.options?.timeout || ('5s' as any)) || 5000,
@@ -165,6 +171,10 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
     collect: {
       logs: config.collect?.logs ?? true,
       run: config.collect?.run ?? true,
+    },
+    logs: {
+      bucket: config.logs?.bucket || '1h',
+      path: config.logs?.path,
     },
     print: {
       input: config.print?.input ?? false,
@@ -178,7 +188,8 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
     description: step.description || 'no description',
     action: step.run || step.action || null,
     enabled: step.enabled ?? true,
-    data: header.data || step.data ? _.merge({}, header.data, step.data, step.with) : undefined,
+    data: deepmerge({}, header.data, step.data, step.with),
+    env: step.env || null,
     options: {
       timeout: step.options?.timeout || header.options.timeout,
       retries: step.options?.retries || header.options.retries,
@@ -191,4 +202,49 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
     ...header,
     steps,
   } as FlexibleWorkflowConfig
+}
+
+export const getWorkflowDurations = (path: string, last: number = 8): number[] => {
+  const listdir = readdirSync(path)
+  const json = listdir.filter((file) => extname(file) === '.json').slice(-last)
+
+  return json.map((file) => {
+    const filePath = join(path, file)
+    return readJsonSync(filePath).duration
+  })
+}
+
+export const getWorkflowStats = (path: string) => {
+  const runs = readdirSync(path).filter((file) => extname(file) === '.json')
+  const durations = getWorkflowDurations(path, 8)
+
+  return {
+    total: runs.length,
+    average: calculateAverageWorkflowDuration(durations),
+  }
+}
+
+export const calculateAverageWorkflowDuration = (durations: number[]): number => {
+  const total = durations.reduce((acc, duration) => acc + duration, 0)
+  if (isNaN(total)) {
+    return NaN
+  }
+  return total / durations.length
+}
+
+export const calculateAverageWorkflowTimeFromPath = (path: string, last?: number) => {
+  const durations = getWorkflowDurations(path, last)
+  return calculateAverageWorkflowDuration(durations) || NaN
+}
+
+export const getDurationString = (timeout: number | string): string => {
+  if (typeof timeout === 'string') {
+    return timeout
+  }
+
+  if (typeof timeout === 'number' && isNaN(timeout)) {
+    return 'unknown'
+  }
+
+  return ms(timeout as number)
 }

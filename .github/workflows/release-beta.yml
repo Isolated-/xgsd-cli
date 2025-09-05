@@ -1,15 +1,17 @@
-name: CI & Release (Stable)
+name: CI & Release (Beta)
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - main
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required to access tags
 
       - uses: actions/setup-node@v4
         with:
@@ -27,6 +29,8 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required to access tags
 
       - uses: actions/setup-node@v4
         with:
@@ -58,6 +62,8 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required to access tags
 
       - name: Download dist folder
         uses: actions/download-artifact@v4
@@ -68,9 +74,13 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Get version from tag
+      - name: Get latest tag
+        id: tag
+        run: echo "tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+
+      - name: Compose beta version
         id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: echo "version=${{ steps.tag.outputs.tag }}-beta.${{ github.run_number }}" >> $GITHUB_OUTPUT
 
       - name: Get short SHA
         id: shortsha
@@ -91,39 +101,9 @@ jobs:
           AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
 
       - name: Promote tarballs
-        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64 --ignore-missing
+        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64 --channel beta --ignore-missing
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
           AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
           AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
-
-  release-npm:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download dist folder
-        uses: actions/download-artifact@v4
-        with:
-          name: dist-folder
-          path: ./dist
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Get version from tag
-        id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Update package version
-        run: yarn version --new-version ${{ steps.version.outputs.version }} --no-git-tag-version
-
-      - name: Setup npm auth
-        run: echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish to npm
-        run: npm publish --access public
