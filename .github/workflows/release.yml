@@ -76,15 +76,7 @@ jobs:
         run: npx oclif pack tarballs --targets linux-x64 --parallel
 
       - name: Deploy tarballs to DigitalOcean Spaces
-        run: yarn release --targets linux-x64
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
-          AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
-          AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
-
-      - name: Deploy tarballs to DigitalOcean Spaces
-        run: npx oclif upload --version ${{ steps.version.outputs.version }} --sha ${{ github.sha }} --targets linux-x64
+        run: npx oclif upload tarballs --version ${{ steps.version.outputs.version }} --sha ${{ github.sha }} --targets linux-x64
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
