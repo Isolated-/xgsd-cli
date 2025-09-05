@@ -160,6 +160,54 @@ export class ProcessManager {
   }
 }
 
+export type ExecutionMode = 'async' | 'chained' | 'fanout'
+
+export interface ExecutionOptions {
+  mode: ExecutionMode
+  concurrency?: number // only applies to async
+}
+
+export async function executeSteps(
+  steps: PipelineStep[],
+  input: Record<string, any>,
+  context: WorkflowContext,
+  options: ExecutionOptions,
+): Promise<PipelineStep[]> {
+  const results: PipelineStep[] = []
+
+  if (options.mode === 'async') {
+    await runWithConcurrency(steps, options.concurrency ?? 4, async (step, idx) => {
+      step.data = input
+
+      const result = await runStep(idx, step, {
+        ...context,
+        steps: results,
+      })
+
+      results.push(result.step)
+    })
+  } else {
+    let idx = 0
+    for (const step of steps) {
+      step.data = input
+
+      const result = await runStep(idx, step, {
+        ...context,
+        steps: results,
+      })
+
+      if (options.mode === 'chained') {
+        input = deepmerge(input, result.step.output ?? {}) as any
+      }
+
+      results.push(result.step)
+      idx++
+    }
+  }
+
+  return results
+}
+
 async function runStep(idx: number, step: PipelineStep, context: WorkflowContext) {
   const startedAt = new Date().toISOString()
   let timeoutMs: number | undefined
@@ -191,24 +239,23 @@ export async function runWithConcurrency<T>(
   limit: number,
   worker: (item: T, index: number) => Promise<any>,
 ): Promise<void> {
-  const executing: Promise<void>[] = []
+  const executing: Promise<any>[] = []
 
   for (let i = 0; i < items.length; i++) {
     const p = worker(items[i], i)
-    executing.push(p)
+
+    // When finished, remove from executing
+    const e = p.then(() => {
+      executing.splice(executing.indexOf(e), 1)
+    })
+
+    executing.push(e)
 
     if (executing.length >= limit) {
       await Promise.race(executing)
-      // clean up finished promises
-      for (let j = executing.length - 1; j >= 0; j--) {
-        if (await executing[j].catch(() => undefined)) {
-          executing.splice(j, 1)
-        }
-      }
     }
   }
 
-  // wait for remaining tasks
   await Promise.all(executing)
 }
 
@@ -227,34 +274,13 @@ process.on('message', async (msg: ParentMessage<SourceData>) => {
   // input data must be an object (validate on command side)
   let input = deepmerge(config.data, data) || {}
 
-  // v0.3.6 (async steps run in batches)
-  if (config.mode === 'async') {
-    await runWithConcurrency(context.config.steps, 8, async (item: PipelineStep, index: number) => {
-      item.data = input as any
-      const result = await runStep(index, item, context)
-      results.push(result.step)
-    })
-  }
-
-  let idx = 0
-  // let child process deal with step input/output
-  if (config.mode !== 'async') {
-    for (const step of config.steps) {
-      step.data = input as any
-
-      const result = await runStep(idx, step, {
-        ...context,
-        steps: results,
-      })
-
-      if (config.mode === 'chained') {
-        input = deepmerge(input, result.step.output)!
-      }
-
-      results.push(result.step)
-      idx++
-    }
-  }
+  // v0.3.6 - concurrency is implemented
+  // concurrency = max amount of processes at one time
+  // 8 - 32 is the sweet spot for most systems (hard limit is 64)
+  results = await executeSteps(config.steps || [], input, context, {
+    mode: config.mode,
+    concurrency: config.options?.concurrency,
+  })
 
   context.end = new Date().toISOString()
   context.duration = new Date(context.end).getTime() - new Date(context.start).getTime()
