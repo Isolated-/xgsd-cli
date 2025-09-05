@@ -1,7 +1,9 @@
 import {merge as tsmerge} from 'ts-deepmerge'
 
-export const deepmerge = (...objects: any[]): object => {
-  return tsmerge({}, ...objects)
+export const deepmerge = (...objects: any[]): object | undefined => {
+  const filtered = objects.filter((o) => o && !isEmptyObject(o))
+  if (!filtered || filtered.length === 0) return undefined
+  return tsmerge({}, ...filtered)
 }
 
 export const merge = (...objects: any[]): object => {
