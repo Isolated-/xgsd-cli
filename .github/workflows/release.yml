@@ -55,15 +55,26 @@ jobs:
 
       - name: Determine version
         id: version
+        shell: bash
         run: |
-          LATEST=$(git describe --tags --abbrev=0 || echo "v0.0.0")
-          LATEST=${LATEST#v}
+          LATEST_TAG=$(git tag --sort=-creatordate | head -n 1)
+          if [[ -z "$LATEST_TAG" ]]; then
+            LATEST="0.0.0"
+          else
+            LATEST="${LATEST_TAG#v}"
+          fi
+
           SUFFIX=""
           if [[ $GITHUB_REF != refs/tags/v* ]]; then
-            COMMITS=$(git rev-list $LATEST..HEAD --count)
+            if [[ "$LATEST" == "0.0.0" ]]; then
+              COMMITS=$(git rev-list HEAD --count)
+            else
+              COMMITS=$(git rev-list "v$LATEST"..HEAD --count)
+            fi
             BRANCH=$(echo $GITHUB_REF | sed 's|refs/heads/||;s|/|-|g')
             SUFFIX="-dev.${COMMITS}-${BRANCH}"
           fi
+
           NEW_VERSION="${LATEST}${SUFFIX}"
           echo "Calculated version: $NEW_VERSION"
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
@@ -77,7 +88,7 @@ jobs:
             echo "Publishing stable release"
             npm publish --access public
           else
-            echo "Publishing dev release"
+            echo "Publishing experimental release"
             npm publish --tag experimental --access public
           fi
         env:
@@ -115,7 +126,7 @@ jobs:
           AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
 
       - name: Promote dev version to experimental channel (optional)
-        if: startsWith(github.ref, 'refs/heads/staging') || startsWith(github.ref, 'refs/heads/feature/')
+        if: startsWith(github.ref, 'refs/heads/development') || startsWith(github.ref, 'refs/heads/feature/')
         run: |
           npx oclif promote --channel experimental --version ${{ steps.version.outputs.version }}
         env:
