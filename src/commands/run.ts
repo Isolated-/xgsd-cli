@@ -1,5 +1,5 @@
 import {Args, Command, Flags} from '@oclif/core'
-import {join, resolve} from 'path'
+import {basename, extname, join, resolve} from 'path'
 import {mkdtempSync, pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
 import {userCodeOrchestration} from '../@core/pipelines/pipeline.concrete'
 import {EventEmitter2} from 'eventemitter2'
@@ -11,6 +11,8 @@ import {
 } from '../@core/pipelines/pipelines.util'
 import {userLogThemes} from '../constants'
 import {BaseCommand} from '../base'
+import {defaultWith} from '../@core/util/misc.util'
+import {normaliseWorkflowName} from '../@core/util/workflow.util'
 
 export const prettyPrintLogs = (event: EventEmitter2, flags: Record<string, any>, cmd: Run) => {
   if (!flags.watch) {
@@ -97,18 +99,28 @@ export default class Run extends BaseCommand<typeof Command> {
       this.exit(1)
     }
 
-    const event = new EventEmitter2()
-    const name = userConfig.name
-    const writePath = join(path, 'runs', name!)
+    const event = new EventEmitter2({maxListeners: 32})
+
+    // this will be moved somewhere else
+    const getWorkflowName = (path: string, configName?: string, packageName?: string) => {
+      const base = basename(path)
+      const configFileName = base.split('.').shift()
+      return normaliseWorkflowName(defaultWith('no name', configName, packageName, configFileName)!)
+    }
+
+    const workflowName = getWorkflowName(foundPath, userConfig.name, userCodePackageJson.name)
+    const newOutputPath = userConfig.logs?.path || join(this.config.home, '.xgsd', workflowName)
 
     prettyPrintLogs(event, flags, this)
     return userCodeOrchestration(
       data,
       {
         ...userConfig,
+        name: workflowName,
         version: userConfig.version || userCodePackageJson.version,
         package: userModulePath,
-        output: writePath,
+        output: newOutputPath,
+        cli: this.config.version,
       },
       event,
     )
