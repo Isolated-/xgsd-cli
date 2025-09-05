@@ -136,6 +136,7 @@ export type FlexibleWorkflowOptions = {
    */
   maxRetries?: number
   retries?: number
+  concurrency?: number
 
   /**
    *  @deprecated will be replaced with `error: exit`

@@ -96,6 +96,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
       .pattern(/^\d+ms$|^\d+s$|^\d+m$|^\d+h$|^\d+d$|^\d+w$|^\d+mo$/)
       .optional(),
     retries: Joi.number().min(0).max(100).optional(),
+    concurrency: Joi.number().min(1).max(64).optional(),
   })
 
   // Perform validation logic here
@@ -167,6 +168,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
     options: {
       timeout: ms(config.options?.timeout || ('5s' as any)) || 5000,
       retries: config.options?.retries || 5,
+      concurrency: 8,
     },
     collect: {
       logs: config.collect?.logs ?? true,
