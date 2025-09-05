@@ -71,13 +71,6 @@ jobs:
           AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
           AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
 
-      # Import signing keys for .deb packaging
-      - name: Import GPG key
-        run: |
-          echo "${{ secrets.XGSD_SIGNING_KEY }}" | gpg --batch --import
-          echo "${{ secrets.XGSD_GPG_OVERTRUST }}" | gpg --batch --import-ownertrust
-          gpg --list-keys ${{ secrets.XGSD_GPG_KEY_ID }}
-
       - name: Publish to npm
         run: npm publish --access public
         env:
