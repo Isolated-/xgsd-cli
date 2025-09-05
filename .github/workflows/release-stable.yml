@@ -1,0 +1,65 @@
+name: Release Stable
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: yarn
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: yarn install --frozen-lockfile
+      - run: yarn build
+
+      - name: Determine version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Update package.json
+        run: npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+
+      - name: Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Build oclif tarballs
+        run: npx oclif pack
+        env:
+          NODE_ENV: production
+
+      - name: Upload tarballs to DO Spaces
+        run: |
+          for file in ./dist/*.tar.*; do
+            aws --endpoint-url ${{ secrets.DO_SPACES_ENDPOINT }} s3 cp "$file" \
+              "s3://${{ secrets.DO_SPACES_BUCKET }}/versions/${{ steps.version.outputs.version }}/$(basename $file)" \
+              --acl public-read
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
+          AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
+
+      - name: Build & sign Debian package
+        run: |
+          npx oclif pack deb --key ${{ secrets.XGSD_SIGNING_KEY }}
+
+      - name: Upload Debian package + signature to DO Spaces
+        run: |
+          for file in ./dist/deb/*; do
+            echo "Uploading $file"
+            aws --endpoint-url ${{ secrets.DO_SPACES_ENDPOINT }} s3 cp "$file" \
+              "s3://${{ secrets.DO_SPACES_BUCKET }}/debs/${{ steps.version.outputs.version }}/$(basename $file)" \
+              --acl public-read
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
+          AWS_REGION: ${{ secrets.DO_SPACES_REGION }}

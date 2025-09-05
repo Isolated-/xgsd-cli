@@ -1,0 +1,74 @@
+name: Release Experimental
+
+on:
+  push:
+    branches:
+      - 'development/*'
+      - 'feature/*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: yarn
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: yarn install --frozen-lockfile
+      - run: yarn build
+
+      - name: Determine version
+        id: version
+        run: |
+          LATEST=$(git describe --tags --abbrev=0 || echo "v0.0.0")
+          LATEST=${LATEST#v}
+          COMMITS=$(git rev-list $LATEST..HEAD --count)
+          BRANCH=$(echo $GITHUB_REF | sed 's|refs/heads/||;s|/|-|g')
+          NEW_VERSION="${LATEST}-dev.${COMMITS}-${BRANCH}"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update package.json
+        run: npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+
+      - name: Publish to NPM (experimental tag)
+        run: npm publish --tag experimental --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Build oclif tarballs
+        run: npx oclif pack
+        env:
+          NODE_ENV: production
+
+      - name: Upload tarballs to DO Spaces
+        run: |
+          for file in ./dist/*.tar.*; do
+            aws --endpoint-url ${{ secrets.DO_SPACES_ENDPOINT }} s3 cp "$file" \
+              "s3://${{ secrets.DO_SPACES_BUCKET }}/versions/${{ steps.version.outputs.version }}/$(basename $file)" \
+              --acl public-read
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
+          AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
+
+      - name: Generate/update autoupdate manifest
+        run: |
+          npx oclif pack manifest ./dist --version ${{ steps.version.outputs.version }} \
+            --name xgsd --s3-bucket ${{ secrets.DO_SPACES_BUCKET }} \
+            --s3-endpoint ${{ secrets.DO_SPACES_ENDPOINT }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
+          AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
+
+      - name: Promote to experimental channel
+        run: npx oclif promote --channel experimental --version ${{ steps.version.outputs.version }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
+          AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
