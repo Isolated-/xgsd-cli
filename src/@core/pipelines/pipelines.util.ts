@@ -8,8 +8,7 @@ import {load} from 'js-yaml'
 import {Require} from '../@types/require.type'
 import * as Joi from 'joi'
 import ms = require('ms')
-import * as _ from 'lodash'
-import {run} from '@oclif/core'
+import {deepmerge} from '../util/object.util'
 
 export const orchestration = async <T extends SourceData = SourceData, R extends SourceData = SourceData>(
   input: T,
@@ -189,7 +188,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
     description: step.description || 'no description',
     action: step.run || step.action || null,
     enabled: step.enabled ?? true,
-    data: header.data || step.data ? _.merge({}, header.data, step.data, step.with) : undefined,
+    data: deepmerge({}, header.data, step.data, step.with),
     env: step.env || null,
     options: {
       timeout: step.options?.timeout || header.options.timeout,
