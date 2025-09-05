@@ -6,6 +6,7 @@ on:
       - main
       - staging
       - 'feature/*'
+      - 'development/*'
     tags:
       - 'v*.*.*'
   pull_request:
@@ -77,7 +78,7 @@ jobs:
             npm publish --access public
           else
             echo "Publishing dev release"
-            npm publish --tag dev --access public
+            npm publish --tag experimental --access public
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
