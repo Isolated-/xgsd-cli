@@ -44,4 +44,11 @@ export class WorkflowContext<T extends SourceData = SourceData> {
     this.config = config
     this.steps = config.steps
   }
+
+  serialise?() {
+    return {
+      ...this,
+      stream: undefined,
+    }
+  }
 }
