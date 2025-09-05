@@ -73,7 +73,7 @@ jobs:
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Deploy tarballs to DigitalOcean Spaces
-        run: yarn release
+        run: yarn release --targets linux-x64
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
@@ -81,7 +81,7 @@ jobs:
           AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
 
       - name: Promote tarballs
-        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ github.sha }} --channel stable --ignore-missing
+        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ github.sha }} --targets linux-x64
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
@@ -111,6 +111,6 @@ jobs:
         run: yarn version --new-version ${{ steps.version.outputs.version }} --no-git-tag-version
 
       - name: Publish to npm
-        run: npm publish --access public
+        run: yarn publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
