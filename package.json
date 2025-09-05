@@ -1,7 +1,7 @@
 {
   "name": "@xgsd/cli",
   "description": "Local workflow orchestration for solo-developers, built on top of xGSD. Get started in minutes. Create an action, define a workflow, and xgsd run it!",
-  "version": "0.3.4",
+  "version": "0.3.4-patch.0",
   "author": "Michael Palmer",
   "bin": {
     "xgsd": "./bin/run.js"
@@ -73,7 +73,7 @@
     "update": {
       "s3": {
         "bucket": "xgsd-cli",
-        "host": "https://xgsd-cli.ams3.digitaloceanspaces.com"
+        "host": "https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/"
       }
     },
     "plugins": [
