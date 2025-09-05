@@ -1,7 +1,7 @@
 {
   "name": "@xgsd/cli",
   "description": "Local workflow orchestration for solo-developers, built on top of xGSD. Get started in minutes. Create an action, define a workflow, and xgsd run it!",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "author": "Michael Palmer",
   "bin": {
     "xgsd": "./bin/run.js"
@@ -30,7 +30,6 @@
     "@eslint/compat": "^1",
     "@oclif/prettier-config": "^0.2.1",
     "@oclif/test": "^4.1.13",
-    "@types/cli-progress": "^3.11.6",
     "@types/fs-extra": "^11.0.4",
     "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
@@ -75,7 +74,7 @@
     "update": {
       "s3": {
         "bucket": "xgsd-cli",
-        "endpoint": "https://ams3.digitaloceanspaces.com/"
+        "endpoint": "https://xgsd-cli.ams3.digitaloceanspaces.com/"
       }
     },
     "plugins": [
@@ -93,7 +92,8 @@
     "prepack": "oclif manifest && oclif readme",
     "test": "jest",
     "test:watch": "jest --watch",
-    "version": "oclif readme && git add README.md"
+    "version": "oclif readme && git add README.md",
+    "release": "oclif pack tarballs && oclif upload tarballs"
   },
   "types": "dist/index.d.ts"
 }
