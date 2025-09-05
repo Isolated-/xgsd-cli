@@ -1,0 +1,109 @@
+name: CI & Release (Beta)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required to access tags
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run tests
+        run: yarn test
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required to access tags
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: yarn
+
+      - name: Restore Yarn cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.yarn/cache
+            node_modules
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build project
+        run: yarn build
+
+      - name: Upload dist folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-folder
+          path: ./dist
+
+  release-dist:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required to access tags
+
+      - name: Download dist folder
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-folder
+          path: ./dist
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Get latest tag
+        id: tag
+        run: echo "tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+
+      - name: Compose beta version
+        id: version
+        run: echo "version=${{ steps.tag.outputs.tag }}-beta.${{ github.run_number }}" >> $GITHUB_OUTPUT
+
+      - name: Get short SHA
+        id: shortsha
+        run: echo "sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Update package version
+        run: yarn version --new-version ${{ steps.version.outputs.version }} --no-git-tag-version
+
+      - name: Build release tarballs
+        run: npx oclif pack tarballs --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64
+
+      - name: Deploy tarballs to DigitalOcean Spaces
+        run: npx oclif upload tarballs --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
+          AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
+          AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
+
+      - name: Promote tarballs
+        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64 --channel beta --ignore-missing
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
+          AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
+          AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
