@@ -3,20 +3,12 @@ name: CI & Release (Stable)
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*.*.0' # Only trigger on tags with patch version 0
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Skip non-zero patch versions
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          PATCH=$(echo $VERSION | awk -F. '{print $3}')
-          if [[ "$PATCH" != "0" ]]; then
-            echo "Patch version ($VERSION) detected — skipping workflow."
-            exit 0
-          fi
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
