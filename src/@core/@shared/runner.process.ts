@@ -1,4 +1,3 @@
-import _ = require('lodash')
 import {HelperFn, helpers} from './workflow.helpers'
 
 export function callHelper(helperName: string, value: any, ...args: any[]) {
