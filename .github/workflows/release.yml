@@ -110,7 +110,10 @@ jobs:
       - name: Update package version
         run: yarn version --new-version ${{ steps.version.outputs.version }} --no-git-tag-version
 
-      - name: Publish to npm
-        run: yarn publish --access public
+      - name: Setup npm auth
+        run: echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to npm
+        run: npm publish --access public
