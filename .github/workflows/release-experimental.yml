@@ -24,11 +24,10 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          LATEST=$(git describe --tags --abbrev=0 || echo "v0.0.0")
-          LATEST=${LATEST#v}
-          COMMITS=$(git rev-list $LATEST..HEAD --count)
           BRANCH=$(echo $GITHUB_REF | sed 's|refs/heads/||;s|/|-|g')
-          NEW_VERSION="${LATEST}-dev.${COMMITS}-${BRANCH}"
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          NEW_VERSION="0.0.0-dev.${SHORT_SHA}-${BRANCH}"
+          echo "Calculated version: $NEW_VERSION"
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Update package.json
