@@ -3,6 +3,7 @@ import {FlexibleWorkflowConfig, PipelineState, PipelineStep, SourceData} from '.
 import {EventEmitter2} from 'eventemitter2'
 import {createHash} from 'crypto'
 import {pathExistsSync} from 'fs-extra'
+import {join} from 'path'
 
 export class WorkflowContext<T extends SourceData = SourceData> {
   id: string
@@ -32,7 +33,7 @@ export class WorkflowContext<T extends SourceData = SourceData> {
     this.version = 'v' + config.version
     this.stream = event || new EventEmitter2()
     this.runner = config.runner
-    this.name = config.name || config.package?.split('/').pop()!
+    this.name = config.name!
     this.mode = config.mode
     this.description = config.description || ''
     this.package = config.package!

@@ -146,6 +146,7 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
   const timeout = getDurationString(context.config.options.timeout!)
   const retries = context.config.options.retries
   const steps = context.config.steps.length
+  const concurrency = context.config.options.concurrency || 'N/A'
 
   const stats = getWorkflowStats(context.config.output)
   const eta = stats.average ? getDurationString(stats.average) : 'unknown'
@@ -155,6 +156,12 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
 
   message = `id: ${context.id}, timeout: ${timeout}, retries: ${retries}, steps: ${steps}.`
   log(message, 'info', context)
+
+  if (context.mode === 'async') {
+    log(`v0.3.6+: maximum of ${concurrency} processes allowed to run at once.`, 'info', context)
+    log(`control this with the "concurrency" option in your workflow config.`, 'info', context)
+  }
+
   log(
     `runner: ${context.runner}, cli: ${context.cli}, node: ${process.version}, config hash: ${context.hash}, os: ${
       process.platform
