@@ -140,7 +140,9 @@ jobs:
         run: echo "version=${{ steps.tag.outputs.tag }}-beta.${{ github.run_number }}" >> $GITHUB_OUTPUT
 
       - name: Update package version
-        run: yarn version --new-version ${{ steps.version.outputs.version }} --no-git-tag-version
+        run: yarn version --new-version "$VERSION" --no-git-tag-version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
 
       - name: Setup npm auth
         run: echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
