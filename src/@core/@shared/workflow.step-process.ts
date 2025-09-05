@@ -1,4 +1,3 @@
-import _ = require('lodash')
 import {PipelineState, PipelineStep} from '../@types/pipeline.types'
 import {retry, WrappedError} from './runner'
 import {resolveStepData, resolveStepTemplates, resolveTemplate} from './runner.process'
@@ -6,6 +5,7 @@ import {WorkflowContext} from './context.builder'
 import {RetryAttempt} from './runner/retry.runner'
 import {WorkflowEvent} from '../workflows/workflow.events'
 import {WorkflowError, WorkflowErrorCode} from './workflow.process'
+import {deepmerge, isEmptyObject, merge} from '../util/object.util'
 
 const log = (message: string, level: string = 'info') => {
   dispatchMessage('log', {log: {level, message, timestamp: new Date().toISOString()}}, true)
@@ -64,7 +64,7 @@ export async function processStep(
 
   prepared.startedAt = new Date().toISOString()
 
-  const options = _.merge(context.config.options, step.options)
+  const options = merge(context.config.options, step.options) as {retries: number; timeout: number}
 
   prepared.state = PipelineState.Running
   const retries = options.retries!
@@ -104,7 +104,7 @@ export function shouldRun(step: PipelineStep): boolean {
 }
 
 export function finaliseStepData(step: PipelineStep, context: WorkflowContext) {
-  if (_.isEmpty(step.after) || !step.after) {
+  if (isEmptyObject(step.after)) {
     return step
   }
 
@@ -115,7 +115,7 @@ export function finaliseStepData(step: PipelineStep, context: WorkflowContext) {
     output: step.output,
   })
 
-  if (!_.isEmpty(step.after)) {
+  if (!isEmptyObject(step.after) && !step.output) {
     step.output = step.after
     step.after = undefined
   }
@@ -128,13 +128,14 @@ export function finaliseStepData(step: PipelineStep, context: WorkflowContext) {
 
 export function prepareStepData(step: PipelineStep, context: WorkflowContext) {
   const {after, ...stepData} = step
+  const data = deepmerge({}, context.config.data, step.data)
   const resolved = resolveStepTemplates(step, {
     ...context,
     step: stepData,
-    data: _.merge(context.config.data, step.data),
+    data,
   })
 
-  resolved.input = _.merge({}, context.config.data, resolved.data, resolved.with)
+  resolved.input = deepmerge({}, data, resolved.with)
   resolved.after = after
 
   return resolved
