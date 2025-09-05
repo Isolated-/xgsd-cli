@@ -76,6 +76,9 @@ jobs:
         id: shortsha
         run: echo "sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
+      - name: Update package version
+        run: yarn version --new-version ${{ steps.version.outputs.version }} --no-git-tag-version
+
       - name: Build release tarballs
         run: npx oclif pack tarballs --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64
 
