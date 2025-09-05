@@ -73,10 +73,10 @@
     "update": {
       "s3": {
         "bucket": "xgsd-cli",
-        "host": "https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/",
-        "acl": "public-read"
+        "host": "https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/"
       },
       "autoupdate": {
+        "rollout": 10,
         "debounce": 7
       }
     },
