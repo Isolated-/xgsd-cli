@@ -4,7 +4,30 @@ on:
     tags:
       - 'v*.*.*'
 jobs:
+  unit-tests:
+    strategy:
+      matrix:
+        os: ['ubuntu-latest']
+        node_version: [latest]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node_version }}
+          cache: yarn
+
+      - name: Install libsecret (Ubuntu only)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
+
+      - run: yarn
+      - run: yarn build
+      - run: yarn test
+
   release:
+    needs: unit-tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
