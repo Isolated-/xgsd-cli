@@ -68,7 +68,13 @@ jobs:
 
       - name: Upload tarballs to DO Spaces
         run: |
-          for file in ./dist/*.tar.*; do
+          FILES=(./dist/*.tar.*)
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "No tarballs found in ./dist"
+            exit 1
+          fi
+          for file in "${FILES[@]}"; do
+            echo "Uploading $file"
             aws --endpoint-url ${{ secrets.DO_SPACES_ENDPOINT }} s3 cp "$file" \
               "s3://${{ secrets.DO_SPACES_BUCKET }}/versions/${{ steps.version.outputs.version }}/$(basename $file)" \
               --acl public-read
