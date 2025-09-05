@@ -79,7 +79,7 @@
     "update": {
       "s3": {
         "bucket": "xgsd-cli",
-        "host": "https://ams3.digitaloceanspaces.com/"
+        "endpoint": "https://ams3.digitaloceanspaces.com/"
       }
     },
     "plugins": [
