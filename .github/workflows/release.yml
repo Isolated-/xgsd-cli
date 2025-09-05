@@ -72,11 +72,15 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+      - name: Get short SHA
+        id: shortsha
+        run: echo "sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
       - name: Build release tarballs
-        run: npx oclif pack tarballs --targets linux-x64 --parallel
+        run: npx oclif pack tarballs --sha ${{ steps.shortsha.outputs.sha }}
 
       - name: Deploy tarballs to DigitalOcean Spaces
-        run: npx oclif upload tarballs --targets linux-x64
+        run: npx oclif upload tarballs --sha ${{ steps.shortsha.outputs.sha }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
@@ -84,7 +88,7 @@ jobs:
           AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
 
       - name: Promote tarballs
-        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ github.sha }} --targets linux-x64
+        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ steps.shortsha.outputs.sha }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
