@@ -7,9 +7,12 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [`v0.3.4`] - 2025-09-05
 
-### Change
+### Changed
 
-- CLI is being refactored into core and experimental components to ensure core functionality is stable. You can use experimental features by opting in with `$ xgsd update beta`.
+- **Dependencies** that are not being used right now been removed. Future functionality will be designed as a **plugin** when it doesn't directly relate to workflow orchestration. This reduces release build size to `< 60 MB` (tarball) and `< 40 MB` (deb).
+- **Update manager** - auto update the CLI without `npm install -g @xgsd/cli`. Opt in for frequent updates with `xgsd update beta`. `stable` channel will now experience less changes (`vX.Y.0` will be pushed to stable). More installation options have been added for Windows and Linux users.
+
+---
 
 ## [`v0.3.3`] - 2025-09-05
 

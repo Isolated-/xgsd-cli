@@ -64,7 +64,7 @@ jobs:
           AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
 
       - name: Promote tarballs
-        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ github.sha }} --channel stable
+        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ github.sha }} --channel stable --ignore-missing
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
@@ -77,25 +77,6 @@ jobs:
           echo "${{ secrets.XGSD_SIGNING_KEY }}" | gpg --batch --import
           echo "${{ secrets.XGSD_GPG_OVERTRUST }}" | gpg --batch --import-ownertrust
           gpg --list-keys ${{ secrets.XGSD_GPG_KEY_ID }}
-
-      - name: Build debs
-        run: npx oclif pack deb
-
-      - name: Upload debs to DigitalOcean Spaces
-        run: npx oclif upload deb
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
-          AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
-          AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
-
-      - name: Promote deb
-        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ github.sha }} --channel stable --deb
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
-          AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
-          AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
 
       - name: Publish to npm
         run: npm publish --access public
