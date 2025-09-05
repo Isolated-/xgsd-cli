@@ -2,8 +2,6 @@ import {Args, Command, Flags} from '@oclif/core'
 import {join} from 'path'
 import {mkdtempSync, pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
 import {userCodeOrchestration} from '../@core/pipelines/pipeline.concrete'
-import * as Joi from 'joi'
-import {load} from 'js-yaml'
 import {EventEmitter2} from 'eventemitter2'
 import chalk from 'chalk'
 import {
@@ -11,8 +9,6 @@ import {
   loadUserWorkflowConfig,
   validateWorkflowConfig,
 } from '../@core/pipelines/pipelines.util'
-import winston = require('winston')
-import prettyBytes from 'pretty-bytes'
 
 export default class Run extends Command {
   static override args = {

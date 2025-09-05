@@ -5,6 +5,15 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [`v0.3.5`] - Unreleased
+
+### Changed
+
+- **Process manager** - updated to ensure that complex workflows don't spawn too many processes during execution. Concurrency can now be configured up to a hard limit of 64 **processes**. This does not impact how many steps can be in a workflow, the hard limit of total number of steps has been significantly increased to 999.
+- **Removes lodash as dependency** - was only used for `merge()` this has been replicated and lodash is now removed.
+
+---
+
 ## [`v0.3.4`] - 2025-09-05
 
 ### Changed

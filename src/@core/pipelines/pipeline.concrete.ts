@@ -1,4 +1,3 @@
-import {config} from 'process'
 import {
   FlexibleWorkflowConfig,
   PipelineConfig,
@@ -10,31 +9,14 @@ import {
 import {IPipeline} from './interfaces/pipeline.interfaces'
 import {calculateAverageWorkflowTimeFromPath, getDefaultPipelineConfig, getDurationString} from './pipelines.util'
 import {timedRunnerFn, WrappedError} from '../@shared/runner'
-import {debug} from '../util/debug.util'
 import {RunFn} from '../@shared/types/runnable.types'
 import {EventEmitter2} from 'eventemitter2'
 import {fork} from 'child_process'
-import {dirname, extname, join} from 'path'
-import {
-  createWriteStream,
-  ensureDirSync,
-  pathExistsSync,
-  readdir,
-  readdirSync,
-  readJsonSync,
-  removeSync,
-  writeJsonSync,
-  WriteStream,
-} from 'fs-extra'
-import {v4} from 'uuid'
-import {reject} from 'lodash'
+import {join} from 'path'
+import {ensureDirSync, pathExistsSync, writeJsonSync} from 'fs-extra'
 import {WorkflowContext} from '../@shared/context.builder'
-import {RetryAttempt} from '../@shared/runner/retry.runner'
-import * as ms from 'ms'
 import {captureEvents, WorkflowEvent} from '../workflows/workflow.events'
 import {createLogger, transports, format} from 'winston'
-import winston = require('winston')
-import * as os from 'os'
 import moment = require('moment')
 import {WorkflowError} from '../@shared/workflow.process'
 

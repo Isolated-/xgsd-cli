@@ -1,14 +1,12 @@
 import {FlexibleWorkflowConfig, PipelineState, PipelineStep, SourceData} from '../@types/pipeline.types'
 import {ParentMessage} from '../pipelines/pipeline.concrete'
 import * as ms from 'ms'
-import {WrappedError} from './runner'
-import * as lodash from 'lodash'
 import {resolveStepData, resolveStepTemplates} from './runner.process'
 import {fork, ForkOptions} from 'child_process'
 import {WorkflowContext} from './context.builder'
 import {join} from 'path'
 import {WorkflowEvent} from '../workflows/workflow.events'
-import prettyBytes from 'pretty-bytes'
+import {deepmerge} from '../util/object.util'
 
 const log = (
   message: string,
@@ -196,12 +194,12 @@ process.on('message', async (msg: ParentMessage<SourceData>) => {
   let results: PipelineStep[] = []
 
   // input data must be an object (validate on command side)
-  let input = lodash.merge({}, config.data, data)
+  let input = deepmerge(config.data, data) || {}
 
   if (config.mode === 'async') {
     const steps = await Promise.all(
       config.steps.map(async (step, idx) => {
-        step.data = input
+        step.data = input as any
         return runStep(idx, step, context)
       }),
     )
@@ -213,7 +211,7 @@ process.on('message', async (msg: ParentMessage<SourceData>) => {
   // let child process deal with step input/output
   if (config.mode !== 'async') {
     for (const step of config.steps) {
-      step.data = input
+      step.data = input as any
 
       const result = await runStep(idx, step, {
         ...context,
@@ -221,7 +219,7 @@ process.on('message', async (msg: ParentMessage<SourceData>) => {
       })
 
       if (config.mode === 'chained') {
-        input = lodash.merge({}, input, result.step.output)
+        input = deepmerge(input, result.step.output)!
       }
 
       results.push(result.step)

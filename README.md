@@ -353,16 +353,6 @@ Run xGSD on a Raspberry Pi as your own **serverless platform without vendor lock
 If you’ve been down the frustrating road of debugging **brittle cloud jobs** — wiring retries, catching every edge case, and making sure nothing silently fails — you’ll feel right at home here.  
 xGSD is built to take that pain away, so you can **focus on building things that matter instead of babysitting error handlers.**
 
-## Privacy & Security
-
-Most of the features in this project are a response to the UK’s regulatory changes and are designed to mitigate the threats posed by the **Online Safety Act (OSA)**, **Investigatory Powers Act (IPA)**, and the proposed **Chat Control**.
-
-A full security overview will be published once everything is up and running. Please feel free to check the code ([here](https://github.com/Isolated-/xgsd-cli)) if you're concerned about how your data is managed.
-
-In short:
-
-**We do not and will not support weakening of encryption, state-owned backdoors, or any form of violating our users' right to privacy.**
-
 ## Inspiration
 
 Over the last five years, I’ve been working toward developing flexible code that is on-par with industry standards and current trends. My goal was to enable **custom user code** to run without modification to my own code. A lot of trial and error went into a seemingly simple solution.
@@ -401,6 +391,7 @@ Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable re
 ### Usage
 
 <!-- usage -->
+
 ```sh-session
 $ npm install -g @xgsd/cli
 $ xgsd COMMAND
@@ -412,26 +403,28 @@ USAGE
   $ xgsd COMMAND
 ...
 ```
+
 <!-- usagestop -->
 
 ### Commands
 
 <!-- commands -->
-* [`xgsd exec PACKAGE`](#xgsd-exec-package)
-* [`xgsd help [COMMAND]`](#xgsd-help-command)
-* [`xgsd plugins`](#xgsd-plugins)
-* [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
-* [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
-* [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
-* [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
-* [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
-* [`xgsd plugins reset`](#xgsd-plugins-reset)
-* [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
-* [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
-* [`xgsd plugins update`](#xgsd-plugins-update)
-* [`xgsd run FUNCTION`](#xgsd-run-function)
-* [`xgsd update [CHANNEL]`](#xgsd-update-channel)
-* [`xgsd version`](#xgsd-version)
+
+- [`xgsd exec PACKAGE`](#xgsd-exec-package)
+- [`xgsd help [COMMAND]`](#xgsd-help-command)
+- [`xgsd plugins`](#xgsd-plugins)
+- [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
+- [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
+- [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
+- [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
+- [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
+- [`xgsd plugins reset`](#xgsd-plugins-reset)
+- [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
+- [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
+- [`xgsd plugins update`](#xgsd-plugins-update)
+- [`xgsd run FUNCTION`](#xgsd-run-function)
+- [`xgsd update [CHANNEL]`](#xgsd-update-channel)
+- [`xgsd version`](#xgsd-version)
 
 ## `xgsd exec PACKAGE`
 
@@ -859,4 +852,5 @@ FLAG DESCRIPTIONS
 ```
 
 _See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/v2.2.32/src/commands/version.ts)_
+
 <!-- commandsstop -->
