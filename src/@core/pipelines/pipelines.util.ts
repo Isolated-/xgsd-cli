@@ -143,7 +143,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
         }),
       )
       .min(1)
-      .max(64),
+      .max(128),
   })
 
   const {error, value} = validationSchema.validate(config, {abortEarly: false, allowUnknown: true, stripUnknown: true})
@@ -168,7 +168,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
     options: {
       timeout: ms(config.options?.timeout || ('5s' as any)) || 5000,
       retries: config.options?.retries || 5,
-      concurrency: 8,
+      concurrency: config.options?.concurrency || 4,
     },
     collect: {
       logs: config.collect?.logs ?? true,
