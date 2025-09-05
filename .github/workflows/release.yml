@@ -105,7 +105,6 @@ jobs:
 
       - name: Generate/update oclif autoupdate manifest
         run: |
-          # oclif update manifest
           npx oclif pack manifest ./dist --version ${{ steps.version.outputs.version }} \
             --name xgsd --s3-bucket ${{ secrets.DO_SPACES_BUCKET }} \
             --s3-endpoint ${{ secrets.DO_SPACES_ENDPOINT }}
@@ -114,10 +113,54 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
           AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
 
-      - name: Promote dev version to beta channel (optional)
+      - name: Promote dev version to experimental channel (optional)
         if: startsWith(github.ref, 'refs/heads/staging') || startsWith(github.ref, 'refs/heads/feature/')
         run: |
-          npx oclif promote --channel beta --version ${{ steps.version.outputs.version }}
+          npx oclif promote --channel experimental --version ${{ steps.version.outputs.version }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
+          AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
+
+      - name: Install fpm for deb packaging
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby ruby-dev rpm gnupg
+          sudo gem install --no-document fpm
+
+      - name: Build Debian package
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          TARBALL=$(ls dist/*.tar.xz | head -n 1)
+          mkdir -p pkg
+          fpm -s tar -t deb \
+            -n xgsd \
+            -v "$VERSION" \
+            --prefix /usr/local \
+            --description "xGSD CLI - Local workflow orchestration for solo developers for Node.js" \
+            --url "https://xgsd.io" \
+            --license "MIT" \
+            "$TARBALL"
+          mv *.deb pkg/
+
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.XGSD_SIGNING_KEY }}" | gpg --batch --yes --import
+          echo "${{ secrets.XGSD_GPG_OWNERTRUST }}" | gpg --import-ownertrust
+
+      - name: Sign Debian package
+        run: |
+          DEB_FILE=$(ls pkg/*.deb | head -n 1)
+          gpg --batch --yes --detach-sign --armor --local-user "${{ secrets.XGSD_GPG_KEY_ID }}" "$DEB_FILE"
+
+      - name: Upload Debian package + signature to DO Spaces
+        run: |
+          for file in pkg/*; do
+            echo "Uploading $file"
+            aws --endpoint-url ${{ secrets.DO_SPACES_ENDPOINT }} s3 cp "$file" \
+              "s3://${{ secrets.DO_SPACES_BUCKET }}/debs/${{ steps.version.outputs.version }}/$(basename $file)" \
+              --acl public-read
+          done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}

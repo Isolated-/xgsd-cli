@@ -5,6 +5,12 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [`v0.3.4`] - 2025-09-05
+
+### Change
+
+- CLI is being refactored into core and experimental components to ensure core functionality is stable. You can use experimental features by opting in with `$ xgsd update beta`.
+
 ## [`v0.3.3`] - 2025-09-05
 
 `v0.3.3` and `v0.3.2` were released together.
