@@ -89,9 +89,10 @@ jobs:
       - name: Compose beta version
         id: version
         run: |
-          TAG=${{ steps.tag.outputs.tag }}
-          TAG=${TAG#v}    # remove leading 'v'
-          echo "version=${TAG}-beta.${{ github.run_number }}" >> $GITHUB_OUTPUT
+          TAG=${GITHUB_REF#refs/tags/v}  # e.g. 0.3.5
+          # Find existing beta tags for this version
+          COUNT=$(git tag --list "${TAG}-beta.*" | wc -l)
+          echo "version=${TAG}-beta.${COUNT}" >> $GITHUB_OUTPUT
 
       - name: Get short SHA
         id: shortsha
@@ -142,7 +143,11 @@ jobs:
 
       - name: Compose beta version
         id: version
-        run: echo "version=${{ steps.tag.outputs.tag }}-beta.${{ github.run_number }}" >> $GITHUB_OUTPUT
+        run: |
+          TAG=${GITHUB_REF#refs/tags/v}  # e.g. 0.3.5
+          # Find existing beta tags for this version
+          COUNT=$(git tag --list "${TAG}-beta.*" | wc -l)
+          echo "version=${TAG}-beta.${COUNT}" >> $GITHUB_OUTPUT
 
       - name: Update package version
         run: yarn version --new-version "$VERSION" --no-git-tag-version
