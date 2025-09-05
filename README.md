@@ -401,52 +401,52 @@ Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable re
 ### Usage
 
 <!-- usage -->
-
 ```sh-session
 $ npm install -g @xgsd/cli
 $ xgsd COMMAND
 running command...
 $ xgsd (--version)
-@xgsd/cli/0.3.0 linux-x64 node-v24.4.1
+@xgsd/cli/0.3.3 linux-x64 node-v24.4.1
 $ xgsd --help [COMMAND]
 USAGE
   $ xgsd COMMAND
 ...
 ```
-
 <!-- usagestop -->
 
 ### Commands
 
 <!-- commands -->
-
-- [`xgsd exec PACKAGE`](#xgsd-exec-package)
-- [`xgsd help [COMMAND]`](#xgsd-help-command)
-- [`xgsd run FUNCTION`](#xgsd-run-function)
+* [`xgsd exec PACKAGE`](#xgsd-exec-package)
+* [`xgsd help [COMMAND]`](#xgsd-help-command)
+* [`xgsd run FUNCTION`](#xgsd-run-function)
+* [`xgsd update [CHANNEL]`](#xgsd-update-channel)
+* [`xgsd version`](#xgsd-version)
 
 ## `xgsd exec PACKAGE`
 
-Run a workflow in a Docker container (proof of concept, very limited)
+Run a workflow in a Docker container (proof of concept, very limited). Container is removed after exec for each run.
 
 ```
 USAGE
-  $ xgsd exec PACKAGE [-y] [-w]
+  $ xgsd exec PACKAGE [-y] [-w] [-e <value>]
 
 ARGUMENTS
   PACKAGE  package to run
 
 FLAGS
-  -w, --watch    watch for changes (streams logs to console)
-  -y, --confirm  confirm before running
+  -e, --workflow=<value>  workflow to run
+  -w, --watch             watch for changes (streams logs to console)
+  -y, --confirm           confirm before running
 
 DESCRIPTION
-  Run a workflow in a Docker container (proof of concept, very limited)
+  Run a workflow in a Docker container (proof of concept, very limited). Container is removed after exec for each run.
 
 EXAMPLES
   $ xgsd exec
 ```
 
-_See code: [src/commands/exec.ts](https://github.com/xgsd/cli/blob/v0.3.0/src/commands/exec.ts)_
+_See code: [src/commands/exec.ts](https://github.com/xgsd/cli/blob/v0.3.3/src/commands/exec.ts)_
 
 ## `xgsd help [COMMAND]`
 
@@ -474,18 +474,18 @@ Run workflows and your code with full confidence. Error handling, retries, timeo
 
 ```
 USAGE
-  $ xgsd run FUNCTION [--json] [-f] [-n <value>] [-d <value>] [-w] [-l info|status|warn|error|success...]
-    [-e <value>] [-p]
+  $ xgsd run FUNCTION [--json] [-f] [-n <value>] [-d <value>] [-w] [-l
+    info|status|warn|error|success|user...] [-e <value>] [-p]
 
 ARGUMENTS
   FUNCTION  function to run
 
 FLAGS
   -d, --data=<value>           data file to use (must be a path)
-  -e, --workflow=<value>       you can specify a workflow by name when you have a workflows/ folder in our NPM package
+  -e, --workflow=<value>       you can specify a workflow by name when you have a workflows/ folder in your NPM package
   -f, --force
-  -l, --log-level=<option>...  [default: info,status,warn,error,success] log level
-                               <options: info|status|warn|error|success>
+  -l, --log-level=<option>...  [default: info,status,warn,error,success,user] log level
+                               <options: info|status|warn|error|success|user>
   -n, --name=<value>           name to print
   -p, --plain                  run in plain mode (no colours)
   -w, --watch                  watch for changes (streams logs to console)
@@ -500,6 +500,63 @@ EXAMPLES
   $ xgsd run
 ```
 
-_See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.3.0/src/commands/run.ts)_
+_See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.3.3/src/commands/run.ts)_
 
+## `xgsd update [CHANNEL]`
+
+update the xgsd CLI
+
+```
+USAGE
+  $ xgsd update [CHANNEL] [--force |  | [-a | -v <value> | -i]] [-b ]
+
+FLAGS
+  -a, --available        See available versions.
+  -b, --verbose          Show more details about the available versions.
+  -i, --interactive      Interactively select version to install. This is ignored if a channel is provided.
+  -v, --version=<value>  Install a specific version.
+      --force            Force a re-download of the requested version.
+
+DESCRIPTION
+  update the xgsd CLI
+
+EXAMPLES
+  Update to the stable channel:
+
+    $ xgsd update stable
+
+  Update to a specific version:
+
+    $ xgsd update --version 1.0.0
+
+  Interactively select version:
+
+    $ xgsd update --interactive
+
+  See available versions:
+
+    $ xgsd update --available
+```
+
+_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/v4.7.4/src/commands/update.ts)_
+
+## `xgsd version`
+
+```
+USAGE
+  $ xgsd version [--json] [--verbose]
+
+FLAGS
+  --verbose  Show additional information about the CLI.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+FLAG DESCRIPTIONS
+  --verbose  Show additional information about the CLI.
+
+    Additionally shows the architecture, node version, operating system, and versions of plugins that the CLI is using.
+```
+
+_See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/v2.2.32/src/commands/version.ts)_
 <!-- commandsstop -->
