@@ -13,6 +13,7 @@ export class WorkflowContext<T extends SourceData = SourceData> {
   docker: boolean
   stream: EventEmitter2
   runner: string
+  route: string
   mode: 'chained' | 'async' | 'fanout'
   state: PipelineState
   name: string
@@ -39,11 +40,12 @@ export class WorkflowContext<T extends SourceData = SourceData> {
     this.package = config.package!
     this.state = PipelineState.Pending
     this.output = {}
-    this.start = null
+    this.start = new Date().toISOString()
     this.end = null
     this.duration = null
     this.config = config
     this.steps = config.steps
+    this.route = `${this.name}-${this.hash}`
   }
 
   serialise?() {

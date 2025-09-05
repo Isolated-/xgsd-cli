@@ -1,7 +1,7 @@
 {
   "name": "@xgsd/cli",
   "description": "Local workflow orchestration for solo-developers, built on top of xGSD. Get started in minutes. Create an action, define a workflow, and xgsd run it!",
-  "version": "0.3.4",
+  "version": "0.3.6",
   "author": "Michael Palmer",
   "bin": {
     "xgsd": "./bin/run.js"
@@ -14,10 +14,12 @@
     "@oclif/plugin-update": "^4.7.4",
     "@oclif/plugin-version": "^2.2.32",
     "chalk": "^5.6.0",
+    "deepmerge": "^4.3.1",
     "eventemitter2": "^6.4.9",
     "fs-extra": "^11.3.1",
     "joi": "^18.0.1",
     "js-yaml": "^4.1.0",
+    "just-merge": "^3.2.0",
     "moment": "^2.30.1",
     "ms": "^2.1.3",
     "pretty-bytes": "^7.0.1",

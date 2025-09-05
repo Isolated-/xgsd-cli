@@ -96,7 +96,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
       .pattern(/^\d+ms$|^\d+s$|^\d+m$|^\d+h$|^\d+d$|^\d+w$|^\d+mo$/)
       .optional(),
     retries: Joi.number().min(0).max(100).optional(),
-    concurrency: Joi.number().min(1).max(64).optional(),
+    concurrency: Joi.number().min(1).max(32).optional(),
   })
 
   // Perform validation logic here
@@ -143,7 +143,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
         }),
       )
       .min(1)
-      .max(128),
+      .max(64),
   })
 
   const {error, value} = validationSchema.validate(config, {abortEarly: false, allowUnknown: true, stripUnknown: true})

@@ -56,6 +56,15 @@ export default class Run extends BaseCommand<typeof Command> {
         return readJsonSync(input)
       },
     }),
+
+    concurrency: Flags.integer({
+      char: 'c',
+      description: 'maximum number of concurrent processes (only for async mode)',
+      required: false,
+      default: 8,
+      max: 32,
+      min: 1,
+    }),
   }
 
   public async run(): Promise<any> {
@@ -82,6 +91,7 @@ export default class Run extends BaseCommand<typeof Command> {
     let userConfig
     try {
       userConfig = validateWorkflowConfig(loadUserWorkflowConfig(userModulePath, flags.workflow!))
+      userConfig.options = {...userConfig.options, concurrency: flags.concurrency}
     } catch (error: any) {
       this.error(error.message)
     }
@@ -109,7 +119,7 @@ export default class Run extends BaseCommand<typeof Command> {
     }
 
     const workflowName = getWorkflowName(foundPath, userConfig.name, userCodePackageJson.name)
-    const newOutputPath = userConfig.logs?.path || join(this.config.home, '.xgsd', workflowName)
+    const newOutputPath = userConfig.logs?.path || join(this.config.home, '.xgsd')
 
     prettyPrintLogs(event, flags, this)
     return userCodeOrchestration(

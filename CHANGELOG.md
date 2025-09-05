@@ -5,6 +5,15 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [`v0.4.0`] - Unreleased
+
+### Changed
+
+- **Workflow results and logs** are now stored outside of your project `/home/me/.xgsd/{workflow}`. Override this by setting `logs.path` to your desired path (works for both logs and results).
+- **Workflow names** are now normalised for logging purposes. Names also now default to your config file name instead of package name if no name is provided.
+- **Run command** no longer enforces path to be relative to current working directory, any OS-supported path will now work.
+- **Process manager** at workflow level now ensures async workflows don't spawn too many processes at once. You can configure `concurrency` in the same way you would `timeout` or `retries` just rememeber this only applies to the workflow itself (cannot be applied at step level).
+
 ## [`v0.3.5`] - 2025-09-05
 
 ### Changed
