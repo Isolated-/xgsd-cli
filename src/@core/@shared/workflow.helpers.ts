@@ -1,5 +1,5 @@
 import {v4} from 'uuid'
-import * as _ from 'lodash'
+import {deepmerge} from '../util/object.util'
 
 export type HelperFn = (input: any, ...args: any[]) => any
 
@@ -56,7 +56,7 @@ export const helpers: Record<string, HelperFn> = {
   default: (input: any, value: any) => (input == null ? value : input),
   merge: (input: any, value: any) => {
     if (typeof input === 'object' && input !== null) {
-      return _.merge({}, input, value)
+      return deepmerge(input, value)
     }
     return input
   },
