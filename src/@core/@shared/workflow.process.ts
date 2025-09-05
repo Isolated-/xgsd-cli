@@ -175,10 +175,41 @@ async function runStep(idx: number, step: PipelineStep, context: WorkflowContext
 
   step.env = envResolved as Record<string, string>
 
+  // as part of safer process management,
+  // add a small delay between each new process spawn
+  // prevents system overload
+  await new Promise((resolve) => setTimeout(resolve, 50))
+
   const path = join(__dirname, 'workflow.step-process.js')
   const manager = new ProcessManager({...step, index: idx, startedAt}, context, path, timeoutMs)
   manager.fork()
   return manager.run()
+}
+
+export async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<any>,
+): Promise<void> {
+  const executing: Promise<void>[] = []
+
+  for (let i = 0; i < items.length; i++) {
+    const p = worker(items[i], i)
+    executing.push(p)
+
+    if (executing.length >= limit) {
+      await Promise.race(executing)
+      // clean up finished promises
+      for (let j = executing.length - 1; j >= 0; j--) {
+        if (await executing[j].catch(() => undefined)) {
+          executing.splice(j, 1)
+        }
+      }
+    }
+  }
+
+  // wait for remaining tasks
+  await Promise.all(executing)
 }
 
 process.on('message', async (msg: ParentMessage<SourceData>) => {
@@ -196,15 +227,13 @@ process.on('message', async (msg: ParentMessage<SourceData>) => {
   // input data must be an object (validate on command side)
   let input = deepmerge(config.data, data) || {}
 
+  // v0.3.6 (async steps run in batches)
   if (config.mode === 'async') {
-    const steps = await Promise.all(
-      config.steps.map(async (step, idx) => {
-        step.data = input as any
-        return runStep(idx, step, context)
-      }),
-    )
-
-    results = steps.filter(Boolean).map((s) => s.step)
+    await runWithConcurrency(context.config.steps, 8, async (item: PipelineStep, index: number) => {
+      item.data = input as any
+      const result = await runStep(index, item, context)
+      results.push(result.step)
+    })
   }
 
   let idx = 0
