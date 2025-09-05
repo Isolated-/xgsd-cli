@@ -406,7 +406,7 @@ $ npm install -g @xgsd/cli
 $ xgsd COMMAND
 running command...
 $ xgsd (--version)
-@xgsd/cli/0.3.5 linux-x64 node-v24.4.1
+@xgsd/cli/0.3.4 linux-x64 node-v24.4.1
 $ xgsd --help [COMMAND]
 USAGE
   $ xgsd COMMAND
@@ -456,7 +456,7 @@ EXAMPLES
   $ xgsd exec
 ```
 
-_See code: [src/commands/exec.ts](https://github.com/xgsd/cli/blob/v0.3.5/src/commands/exec.ts)_
+_See code: [src/commands/exec.ts](https://github.com/xgsd/cli/blob/v0.3.4/src/commands/exec.ts)_
 
 ## `xgsd help [COMMAND]`
 
@@ -800,7 +800,7 @@ EXAMPLES
   $ xgsd run
 ```
 
-_See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.3.5/src/commands/run.ts)_
+_See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.3.4/src/commands/run.ts)_
 
 ## `xgsd update [CHANNEL]`
 
