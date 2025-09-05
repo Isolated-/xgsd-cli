@@ -88,7 +88,10 @@ jobs:
 
       - name: Compose beta version
         id: version
-        run: echo "version=${{ steps.tag.outputs.tag }}-beta.${{ github.run_number }}" >> $GITHUB_OUTPUT
+        run: |
+          TAG=${{ steps.tag.outputs.tag }}
+          TAG=${TAG#v}    # remove leading 'v'
+          echo "version=${TAG}-beta.${{ github.run_number }}" >> $GITHUB_OUTPUT
 
       - name: Get short SHA
         id: shortsha
