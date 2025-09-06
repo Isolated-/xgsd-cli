@@ -2,8 +2,10 @@ import {
   createReadStream,
   ensureDirSync,
   pathExistsSync,
+  readdirSync,
   readFileSync,
   readJsonSync,
+  rmdirSync,
   rmSync,
   writeJsonSync,
 } from 'fs-extra'
@@ -289,6 +291,23 @@ export const handleWorkflowEnded = (context: WorkflowContext) => {
   }
 
   writeJsonSync(path, result, {spaces: 2, mode: 0o600})
+  writeJsonSync(join(context.output, 'latest.json'), result, {spaces: 2, mode: 0o600})
+
+  if (!context.config.collect?.run) {
+    log(`you have disabled run collection, removing results file.`, 'warn', context)
+    rmSync(join(context.output, 'results'), {recursive: true, force: true})
+    rmSync(join(context.output, 'latest.json'), {force: true})
+    rmSync(join(context.output, 'config.json'), {force: true})
+  }
+
+  if (!context.config.collect?.logs) {
+    log(`you have disabled logs collection, removing logs file.`, 'warn', context)
+    rmSync(join(context.output, 'logs'), {recursive: true, force: true})
+  }
+
+  if (!context.config.collect?.logs && !context.config.collect?.run) {
+    rmSync(context.output, {recursive: true, force: true})
+  }
 
   const failed = steps.filter((step) => step.state === PipelineState.Failed)
   const succeeded = steps.filter((step) => step.state === PipelineState.Completed)
