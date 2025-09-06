@@ -51,7 +51,7 @@ export async function executeSteps(
         steps: results,
       })
 
-      results.push(result.step)
+      //results.push(result.step)
     })
   } else {
     let idx = 0
@@ -67,7 +67,7 @@ export async function executeSteps(
         input = deepmerge2(input, result.step.output) as any
       }
 
-      results.push(result.step)
+      //results.push(result.step)
       idx++
     }
   }

@@ -4,11 +4,12 @@ import {resolveStepData, resolveStepTemplates, resolveTemplate} from './runner.p
 import {WorkflowContext} from './context.builder'
 import {RetryAttempt} from './runner/retry.runner'
 import {WorkflowEvent} from '../workflows/workflow.events'
-import {deepmerge, deepmerge2, isEmptyObject, merge} from '../util/object.util'
-import prettyBytes from 'pretty-bytes'
+import {deepmerge2, isEmptyObject, merge} from '../util/object.util'
 import {WorkflowError, WorkflowErrorCode} from './workflow.error'
+import {getBackoffStrategy} from './workflow-backoff.strategies'
+import {defaultWith} from '../util/misc.util'
 
-const log = (message: string, level: string = 'info') => {
+export const log = (message: string, level: string = 'info') => {
   dispatchMessage('log', {log: {level, message, timestamp: new Date().toISOString()}}, true)
 }
 
@@ -77,7 +78,9 @@ export async function processStep(
   const retries = options.retries!
   const timeout = options.timeout!
 
-  const errors: WrappedError[] = []
+  event(WorkflowEvent.StepStarted, {step: prepared})
+
+  prepared.errors = []
   const result = await retry(prepared.input, step.fn!, retries, {
     timeout,
     delay,
@@ -85,13 +88,23 @@ export async function processStep(
       attempt?.(a)
       prepared.state = PipelineState.Retrying
       prepared.attempt = a.attempt + 1
-      errors.push(a.error) // this can be removed in v0.4+ (streaming to logs is implemented)
+      prepared.errors.push(a.error) // this can be removed in v0.4+ (streaming to logs is implemented)
     },
   })
 
+  let output = result.data
+
+  if (
+    typeof output === 'number' ||
+    typeof output === 'string' ||
+    typeof output === 'boolean' ||
+    Array.isArray(output)
+  ) {
+    output = {data: output}
+  }
+
   prepared.fn = undefined
-  prepared.output = Array.isArray(result.data) ? {data: result.data} : result.data
-  prepared.errors = errors
+  prepared.output = output as Record<string, any>
   prepared.options = {retries, timeout}
   prepared.state = result.error ? PipelineState.Failed : PipelineState.Completed
   prepared.endedAt = new Date().toISOString()
@@ -120,7 +133,7 @@ export function finaliseStepData(step: PipelineStep, context: WorkflowContext) {
     output: step.output,
   })
 
-  if (!isEmptyObject(step.after) && !step.output) {
+  if (!isEmptyObject(step.after) && step.output) {
     step.output = step.after
     step.after = undefined
   }
@@ -134,7 +147,7 @@ export function finaliseStepData(step: PipelineStep, context: WorkflowContext) {
 export function prepareStepData(step: PipelineStep, context: WorkflowContext) {
   const {after, ...stepData} = step
   const data = deepmerge2(context.config.data, step.data)
-  const resolved = resolveStepTemplates(step, {
+  const resolved = resolveStepData(step, {
     ...context,
     step: stepData,
     data,
@@ -166,14 +179,11 @@ export async function importUserModule(step: PipelineStep, context: WorkflowCont
 }
 
 process.on('uncaughtException', (error) => {
-  console.log(error)
   fatal(`uncaught exception: ${error.message}`)
   process.exit(1) // <- fixes memory leak on uncaught exceptions
 })
 
 process.on('unhandledRejection', (reason: any, promise) => {
-  console.log(reason)
-
   fatal(`unhandled rejection: ${reason?.message || reason}`)
   process.exit(1) // <- fixes memory leak on unhandled rejections
 })
@@ -187,12 +197,10 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
   let fn
   try {
     fn = await importUserModule(step, context)
-  } catch (error: any) {
-    console.log(error)
-    return
-  }
+  } catch (error: any) {}
 
-  const delay = (attempt: number) => 1000 * 2 ** attempt
+  const method = defaultWith('exponential', step.options?.backoff, context.config.options?.backoff)!
+  const delay = getBackoffStrategy(method)
   const onAttempt = async (attempt: RetryAttempt) => {
     event(WorkflowEvent.StepRetry, {attempt, step})
     event(WorkflowEvent.StepError, {error: attempt.error, step})
@@ -201,11 +209,6 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
   step.fn = fn
   const result = await processStep(step, context, delay, onAttempt)
 
-  if (result.errors && result.errors.length > 0 && !result.output) {
-    event(WorkflowEvent.StepFailed, {step: result})
-  } else {
-    event(WorkflowEvent.StepCompleted, {step: result, memory: process.memoryUsage()})
-  }
-
+  event(WorkflowEvent.StepCompleted, {step: result})
   dispatchMessage('result', {result: {step: result}})
 })

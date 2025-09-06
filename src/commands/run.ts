@@ -7,6 +7,7 @@ import chalk from 'chalk'
 import {
   findUserWorkflowConfigPath,
   loadUserWorkflowConfig,
+  orchestration,
   validateWorkflowConfig,
 } from '../@core/pipelines/pipelines.util'
 import {userLogThemes} from '../constants'
@@ -122,7 +123,7 @@ export default class Run extends BaseCommand<typeof Command> {
     const newOutputPath = userConfig.logs?.path || join(this.config.home, '.xgsd')
 
     prettyPrintLogs(event, flags, this)
-    return userCodeOrchestration(
+    await userCodeOrchestration(
       data,
       {
         ...userConfig,

@@ -1,9 +1,9 @@
 import {ForkOptions, fork} from 'child_process'
-import {log} from 'console'
 import {PipelineStep, PipelineState} from '../../@types/pipeline.types'
 import {WorkflowEvent} from '../../workflows/workflow.events'
 import {WorkflowContext} from '../context.builder'
 import {WorkflowError, WorkflowErrorCode} from '../workflow.error'
+import {log} from '../workflow.step-process'
 
 export const event = (name: string, payload: object) => {
   process.send!({type: 'PARENT:EVENT', event: name, payload})
@@ -35,12 +35,13 @@ export class ProcessManager {
 
     this.process.stdout?.on('data', (chunk: Buffer) => {
       const msg = chunk.toString().trim()
-      if (msg) log(msg, 'user', this.context, this.step)
+      // log currently isn't working but will be fixed
+      if (msg) log(msg, 'user')
     })
 
     this.process.stderr?.on('data', (chunk: Buffer) => {
       const msg = chunk.toString().trim()
-      if (msg) log(msg, 'error', this.context, this.step)
+      if (msg) log(msg, 'error')
     })
 
     process.on('exit', () => {

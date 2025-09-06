@@ -115,7 +115,6 @@ export const userCodeLogCollector = (context: WorkflowContext<any>, path: string
   const date = new Date()
 
   const today = date.toISOString().split('T')[0]
-  const dateString = date.toISOString()
 
   const bucketStr = context.config.logs?.bucket || '1d'
   const value = bucketStr.slice(0, bucketStr.length - 1)
@@ -126,9 +125,9 @@ export const userCodeLogCollector = (context: WorkflowContext<any>, path: string
 
   const day = bucket.format('YYYY-MM-DD')
   const hour = bucket.format('HH:mm')
+  const logPath = join(context.output, 'logs')
 
-  let logPath = join(context.config.logs?.path || path, 'logs', today)
-  let humanLog = join(logPath, context.hash, `logs-${unit === 'h' ? hour : day}.log`)
+  let humanLog = join(logPath, `logs-${unit === 'h' ? hour : day}.log`)
   let jsonlLog = join(logPath, `logs-${day}.combined.jsonl`)
 
   ensureDirSync(logPath)
@@ -166,6 +165,16 @@ export const userCodeLogCollector = (context: WorkflowContext<any>, path: string
     ],
   })
 
+  const meta = {
+    cli: context.cli,
+    config: context.hash,
+    node: process.version,
+    os: process.platform,
+    runner: `xgsd@v1`,
+    context: context.id,
+    docker: pathExistsSync('/.dockerenv'),
+  }
+
   event.on('message', (msg) => {
     logger.log({
       level: msg.log.level,
@@ -199,10 +208,6 @@ export const userCodeLogCollector = (context: WorkflowContext<any>, path: string
   })
 }
 
-export const userCodeResultCollector = (ctx: WorkflowContext<any>, date: string, path: string) => {
-  const resultPath = join(path)
-}
-
 // remove the export once complete
 export const userCodeOrchestration = async <T extends SourceData = SourceData>(
   data: any,
@@ -223,10 +228,6 @@ export const userCodeOrchestration = async <T extends SourceData = SourceData>(
 
   if (collect?.logs) {
     userCodeLogCollector(ctx, config.output, ctx.stream)
-  }
-
-  if (collect?.run) {
-    userCodeResultCollector(ctx, date, config.output)
   }
 
   captureEvents(ctx)
@@ -275,7 +276,8 @@ export function runWorkflow<T extends SourceData = SourceData>(data: T, context:
 
         case 'PARENT:RESULT':
           child.kill()
-          resolve({result: msg.result})
+          // TODO: resolve the path to result file vs the data
+          resolve({result: null})
           break
 
         case 'PARENT:ERROR':
@@ -301,47 +303,6 @@ export function runWorkflow<T extends SourceData = SourceData>(data: T, context:
 
     // send context without stream of events to reduce IPC comms
     child.send({type: 'PARENT:RUN', data, context: context.serialise!()})
-  })
-}
-
-export function runInChildProcess<T extends SourceData = SourceData, R = any>(
-  id: string,
-  data: T,
-  config: FlexibleWorkflowConfig,
-  event: EventEmitter2,
-): Promise<{result: R}> {
-  let settled = false
-  let retries = 0
-
-  return new Promise((resolve) => {
-    const workerPath = join(__dirname, '..', '@shared', 'runner.process.js')
-    const child = fork(workerPath, [config.package!], {stdio: ['inherit', 'inherit', 'inherit', 'ipc']})
-
-    child.on('message', (msg: any) => {
-      switch (msg.type) {
-        case 'LOG':
-          event.emit('message', msg)
-          break
-
-        case 'ATTEMPT':
-          event.emit('attempt', msg.attempt)
-          break
-
-        case 'PARENT:RESULT':
-          event.emit('finish', msg.result)
-          child.kill()
-          resolve({result: msg.result})
-          break
-        case 'ERROR':
-          //event.emit('error', msg.error)
-          console.log('error received', msg.error)
-          child.kill()
-          break
-      }
-    })
-
-    // Start execution
-    child.send({type: 'PARENT:RUN', id, data, config})
   })
 }
 

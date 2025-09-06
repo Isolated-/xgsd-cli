@@ -32,66 +32,6 @@ export type RunnerResult<T, E = Error> = {
   state?: 'error' | 'timeout'
 }
 
-export async function runInWorker<T, R>(fn: (data: T) => R | Promise<R>, data: T, ms: number): Promise<R> {
-  const name = fn.name || 'usercode'
-  debug('starting worker process for isolated run', runInWorker.name, name, data as any)
-
-  let logs: any[] = []
-
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(
-      `
-        const { parentPort } = require('worker_threads');
-
-        function sendLog(level, args) {
-          parentPort.postMessage({ log: { level, args } });
-        }
-
-        // Override console.* to forward logs
-        console.log = (...args) => sendLog("log", args);
-        console.error = (...args) => sendLog("error", args);
-        console.warn = (...args) => sendLog("warn", args);
-        console.info = (...args) => sendLog("info", args);
-
-        parentPort.on('message', async ({fn, data}) => {
-          try {
-            const f = eval('(' + fn + ')'); // safe-ish for trusted fn
-            const result = await f(data);
-            parentPort.postMessage({ result });
-          } catch (err) {
-            parentPort.postMessage({ error: err && err.message ? err.message : String(err) });
-          }
-        });
-      `,
-      {eval: true},
-    )
-
-    debug('worker process started up', runInWorker.name, name, data as any)
-
-    const timer = setTimeout(() => {
-      debug('worker process has timed out', runInWorker.name, name)
-      worker.terminate()
-      clearTimeout(timer)
-      reject(new Error('Timeout'))
-    }, ms)
-
-    worker.on('message', ({result, log, error}) => {
-      if (log) {
-        logs.push(log)
-        debug('worker log', runInWorker.name, name, log)
-      }
-
-      debug('response received from worker', runInWorker.name, name, {result, log, error})
-      clearTimeout(timer)
-      worker.terminate()
-      if (error) reject(new Error(error))
-      else resolve({result, logs} as any)
-    })
-
-    worker.postMessage({fn: fn.toString(), data})
-  })
-}
-
 export async function timeout<T>(ms: number, task: () => Promise<T>): Promise<T> {
   let timer: NodeJS.Timeout
   return Promise.race<T>([

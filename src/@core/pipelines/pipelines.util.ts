@@ -89,6 +89,7 @@ export const loadUserWorkflowConfig = (path: string, workflow?: string): Flexibl
 
 export const validRunners = ['xgsd@v1']
 export const validModes = ['chained', 'fanout', 'async']
+export const validBackoffStrategies = ['manual', 'linear', 'exponential']
 
 export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): FlexibleWorkflowConfig => {
   const optionsValidators = Joi.object({
@@ -97,6 +98,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
       .optional(),
     retries: Joi.number().min(0).max(100).optional(),
     concurrency: Joi.number().min(1).max(32).optional(),
+    backoff: Joi.string().valid('linear', 'squaring', 'exponential').optional(),
   })
 
   // Perform validation logic here
@@ -169,6 +171,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
       timeout: ms(config.options?.timeout || ('5s' as any)) || 5000,
       retries: config.options?.retries || 5,
       concurrency: config.options?.concurrency || 4,
+      backoff: config.options?.backoff || 'exponential',
     },
     collect: {
       logs: config.collect?.logs ?? true,
@@ -195,6 +198,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
     options: {
       timeout: step.options?.timeout || header.options.timeout,
       retries: step.options?.retries || header.options.retries,
+      backoff: step.options?.backoff || header.options.backoff,
     },
     if: step.if ?? null,
     run: step.action || step.run || null,
