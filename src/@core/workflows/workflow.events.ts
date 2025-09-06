@@ -127,7 +127,30 @@ export const handleStepComplete = (context: WorkflowContext, step: PipelineStep,
   if (pathExistsSync(path)) {
     const context = readJsonSync(path) as WorkflowContext
 
-    context.steps.push(step)
+    const errors = (step.errors || []).map((error) => ({
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    }))
+
+    const formatted = {
+      name: step.name,
+      description: step.description,
+      state: step.state,
+      run: step.run,
+      if: step.if,
+      env: step.env,
+      enabled: step.enabled,
+      options: step.options,
+      errors,
+      input: step.input,
+      output: step.output || {},
+      start: step.startedAt,
+      end: step.endedAt,
+      duration: step.duration,
+    }
+
+    context.steps.push(formatted as any)
 
     writeJsonSync(path, context, {spaces: 2, mode: 0o600})
   }
@@ -216,11 +239,12 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
 
   // create result file now
   const path = join(context.output, 'results')
+  const reduced = context.format!()
   ensureDirSync(path)
   writeJsonSync(
     join(path, `results-${context.start}.json`),
     {
-      ...context,
+      ...reduced,
       steps: [],
     },
     {
@@ -252,6 +276,14 @@ export const handleWorkflowEnded = (context: WorkflowContext) => {
   }
 
   steps = result.steps || []
+  result.state = steps.some((step) => step.state === PipelineState.Completed)
+    ? PipelineState.Completed
+    : PipelineState.Failed
+
+  result.end = context.end
+  result.duration = context.duration
+
+  writeJsonSync(path, result, {spaces: 2, mode: 0o600})
 
   const failed = steps.filter((step) => step.state === PipelineState.Failed)
   const succeeded = steps.filter((step) => step.state === PipelineState.Completed)

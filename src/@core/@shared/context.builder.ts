@@ -49,9 +49,35 @@ export class WorkflowContext<T extends SourceData = SourceData> {
     this.steps = []
   }
 
+  format?() {
+    return {
+      id: this.id,
+      version: this.version,
+      name: this.name,
+      description: this.description,
+      package: this.package,
+      output: this.output,
+      mode: this.mode,
+      hash: this.hash,
+      runner: this.runner,
+      cli: this.cli,
+      node: process.version,
+      platform: process.platform,
+      docker: this.docker,
+      state: this.state,
+      start: this.start,
+      end: this.end,
+      duration: this.duration,
+      config: this.config,
+      steps: this.steps,
+    }
+  }
+
   serialise?() {
     return {
       ...this,
+      serialise: undefined,
+      format: undefined,
       stream: undefined,
     }
   }
