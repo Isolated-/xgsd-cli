@@ -268,7 +268,7 @@ export const handleWorkflowEnded = (context: WorkflowContext) => {
     return
   }
 
-  const result = readJsonSync(path, {throws: false}) as WorkflowContext | null
+  const result = readJsonSync(path, {throws: false}) as Record<string, any>
 
   if (!result) {
     // something went really wrong
@@ -282,6 +282,11 @@ export const handleWorkflowEnded = (context: WorkflowContext) => {
 
   result.end = context.end
   result.duration = context.duration
+  result.config = undefined
+
+  if (!pathExistsSync(join(context.output, 'config.json'))) {
+    writeJsonSync(join(context.output, 'config.json'), context.config, {spaces: 2, mode: 0o600})
+  }
 
   writeJsonSync(path, result, {spaces: 2, mode: 0o600})
 
