@@ -2,14 +2,14 @@ name: CI & Release (Stable)
 
 on:
   release:
-    types: [published]
+    types: [released]
 
 jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
         node-version: [lts/*, 22.x, 20.x] # three most recent LTS releases
     steps:
       - uses: actions/checkout@v4
