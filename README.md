@@ -19,7 +19,7 @@ If you don’t need the full complexity of cloud solutions like **AWS Lambda**, 
 xGSD supports a range of operating systems (basically anything UNIX-based). Find the option that's most suitable for you (more documentation will be made available soon).
 In `v0.4.0` we dropped support for Windows as a build target. You can continue to use xGSD through NPM, or download WSL and install through the Linux route. This is recommended to ensure xGSD is fully operational.
 
-### Linux (x64)
+### Linux
 
 If you're using Ubuntu, Debian, or a similar distro this will probably be your path.
 
@@ -29,9 +29,6 @@ sudo apt install -y curl
 
 # then install using our install script:
 curl -fsSL https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/install.sh | sh
-
-# you may need to reload your session:
-source ~/.profile
 ```
 
 ### NPM
