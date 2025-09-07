@@ -233,7 +233,7 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
   const steps = context.config.steps.length
   const concurrency = context.config.options.concurrency || 'N/A'
 
-  const stats = getWorkflowStats(context.config.output)
+  const stats = getWorkflowStats(join(context.output, 'results'))
   const eta = stats.average ? getDurationString(stats.average) : 'unknown'
   const backoff = context.config.options.backoff || 'exponential'
 
@@ -314,6 +314,7 @@ export const handleWorkflowEnded = (context: WorkflowContext) => {
 
   if (!result) {
     // something went really wrong
+    log(`failed to read results file, something went wrong. Please try running the workflow again.`, 'error', context)
     return
   }
 

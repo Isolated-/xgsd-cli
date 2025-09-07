@@ -216,22 +216,33 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
 }
 
 export const getWorkflowDurations = (path: string, last: number = 8): number[] => {
-  const listdir = readdirSync(path)
-  const json = listdir.filter((file) => extname(file) === '.json').slice(-last)
+  try {
+    const listdir = readdirSync(path)
+    const json = listdir.filter((file) => extname(file) === '.json').slice(-last)
 
-  return json.map((file) => {
-    const filePath = join(path, file)
-    return readJsonSync(filePath).duration
-  })
+    return json.map((file) => {
+      const filePath = join(path, file)
+      return readJsonSync(filePath).duration
+    })
+  } catch (error) {
+    return []
+  }
 }
 
 export const getWorkflowStats = (path: string) => {
-  const runs = readdirSync(path).filter((file) => extname(file) === '.json')
-  const durations = getWorkflowDurations(path, 8)
+  try {
+    const runs = readdirSync(path).filter((file) => extname(file) === '.json')
+    const durations = getWorkflowDurations(path, 8)
 
-  return {
-    total: runs.length,
-    average: calculateAverageWorkflowDuration(durations),
+    return {
+      total: runs.length,
+      average: calculateAverageWorkflowDuration(durations),
+    }
+  } catch (error) {
+    return {
+      total: 0,
+      average: NaN,
+    }
   }
 }
 
