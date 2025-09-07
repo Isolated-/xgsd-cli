@@ -263,6 +263,7 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
   // create result file now
   const path = join(context.output, 'results')
   const reduced = context.format!()
+  reduced.state = PipelineState.Running
   ensureDirSync(path)
   writeJsonSync(
     join(path, `results-${context.start}.json`),
@@ -274,6 +275,8 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
       spaces: 2,
     },
   )
+
+  writeJsonSync(join(context.config.output, context.name + '.latest.json'), reduced, {spaces: 2, mode: 0o600})
 }
 
 export const handleWorkflowEnded = (context: WorkflowContext) => {
