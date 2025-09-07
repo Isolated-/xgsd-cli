@@ -1,5 +1,6 @@
 export enum WorkflowErrorCode {
   HardTimeout = 'CODE_HARD_TIMEOUT',
+  HardDataSize = 'CODE_HARD_DATA_SIZE',
   ModuleNotFound = 'CODE_MODULE_NOT_FOUND',
   FunctionNotFound = 'CODE_FUNCTION_NOT_FOUND',
 }
