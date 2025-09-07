@@ -2,6 +2,24 @@ import {resolveTemplate} from '../runner.process'
 import {createHash} from 'crypto'
 import moment = require('moment')
 
+describe('before() helper tests', () => {
+  test('should return true if the date is before the specified date', () => {
+    const template = '${{ .input.date | before("2023-01-02") }}'
+    const resolvedTemplate = resolveTemplate(template, {input: {date: '2023-01-01'}})
+
+    expect(resolvedTemplate).toEqual(true)
+  })
+})
+
+describe('after() helper tests', () => {
+  test('should return true if the date is after the specified date', () => {
+    const template = '${{ .input.date | after("2023-01-01") }}'
+    const resolvedTemplate = resolveTemplate(template, {input: {date: '2023-01-02'}})
+
+    expect(resolvedTemplate).toEqual(true)
+  })
+})
+
 describe('misc upper/lower tests', () => {
   it('should return the original number', () => {
     const template = '${{ .input.number | upper }}'
