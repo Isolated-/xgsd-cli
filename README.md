@@ -31,6 +31,16 @@ sudo apt install -y curl
 curl -fsSL https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/install.sh | sh
 ```
 
+Once installed you can check for updates with:
+
+```sh
+# stable
+xgsd update
+
+# beta
+xgsd update beta
+```
+
 ### NPM
 
 For _most_ systems, installing through NPM will still work:
