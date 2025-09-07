@@ -1,7 +1,7 @@
 {
   "name": "@xgsd/cli",
   "description": "Local workflow orchestration for solo-developers, built on top of xGSD. Get started in minutes. Create an action, define a workflow, and xgsd run it!",
-  "version": "0.4.0",
+  "version": "0.4.0-beta",
   "author": "Michael Palmer",
   "bin": {
     "xgsd": "./bin/run.js"
