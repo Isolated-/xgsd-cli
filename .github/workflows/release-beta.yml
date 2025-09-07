@@ -74,41 +74,37 @@ jobs:
         run: yarn version --new-version ${{ steps.version.outputs.version }} --no-git-tag-version
 
       - name: Build tarballs
-        run: npx oclif pack tarballs --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64
-
-      - name: Build Debian package
-        run: npx oclif pack deb
-
-      - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6
-        with:
-          gpg_private_key: ${{ secrets.XGSD_SIGNING_KEY }}
-          passphrase: ${{ secrets.XGSD_PASSPHRASE }}
-
-      - name: Sign .deb package
-        run: |
-          sudo apt-get update && sudo apt-get install -y dpkg-sig
-          dpkg-sig --sign builder ./dist/*.deb
+        run: npx oclif pack tarballs --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64,linux-arm64,darwin-x64,darwin-arm64
 
       - name: Deploy tarballs
-        run: npx oclif upload tarballs --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64
+        run: npx oclif upload tarballs --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64,linux-arm64,darwin-x64,darwin-arm64
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
           AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
           AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
-
-      - name: Deploy Debian package
-        run: aws s3 cp ./dist/*.deb s3://${{ secrets.DO_SPACES_BUCKET }}/deb/ --endpoint-url=${{ secrets.DO_SPACES_ENDPOINT }}
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
-          AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
 
       - name: Promote tarballs
-        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ steps.shortsha.outputs.sha }} --channel beta --targets linux-x64 --ignore-missing
+        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ steps.shortsha.outputs.sha }} --channel beta --targets linux-x64,linux-arm64,darwin-x64,darwin-arm64 --ignore-missing
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
           AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
           AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build xGSD CLI for ARMv7
+        run: |
+          docker run --rm -it \
+            --platform linux/arm/v7 \
+            -v ${{ github.workspace }}:/usr/src/app \
+            -w /usr/src/app \
+            node:20-bullseye bash -c "yarn install && yarn build"
+
+      - name: Upload ARMv7 tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: xgsd-armv7
+          path: dist/xgsd-linux-armv7.tar.gz
