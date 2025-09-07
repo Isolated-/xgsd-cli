@@ -7,6 +7,9 @@ const config: Config.InitialOptions = {
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
   collectCoverage: false,
   collectCoverageFrom: ['src/**/*.ts'],
+  moduleNameMapper: {
+    '^chalk$': '<rootDir>/__mocks__/chalk.ts',
+  },
 }
 
 export default config
