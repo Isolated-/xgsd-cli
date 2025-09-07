@@ -1,8 +1,11 @@
 name: CI & Release (Stable)
 
 on:
+  push:
+    tags:
+      - 'v*.*.0' # Only trigger on tags with patch version 0
   release:
-    types: [released]
+    types: [published]
 
 jobs:
   test:
