@@ -11,39 +11,38 @@ If you don’t need the full complexity of cloud solutions like **AWS Lambda**, 
 - **Zero external dependencies** — nothing to install or manage beyond your workflow.
 - Define your workflow and **everything else is handled for you**.
 - Ideal for **solo developers, tinkerers, or anyone experimenting with automation**.
-
-xGSD only supports **Node.js**, you'll need to ensure it's installed before you continue.
+- Runs on just about **anything**, successfully tested on a Raspberry Pi Zero 2 W running a 32-bit OS.
+- **No internet connection** needed.
 
 ## Install
 
-### Linux
+xGSD supports a range of operating systems (basically anything UNIX-based). Find the option that's most suitable for you (more documentation will be made available soon).
+In `v0.4.0` we dropped support for Windows as a build target. You can continue to use xGSD through NPM, or download WSL and install through the Linux route. This is recommended to ensure xGSD is fully operational.
 
-To enable `xgsd update` it's recommended to install via our install script as installing from NPM doesn't allow for the autoupdater to work correctly.
+### Linux (x64)
+
+If you're using Ubuntu, Debian, or a similar distro this will probably be your path.
 
 ```sh
-# using curl
-curl -fsSL https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/install.sh -o install.sh
-chmod +x install.sh
-./install.sh
+# install curl if you don't already have it:
+sudo apt install -y curl
 
-# using wget
-wget -qO install.sh https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/install.sh
-chmod +x install.sh
-./install.sh
+# then install using our install script:
+curl -fsSL https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/install.sh | sh
+
+# you may need to reload your session:
+source ~/.profile
 ```
-
-You don't need node installed to install this way. The CLI will let you know when updates are available.
 
 ### NPM
 
-You can still install with NPM but you'll need to ensure node and NPM are installed and you won't be able to use `xgsd update` as it doesn't work correctly.
+For _most_ systems, installing through NPM will still work:
 
 ```sh
 npm install -g @xgsd/cli
-
-# or for beta
-npm install -g @xgsd/cli@beta
 ```
+
+`xgsd update` doesn't seem to work with NPM though. Install through the **Linux** route if you'd like that functionality.
 
 ## Quickstart
 
@@ -425,6 +424,7 @@ Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable re
 ### Usage
 
 <!-- usage -->
+
 ```sh-session
 $ npm install -g @xgsd/cli
 $ xgsd COMMAND
@@ -436,26 +436,28 @@ USAGE
   $ xgsd COMMAND
 ...
 ```
+
 <!-- usagestop -->
 
 ### Commands
 
 <!-- commands -->
-* [`xgsd exec PACKAGE`](#xgsd-exec-package)
-* [`xgsd help [COMMAND]`](#xgsd-help-command)
-* [`xgsd plugins`](#xgsd-plugins)
-* [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
-* [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
-* [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
-* [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
-* [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
-* [`xgsd plugins reset`](#xgsd-plugins-reset)
-* [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
-* [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
-* [`xgsd plugins update`](#xgsd-plugins-update)
-* [`xgsd run FUNCTION`](#xgsd-run-function)
-* [`xgsd update [CHANNEL]`](#xgsd-update-channel)
-* [`xgsd version`](#xgsd-version)
+
+- [`xgsd exec PACKAGE`](#xgsd-exec-package)
+- [`xgsd help [COMMAND]`](#xgsd-help-command)
+- [`xgsd plugins`](#xgsd-plugins)
+- [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
+- [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
+- [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
+- [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
+- [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
+- [`xgsd plugins reset`](#xgsd-plugins-reset)
+- [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
+- [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
+- [`xgsd plugins update`](#xgsd-plugins-update)
+- [`xgsd run FUNCTION`](#xgsd-run-function)
+- [`xgsd update [CHANNEL]`](#xgsd-update-channel)
+- [`xgsd version`](#xgsd-version)
 
 ## `xgsd exec PACKAGE`
 
@@ -885,4 +887,5 @@ FLAG DESCRIPTIONS
 ```
 
 _See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/v2.2.32/src/commands/version.ts)_
+
 <!-- commandsstop -->
