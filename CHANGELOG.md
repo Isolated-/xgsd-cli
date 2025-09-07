@@ -5,7 +5,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [`v0.4.0`] - Unreleased
+## [`v0.3.6`] - Unreleased
 
 This version focuses on significant improvements to stability and process management.
 
