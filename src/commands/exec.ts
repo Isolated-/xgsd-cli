@@ -40,12 +40,21 @@ export function getDockerVersion(): {client: string; server: string} {
   }
 }
 
+function downloadDockerfile(dest: string): void {
+  const url = 'https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/Dockerfile'
+  execSync(`curl -fsSL ${url} -o ${dest}`, {stdio: 'ignore'})
+}
+
 function ensureImageExists(watch: boolean = false): void {
   try {
     // Check if image exists
     execSync('docker image inspect xgsd:v1', {stdio: 'ignore'})
   } catch {
     const cliPath = path.resolve(__dirname, '../../')
+    const dockerfilePath = path.join(cliPath, 'Dockerfile')
+    if (!existsSync(dockerfilePath)) {
+      downloadDockerfile(dockerfilePath)
+    }
 
     execSync(`docker build -t xgsd:v1 ${cliPath}`, {stdio: watch ? 'inherit' : 'ignore'})
   }
