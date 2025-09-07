@@ -1,8 +1,9 @@
 name: CI & Release (Beta)
 
 on:
-  tags:
-    - 'v*.*.*-beta*' # Trigger on all beta tags
+  push:
+    tags:
+      - 'v*.*.*-beta*' # Trigger on all beta tags
 jobs:
   test:
     runs-on: ubuntu-latest
