@@ -14,6 +14,7 @@ import {userLogThemes} from '../constants'
 import {BaseCommand} from '../base'
 import {defaultWith} from '../@core/util/misc.util'
 import {normaliseWorkflowName} from '../@core/util/workflow.util'
+import {PipelineState} from '../@core/@types/pipeline.types'
 
 export const prettyPrintLogs = (event: EventEmitter2, flags: Record<string, any>, cmd: Run) => {
   if (!flags.watch) {
@@ -121,17 +122,26 @@ export default class Run extends BaseCommand<typeof Command> {
     const newOutputPath = userConfig.logs?.path || join(this.config.home, '.xgsd')
 
     prettyPrintLogs(event, flags, this)
-    await userCodeOrchestration(
-      data,
-      {
-        ...userConfig,
-        name: workflowName,
-        version: userConfig.version || userCodePackageJson.version,
-        package: userModulePath,
-        output: newOutputPath,
-        cli: this.config.version,
-      },
-      event,
-    )
+    try {
+      await userCodeOrchestration(
+        data,
+        {
+          ...userConfig,
+          name: workflowName,
+          version: userConfig.version || userCodePackageJson.version,
+          package: userModulePath,
+          output: newOutputPath,
+          force: flags.force || false,
+          cli: this.config.version,
+        },
+        event,
+      )
+    } catch (e: any) {
+      if (e.message) {
+        this.error(e.message)
+      } else {
+        this.error('An unknown error occurred')
+      }
+    }
   }
 }

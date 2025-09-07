@@ -13,11 +13,12 @@ import {RunFn} from '../@shared/types/runnable.types'
 import {EventEmitter2} from 'eventemitter2'
 import {fork} from 'child_process'
 import {basename, join} from 'path'
-import {ensureDirSync, pathExistsSync, writeJsonSync} from 'fs-extra'
+import {ensureDirSync, pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
 import {WorkflowContext} from '../@shared/context.builder'
 import {captureEvents, WorkflowEvent} from '../workflows/workflow.events'
 import {createLogger, transports, format} from 'winston'
 import moment = require('moment')
+import {WorkflowError, WorkflowErrorCode} from '../@shared/workflow.error'
 
 /**
  *  Orchestrates a single step in the pipeline.
@@ -221,6 +222,18 @@ export const userCodeOrchestration = async <T extends SourceData = SourceData>(
 
   // create new context
   const ctx = new WorkflowContext(config, handler, 'v' + config.cli)
+
+  const isWorkflowRunning = (path: string) => {
+    const json = readJsonSync(path)
+    return json.state !== PipelineState.Completed && json.state !== PipelineState.Failed
+  }
+
+  if (isWorkflowRunning(join(config.output, config.name + '.latest.json')) && !config.force) {
+    throw new WorkflowError(
+      'This workflow is already running, please try again later or use --force to override',
+      WorkflowErrorCode.FatalError,
+    )
+  }
 
   if (collect) {
     ensureDirSync(config.output)
