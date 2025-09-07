@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*.*.0' # Only trigger on tags with patch version 0
+  release:
+    types: [published]
 
 jobs:
   test:
@@ -69,7 +71,9 @@ jobs:
 
       - name: Get version from tag
         id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
 
       - name: Get short SHA
         id: shortsha
@@ -112,9 +116,11 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Get version from tag
+      - name: Set version from tag
         id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
 
       - name: Update package version
         run: yarn version --new-version ${{ steps.version.outputs.version }} --no-git-tag-version

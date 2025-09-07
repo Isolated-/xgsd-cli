@@ -34,10 +34,7 @@ export type PipelineStep<T extends SourceData = SourceData> = {
   run: string | null
   if?: string | boolean | null
   after?: Record<string, unknown> | null
-  options?: {
-    retries?: number
-    timeout?: number
-  }
+  options?: FlexibleWorkflowOptions | null
   enabled?: boolean
   input: T | null
   data?: Record<string, T> | null
@@ -131,11 +128,14 @@ export type PipelineConfig<T extends SourceData = SourceData> = {
 
 export type FlexibleWorkflowOptions = {
   timeout?: number
+  backoff?: 'exponential' | 'linear' | 'squaring'
+
   /**
    *  @deprecated use retries instead
    */
   maxRetries?: number
   retries?: number
+  concurrency?: number
 
   /**
    *  @deprecated will be replaced with `error: exit`

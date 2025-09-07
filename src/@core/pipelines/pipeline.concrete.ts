@@ -12,13 +12,12 @@ import {timedRunnerFn, WrappedError} from '../@shared/runner'
 import {RunFn} from '../@shared/types/runnable.types'
 import {EventEmitter2} from 'eventemitter2'
 import {fork} from 'child_process'
-import {join} from 'path'
+import {basename, join} from 'path'
 import {ensureDirSync, pathExistsSync, writeJsonSync} from 'fs-extra'
 import {WorkflowContext} from '../@shared/context.builder'
 import {captureEvents, WorkflowEvent} from '../workflows/workflow.events'
 import {createLogger, transports, format} from 'winston'
 import moment = require('moment')
-import {WorkflowError} from '../@shared/workflow.process'
 
 /**
  *  Orchestrates a single step in the pipeline.
@@ -89,11 +88,33 @@ const orchestrate = async <T extends SourceData = SourceData>(
   return config
 }
 
+export const workflowResultLogger = (path: string, route: string) =>
+  createLogger({
+    level: 'info',
+    format: format.combine(
+      format.timestamp(),
+      // readable for humans
+      format.printf(({level, message, timestamp, ...meta}) => {
+        const extras = Object.keys(meta).length ? JSON.stringify(meta) : ''
+        return `(${level}) ${message} (${timestamp}) ${extras}`
+      }),
+    ),
+    transports: [
+      // structured JSONL log file
+      new transports.File({
+        filename: join(path, route, 'generated', 'workflow-results.combined.jsonl'),
+        format: format.combine(
+          format.timestamp(),
+          format.json(), // one JSON object per line
+        ),
+      }),
+    ],
+  })
+
 export const userCodeLogCollector = (context: WorkflowContext<any>, path: string, event: EventEmitter2) => {
   const date = new Date()
 
   const today = date.toISOString().split('T')[0]
-  const dateString = date.toISOString()
 
   const bucketStr = context.config.logs?.bucket || '1d'
   const value = bucketStr.slice(0, bucketStr.length - 1)
@@ -104,9 +125,9 @@ export const userCodeLogCollector = (context: WorkflowContext<any>, path: string
 
   const day = bucket.format('YYYY-MM-DD')
   const hour = bucket.format('HH:mm')
+  const logPath = join(context.output, 'logs')
 
-  let logPath = join(context.config.logs?.path || path, 'logs', today)
-  let humanLog = join(logPath, context.hash, `logs-${unit === 'h' ? hour : day}.log`)
+  let humanLog = join(logPath, `logs-${unit === 'h' ? hour : day}.log`)
   let jsonlLog = join(logPath, `logs-${day}.combined.jsonl`)
 
   ensureDirSync(logPath)
@@ -144,6 +165,16 @@ export const userCodeLogCollector = (context: WorkflowContext<any>, path: string
     ],
   })
 
+  const meta = {
+    cli: context.cli,
+    config: context.hash,
+    node: process.version,
+    os: process.platform,
+    runner: `xgsd@v1`,
+    context: context.id,
+    docker: pathExistsSync('/.dockerenv'),
+  }
+
   event.on('message', (msg) => {
     logger.log({
       level: msg.log.level,
@@ -177,68 +208,6 @@ export const userCodeLogCollector = (context: WorkflowContext<any>, path: string
   })
 }
 
-export const userCodeResultCollector = (ctx: WorkflowContext<any>, date: string, path: string) => {
-  const resultPath = join(path)
-
-  ctx.stream.on('finish', (result) => {
-    const nodeVersion = process.version
-    const os = process.platform
-
-    const ctx = result.context
-
-    const report = {
-      id: ctx.id,
-      hash: ctx.hash,
-      version: ctx.version,
-      docker: ctx.docker,
-      runner: ctx.runner,
-      name: ctx.name,
-      description: ctx.description,
-      package: ctx.package,
-      output: ctx.config.output,
-      start: ctx.start,
-      end: ctx.end,
-      duration: ctx.duration,
-      state:
-        result.steps.filter((step: any) => step.state === PipelineState.Completed).length > 0
-          ? PipelineState.Completed
-          : PipelineState.Failed,
-      config: {
-        ...ctx.config,
-        node: {
-          os,
-          arch: process.arch,
-          version: nodeVersion,
-          processes: process.cpuUsage(),
-          memory: process.memoryUsage(),
-        },
-      },
-      steps: result.steps.map((step: any) => ({
-        id: step.index,
-        name: step.name,
-        description: step.description,
-        input: step.input || null,
-        output: step.output || null,
-        errors: step.errors
-          ? step.errors.map((e: WorkflowError) => ({
-              code: e.code || 'unknown',
-              name: e.name,
-              message: e.message,
-              stack: e.stack,
-            }))
-          : [],
-        state: step.state,
-        start: step.startedAt,
-        end: step.endedAt,
-        duration: step.duration,
-      })),
-    }
-
-    ensureDirSync(ctx.config.output)
-    writeJsonSync(join(ctx.config.output, `report-${date}.json`), report, {spaces: 2})
-  })
-}
-
 // remove the export once complete
 export const userCodeOrchestration = async <T extends SourceData = SourceData>(
   data: any,
@@ -259,10 +228,6 @@ export const userCodeOrchestration = async <T extends SourceData = SourceData>(
 
   if (collect?.logs) {
     userCodeLogCollector(ctx, config.output, ctx.stream)
-  }
-
-  if (collect?.run) {
-    userCodeResultCollector(ctx, date, config.output)
   }
 
   captureEvents(ctx)
@@ -310,9 +275,9 @@ export function runWorkflow<T extends SourceData = SourceData>(data: T, context:
           break
 
         case 'PARENT:RESULT':
-          context.stream.emit('finish', msg.result)
           child.kill()
-          resolve({result: msg.result})
+          // TODO: resolve the path to result file vs the data
+          resolve({result: null})
           break
 
         case 'PARENT:ERROR':
@@ -336,48 +301,8 @@ export function runWorkflow<T extends SourceData = SourceData>(data: T, context:
     process.on('SIGINT', () => child.kill())
     process.on('exit', () => child.kill())
 
-    child.send({type: 'PARENT:RUN', data, context})
-  })
-}
-
-export function runInChildProcess<T extends SourceData = SourceData, R = any>(
-  id: string,
-  data: T,
-  config: FlexibleWorkflowConfig,
-  event: EventEmitter2,
-): Promise<{result: R}> {
-  let settled = false
-  let retries = 0
-
-  return new Promise((resolve) => {
-    const workerPath = join(__dirname, '..', '@shared', 'runner.process.js')
-    const child = fork(workerPath, [config.package!], {stdio: ['inherit', 'inherit', 'inherit', 'ipc']})
-
-    child.on('message', (msg: any) => {
-      switch (msg.type) {
-        case 'LOG':
-          event.emit('message', msg)
-          break
-
-        case 'ATTEMPT':
-          event.emit('attempt', msg.attempt)
-          break
-
-        case 'PARENT:RESULT':
-          event.emit('finish', msg.result)
-          child.kill()
-          resolve({result: msg.result})
-          break
-        case 'ERROR':
-          //event.emit('error', msg.error)
-          console.log('error received', msg.error)
-          child.kill()
-          break
-      }
-    })
-
-    // Start execution
-    child.send({type: 'PARENT:RUN', id, data, config})
+    // send context without stream of events to reduce IPC comms
+    child.send({type: 'PARENT:RUN', data, context: context.serialise!()})
   })
 }
 

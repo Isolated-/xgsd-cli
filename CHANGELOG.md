@@ -5,6 +5,21 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [`v0.3.6`] - 2025-09-07
+
+This version focuses on significant improvements to stability and process management.
+
+### Changed
+
+- **Configuration and latest result** are stored under your workflow name and config hash to make debugging easier. Configuration is no longer stored in your result file to keep file size small. If you disable collection, the results (including `config.json` and `latest.json`) will be removed.
+- **Function return values** must be an object, if not the returned value is wrapped into a `data` property.
+- **Workflow results and logs** are now stored outside of your project `/home/me/.xgsd/{workflow}`. Override this by setting `logs.path` to your desired path (works for both logs and results). Results are no longer sent between processes and instead are collected in a file.
+- **Workflow names** are now normalised for logging purposes. Names also now default to your config file name instead of package name if no name is provided.
+- **Run command** no longer enforces path to be relative to current working directory, any OS-supported path will now work.
+- **Process manager** at workflow level now ensures async workflows don't spawn too many processes at once. You can configure `concurrency` in the same way you would `timeout` or `retries` just remember this only applies to the workflow itself (cannot be applied at step level).
+
+---
+
 ## [`v0.3.5`] - 2025-09-05
 
 ### Changed

@@ -67,10 +67,64 @@ describe('workflow step process unit tests', () => {
       })
     })
 
+    /**
+     *  @since v0.4.0 - function return values must be objects or they are wrapped in a `data` property
+     */
+    describe('when dealing with non-object outputs', () => {
+      test('should handle string outputs correctly', async () => {
+        const copy = step
+        copy.after = undefined
+        copy.fn = async (context: any) => {
+          return 'This is a string output'
+        }
+
+        const result = await processStep(copy, ctx)
+        expect(result.output).toEqual({data: 'This is a string output'})
+        expect(result.state).toBe(PipelineState.Completed)
+      })
+
+      test('should handle number outputs correctly', async () => {
+        const copy = step
+        copy.after = undefined
+        copy.fn = async (context: any) => {
+          return 12345
+        }
+
+        const result = await processStep(copy, ctx)
+        expect(result.output).toEqual({data: 12345})
+        expect(result.state).toBe(PipelineState.Completed)
+      })
+
+      test('should handle boolean outputs correctly', async () => {
+        const copy = step
+        copy.after = undefined
+        copy.fn = async (context: any) => {
+          return true
+        }
+
+        const result = await processStep(copy, ctx)
+        expect(result.output).toEqual({data: true})
+        expect(result.state).toBe(PipelineState.Completed)
+      })
+
+      test('should handle array outputs correctly', async () => {
+        const copy = step
+        copy.after = undefined
+        copy.fn = async (context: any) => {
+          return ['item1', 'item2', 'item3']
+        }
+
+        const result = await processStep(copy, ctx)
+        expect(result.output).toEqual({data: ['item1', 'item2', 'item3']})
+        expect(result.state).toBe(PipelineState.Completed)
+      })
+    })
+
     describe('when completing the process', () => {
       test('should finalize step data correctly', async () => {
-        step.fn = async (context) => {
-          return new Promise((resolve) => setTimeout(resolve, 100))
+        step.fn = async (context: any) => {
+          await new Promise((resolve) => setTimeout(resolve, 100)) // simulate some work
+          return {email: context.email}
         }
 
         const result = await processStep(step, ctx)

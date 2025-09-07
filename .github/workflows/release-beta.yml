@@ -2,8 +2,8 @@ name: CI & Release (Beta)
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*.*.*' # Trigger on all tags
 
 jobs:
   test:
@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # required to access tags
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # required to access tags
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -63,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # required to access tags
+          fetch-depth: 0
 
       - name: Download dist folder
         uses: actions/download-artifact@v4
@@ -82,17 +82,11 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Get latest tag
-        id: tag
-        run: echo "tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
-
-      - name: Compose beta version
+      - name: Set version from tag
         id: version
         run: |
-          TAG=${GITHUB_REF#refs/tags/v}  # e.g. 0.3.5
-          # Find existing beta tags for this version
-          COUNT=$(git tag --list "${TAG}-beta.*" | wc -l)
-          echo "version=${TAG}-beta.${COUNT}" >> $GITHUB_OUTPUT
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Get short SHA
         id: shortsha
@@ -126,7 +120,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # required to access tags
+          fetch-depth: 0
 
       - name: Download dist folder
         uses: actions/download-artifact@v4
@@ -137,17 +131,11 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Get latest tag
-        id: tag
-        run: echo "tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
-
-      - name: Compose beta version
+      - name: Set version from tag
         id: version
         run: |
-          TAG=${GITHUB_REF#refs/tags/v}  # e.g. 0.3.5
-          # Find existing beta tags for this version
-          COUNT=$(git tag --list "${TAG}-beta.*" | wc -l)
-          echo "version=${TAG}-beta.${COUNT}" >> $GITHUB_OUTPUT
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Update package version
         run: yarn version --new-version "$VERSION" --no-git-tag-version

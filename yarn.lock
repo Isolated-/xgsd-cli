@@ -6201,6 +6201,11 @@ just-diff@^6.0.0:
   resolved "https://registry.yarnpkg.com/just-diff/-/just-diff-6.0.2.tgz#03b65908543ac0521caf6d8eb85035f7d27ea285"
   integrity sha512-S59eriX5u3/QhMNq3v/gm8Kd0w8OS6Tz2FS1NG4blv+z0MuQcBRJyFWjdovM0Rad4/P4aUPFtnkNjMjyMlMSYA==
 
+just-merge@^3.2.0:
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/just-merge/-/just-merge-3.2.0.tgz#b330d190ae301e0bf280d7d45deae335b2408820"
+  integrity sha512-cNh5FWt44hx4SpQS1xZU8Tzr/fQA69pqCdjbwxmaYYIOuRfA8EIg+dn1bGmIW03ZUtR2vkMOCjWKc+jIbpauSw==
+
 keyv@^4.5.3, keyv@^4.5.4:
   version "4.5.4"
   resolved "https://registry.yarnpkg.com/keyv/-/keyv-4.5.4.tgz#a879a99e29452f942439f2a405e3af8b31d4de93"

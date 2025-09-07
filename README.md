@@ -142,8 +142,9 @@ logs:
 # applies to all steps without their own options
 options:
   timeout: 5s # or 5000
-  retries: 3
+  retries: 3 # min: 1, max:
   backoff: linear # <- this is coming in v0.3.1
+  concurrency: 4 # min: 1, max: 32
 
 # a map of anything you like
 # this data isn't used at all by xGSD
@@ -181,8 +182,8 @@ steps:
     # this is used for transforming the output
     after:
       city: ${{ .data.city }}
-      latitude: ${{ .output[0].lat }}
-      longitude: ${{ .output[0].lon }}
+      latitude: ${{ .output.data[0].lat }}
+      longitude: ${{ .output.data[0].lon }}
     # apply options at step level too
     options:
       timeout: 15s
@@ -217,6 +218,17 @@ If you need a mode introduced please let me know — more modes = more use cases
 - `chained` — order is preserved, however, the output from the _last successful step_ is passed into the input of the next step. This chaining allows for complex workflows and maintains order when things go wrong.
 
 It's worth noting that regardless of the mode used, you'll get full process isolation at the workflow level and individual steps.
+
+### Concurrency
+
+Concurrency was added in `v0.3.6` and ensures that **async** workflows do not spawn _n_ processes where _n_ is the number of steps in your workflow. Instead, a simple concurrency manager has been added and you can configure it with the `concurrency` option in `options`:
+
+```yaml
+options:
+  concurrency: 1 - 32 # defaults to 8
+```
+
+As of `v0.3.6` this does not affect **chained** or **fanout** mode as they currently run sequentially, this may change in future.
 
 ### Templating
 
@@ -396,7 +408,7 @@ $ npm install -g @xgsd/cli
 $ xgsd COMMAND
 running command...
 $ xgsd (--version)
-@xgsd/cli/0.3.4-build.8 linux-x64 node-v24.4.1
+@xgsd/cli/0.3.6 linux-x64 node-v24.4.1
 $ xgsd --help [COMMAND]
 USAGE
   $ xgsd COMMAND
@@ -446,7 +458,7 @@ EXAMPLES
   $ xgsd exec
 ```
 
-_See code: [src/commands/exec.ts](https://github.com/xgsd/cli/blob/v0.3.4-build.8/src/commands/exec.ts)_
+_See code: [src/commands/exec.ts](https://github.com/xgsd/cli/blob/v0.3.6/src/commands/exec.ts)_
 
 ## `xgsd help [COMMAND]`
 
@@ -764,21 +776,23 @@ Run workflows and your code with full confidence. Error handling, retries, timeo
 
 ```
 USAGE
-  $ xgsd run FUNCTION [--json] [-f] [-n <value>] [-d <value>] [-w] [-l
-    info|status|warn|error|success|user...] [-e <value>] [-p]
+  $ xgsd run FUNCTION [--json] [--force] [-w] [-l info|user|status|success|retry|warn|error...] [-e
+    <value>] [-p] [-d <value>] [-c <value>]
 
 ARGUMENTS
   FUNCTION  function to run
 
 FLAGS
-  -d, --data=<value>           data file to use (must be a path)
-  -e, --workflow=<value>       you can specify a workflow by name when you have a workflows/ folder in your NPM package
-  -f, --force
-  -l, --log-level=<option>...  [default: info,status,warn,error,success,user] log level
-                               <options: info|status|warn|error|success|user>
-  -n, --name=<value>           name to print
-  -p, --plain                  run in plain mode (no colours)
-  -w, --watch                  watch for changes (streams logs to console)
+  -c, --concurrency=<value>  [default: 8] maximum number of concurrent processes (only for async mode)
+  -d, --data=<value>         data file to use (must be a path)
+  -e, --workflow=<value>     you can specify a workflow by name when you have a workflows/ folder in your NPM package
+  -l, --level=<option>...    [default: info,user,status,success,retry,warn,error] the level of log to output (must be
+                             used with --watch), CSV
+                             <options: info|user|status|success|retry|warn|error>
+  -p, --plain                run in plain mode (no colours)
+  -w, --watch                watch for changes (streams logs to console from containers/processes/etc), wont impact logs
+                             written to disk
+      --force                force the action to complete (not recommended)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -790,7 +804,7 @@ EXAMPLES
   $ xgsd run
 ```
 
-_See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.3.4-build.8/src/commands/run.ts)_
+_See code: [src/commands/run.ts](https://github.com/xgsd/cli/blob/v0.3.6/src/commands/run.ts)_
 
 ## `xgsd update [CHANNEL]`
 

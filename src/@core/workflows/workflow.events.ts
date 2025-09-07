@@ -1,4 +1,14 @@
-import {pathExistsSync} from 'fs-extra'
+import {
+  createReadStream,
+  ensureDirSync,
+  pathExistsSync,
+  readdirSync,
+  readFileSync,
+  readJsonSync,
+  rmdirSync,
+  rmSync,
+  writeJsonSync,
+} from 'fs-extra'
 import {WorkflowContext} from '../@shared/context.builder'
 import {PipelineState, PipelineStep} from '../@types/pipeline.types'
 import {
@@ -9,6 +19,11 @@ import {
 } from '../pipelines/pipelines.util'
 import {RetryAttempt} from '../@shared/runner/retry.runner'
 import {WrappedError} from '../@shared/runner'
+import {getObjectProfileSize} from '../util/debug.util'
+import {workflowResultLogger} from '../pipelines/pipeline.concrete'
+import {join} from 'path'
+import {date} from 'joi'
+import {WorkflowError} from '../@shared/workflow.error'
 
 export enum WorkflowEvent {
   WorkflowStarted = 'workflow.started',
@@ -32,19 +47,13 @@ export const captureEvents = (context: WorkflowContext) => {
         handleWorkflowStarted(context)
         break
       case WorkflowEvent.WorkflowCompleted:
-        handleWorkflowEnded(
-          {
-            ...event.payload.context,
-            stream: context.stream,
-          },
-          event.payload.steps || [],
-        )
+        handleWorkflowEnded(context)
         break
       case WorkflowEvent.StepStarted:
         handleStepStarted(context, event.payload.step)
         break
       case WorkflowEvent.StepCompleted:
-        handleStepComplete(context, event.payload.step)
+        handleStepComplete(context, event.payload.step, event.payload.memory)
         break
       case WorkflowEvent.StepRetry:
         handleStepFailing(context, event.payload.step, event.payload.attempt)
@@ -96,15 +105,57 @@ export const handleStepStarted = (context: WorkflowContext, step: PipelineStep) 
   }
 }
 
-export const handleStepComplete = (context: WorkflowContext, step: PipelineStep) => {
+export const handleStepComplete = (context: WorkflowContext, step: PipelineStep, memory: string) => {
   let name = step.name ? step.name : 'unknown'
   const duration = getDurationString(step.duration || 0)
+
+  let message = `${name} has completed successfully in ${duration}`
+
+  if (step.state === PipelineState.Failed) {
+    message = `${name} has failed, error: ${step.errors?.[0].message}, took ${duration}`
+  }
 
   if (context.config.print?.output) {
     log(`${name} output data: ${JSON.stringify(step.output || {})}`, 'info', context, step)
   }
 
-  log(`${name} has completed successfully in ${duration}.`, 'success', context)
+  log(message, step.state === PipelineState.Failed ? 'error' : 'success', context)
+
+  // open result file and append to `steps` vs streaming
+  // this is to avoid issues with multiple processes writing to the same file
+  // and to avoid multiple moving parts
+  const path = join(context.output, 'results', `results-${context.start}.json`)
+
+  if (pathExistsSync(path)) {
+    const context = readJsonSync(path) as WorkflowContext
+
+    const errors = (step.errors || []).map((error) => ({
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    }))
+
+    const formatted = {
+      name: step.name,
+      description: step.description,
+      state: step.state,
+      run: step.run,
+      if: step.if,
+      env: step.env,
+      enabled: step.enabled,
+      options: step.options,
+      errors,
+      input: step.input,
+      output: step.output || {},
+      start: step.startedAt,
+      end: step.endedAt,
+      duration: step.duration,
+    }
+
+    context.steps.push(formatted as any)
+
+    writeJsonSync(path, context, {spaces: 2, mode: 0o600})
+  }
 }
 
 export const handleStepFailed = (context: WorkflowContext, step: PipelineStep, error: WrappedError) => {
@@ -146,15 +197,23 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
   const timeout = getDurationString(context.config.options.timeout!)
   const retries = context.config.options.retries
   const steps = context.config.steps.length
+  const concurrency = context.config.options.concurrency || 'N/A'
 
   const stats = getWorkflowStats(context.config.output)
   const eta = stats.average ? getDurationString(stats.average) : 'unknown'
+  const backoff = context.config.options.backoff || 'exponential'
 
   // refactor this later
   const isDocker = pathExistsSync('/.dockerenv')
 
-  message = `id: ${context.id}, timeout: ${timeout}, retries: ${retries}, steps: ${steps}.`
+  message = `id: ${context.id}, timeout: ${timeout}, retries: ${retries}, steps: ${steps}, backoff method: ${backoff}.`
   log(message, 'info', context)
+
+  if (context.mode === 'async') {
+    log(`maximum of ${concurrency} processes allowed to run at once.`, 'info', context)
+    log(`control this with the "concurrency" option in your workflow config.`, 'info', context)
+  }
+
   log(
     `runner: ${context.runner}, cli: ${context.cli}, node: ${process.version}, config hash: ${context.hash}, os: ${
       process.platform
@@ -179,17 +238,82 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
   if (eta !== 'unknown') {
     log(`this workflow takes ${eta} to complete and has been completed ${stats.total} times.`, 'info', context)
   }
+
+  // create result file now
+  const path = join(context.output, 'results')
+  const reduced = context.format!()
+  ensureDirSync(path)
+  writeJsonSync(
+    join(path, `results-${context.start}.json`),
+    {
+      ...reduced,
+      steps: [],
+    },
+    {
+      spaces: 2,
+    },
+  )
 }
 
-export const handleWorkflowEnded = (context: WorkflowContext, steps: PipelineStep[]) => {
+export const handleWorkflowEnded = (context: WorkflowContext) => {
   let message
-  if (context.config.collect) {
-    log(`artifacts from this run will be saved to ${context.config.output}.`, 'info', context)
+
+  context.end = new Date().toISOString()
+  context.duration = new Date(context.end).getTime() - new Date(context.start!).getTime()
+
+  // load result file
+  const path = join(context.output, 'results', `results-${context.start}.json`)
+  let steps: PipelineStep[] = []
+
+  if (!pathExistsSync(path)) {
+    // something went really wrong
+    return
   }
 
-  const failed = steps.filter((step) => step.errors && step.errors.length > 0 && !step.output)
+  const result = readJsonSync(path, {throws: false}) as Record<string, any>
+
+  if (!result) {
+    // something went really wrong
+    return
+  }
+
+  steps = result.steps || []
+  result.state = steps.some((step) => step.state === PipelineState.Completed)
+    ? PipelineState.Completed
+    : PipelineState.Failed
+
+  result.end = context.end
+  result.duration = context.duration
+  result.config = undefined
+
+  if (!pathExistsSync(join(context.output, 'config.json'))) {
+    writeJsonSync(join(context.output, 'config.json'), context.config, {spaces: 2, mode: 0o600})
+  }
+
+  writeJsonSync(path, result, {spaces: 2, mode: 0o600})
+  writeJsonSync(join(context.output, 'latest.json'), result, {spaces: 2, mode: 0o600})
+
+  if (!context.config.collect?.run) {
+    log(`you have disabled run collection, removing results file.`, 'warn', context)
+    rmSync(join(context.output, 'results'), {recursive: true, force: true})
+    rmSync(join(context.output, 'latest.json'), {force: true})
+    rmSync(join(context.output, 'config.json'), {force: true})
+  }
+
+  if (!context.config.collect?.logs) {
+    log(`you have disabled logs collection, removing logs file.`, 'warn', context)
+    rmSync(join(context.output, 'logs'), {recursive: true, force: true})
+  }
+
+  if (!context.config.collect?.logs && !context.config.collect?.run) {
+    rmSync(context.output, {recursive: true, force: true})
+  }
+
+  const failed = steps.filter((step) => step.state === PipelineState.Failed)
   const succeeded = steps.filter((step) => step.state === PipelineState.Completed)
   const skipped = steps.filter((step) => step.state === PipelineState.Skipped)
+  const unknown = context.config.steps.length - (failed.length + succeeded.length + skipped.length)
+
   const duration = getDurationString(context.duration!)
 
   if (context.state === PipelineState.Failed) {
@@ -199,4 +323,12 @@ export const handleWorkflowEnded = (context: WorkflowContext, steps: PipelineSte
 
   message = `executed ${steps.length} steps, ${succeeded.length} succeeded, ${failed.length} failed and ${skipped.length} skipped in ${duration}.`
   log(message, 'success', context)
+
+  if (unknown !== 0) {
+    log(
+      `${unknown} steps finished in a state that wasn't detectable, this likely means something went wrong with xGSD.`,
+      'warn',
+      context,
+    )
+  }
 }

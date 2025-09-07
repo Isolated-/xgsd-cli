@@ -260,6 +260,7 @@ describe('validateWorkflowConfig', () => {
   test('should use `workflow.options` when `workflow.steps[i].options` are empty', () => {
     const result = validateWorkflowConfig(validWorkflowConfig as any)
     expect(result.steps[1].options).toEqual({
+      backoff: 'exponential',
       timeout: 5000,
       retries: 3,
     })
