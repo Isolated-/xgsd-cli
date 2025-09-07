@@ -62,12 +62,10 @@ jobs:
       - run: yarn version --new-version ${{ steps.version.outputs.version }} --no-git-tag-version
 
       - name: Build tarballs
-        run: npx oclif pack tarballs --sha ${{ steps.shortsha.outputs.sha }} \
-          --targets linux-x64,linux-arm64,linux-arm,darwin-x64,darwin-arm64 --parallel
+        run: npx oclif pack tarballs --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64,linux-arm64,linux-arm,darwin-x64,darwin-arm64 --parallel
 
       - name: Deploy tarballs
-        run: npx oclif upload tarballs --sha ${{ steps.shortsha.outputs.sha }} \
-          --targets linux-x64,linux-arm64,linux-arm,darwin-x64,darwin-arm64
+        run: npx oclif upload tarballs --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64,linux-arm64,linux-arm,darwin-x64,darwin-arm64
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
@@ -75,9 +73,7 @@ jobs:
           AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
 
       - name: Promote tarballs
-        run: npx oclif promote --version ${{ steps.version.outputs.version }} \
-          --sha ${{ steps.shortsha.outputs.sha }} --channel beta \
-          --targets linux-x64,linux-arm64,linux-arm,darwin-x64,darwin-arm64 --ignore-missing
+        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ steps.shortsha.outputs.sha }} --channel beta --targets linux-x64,linux-arm64,linux-arm,darwin-x64,darwin-arm64 --ignore-missing
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
