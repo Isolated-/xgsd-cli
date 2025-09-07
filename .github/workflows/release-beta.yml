@@ -1,9 +1,8 @@
 name: CI & Release (Beta)
 
 on:
-  push:
-    tags:
-      - 'v*.*.*-beta.*' # Trigger on all beta version tags
+  release:
+    types: [prepublished]
 
 jobs:
   test:
