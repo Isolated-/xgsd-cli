@@ -30,6 +30,7 @@ export enum WorkflowEvent {
   WorkflowCompleted = 'workflow.completed',
   StepStarted = 'step.started',
   StepRunning = 'step.running',
+  StepWaiting = 'step.waiting',
   StepCompleted = 'step.completed',
   StepFailed = 'step.failed',
   StepRetry = 'step.failing',
@@ -54,6 +55,9 @@ export const captureEvents = (context: WorkflowContext) => {
         break
       case WorkflowEvent.StepCompleted:
         handleStepComplete(context, event.payload.step, event.payload.memory)
+        break
+      case WorkflowEvent.StepWaiting:
+        handleStepWaiting(context, event.payload.step, event.payload.delayMs)
         break
       case WorkflowEvent.StepRetry:
         handleStepFailing(context, event.payload.step, event.payload.attempt)
@@ -95,14 +99,28 @@ export const handleStepStarted = (context: WorkflowContext, step: PipelineStep) 
   let name = step.name ? step.name : 'unknown'
 
   const timeout = getDurationString(step.options?.timeout || context.config.options.timeout!)
+  const delay = getDurationString(step.options?.delay as string)
   const retries = step.options?.retries!
+  const backoff = step.options?.backoff
 
-  log(`${name} - has started, timeout: ${timeout}, retries: ${retries}.`, 'info', context, step)
+  log(
+    `${name} - has started, timeout: ${timeout}, retries: ${retries}, delay: ${delay}, backoff method: ${backoff}.`,
+    'info',
+    context,
+    step,
+  )
   log(`description: ${step.description || 'no description'}`, 'info', context, step)
 
   if (context.config.print?.input) {
     log(`${name} - input data: ${JSON.stringify(step.input || {})}`, 'info', context, step)
   }
+}
+
+export const handleStepWaiting = (context: WorkflowContext, step: PipelineStep, delayMs: number) => {
+  let name = step.name ? step.name : 'unknown'
+  const duration = getDurationString(delayMs)
+
+  log(`${name} is waiting, delaying for ${duration}.`, 'info', context, step)
 }
 
 export const handleStepComplete = (context: WorkflowContext, step: PipelineStep, memory: string) => {
@@ -112,7 +130,7 @@ export const handleStepComplete = (context: WorkflowContext, step: PipelineStep,
   let message = `${name} has completed successfully in ${duration}`
 
   if (step.state === PipelineState.Failed) {
-    message = `${name} has failed, error: ${step.errors?.[0].message}, took ${duration}`
+    message = `${name} has failed, error: ${step.error?.message}, took ${duration}`
   }
 
   if (context.config.print?.output) {
