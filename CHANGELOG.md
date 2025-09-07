@@ -9,8 +9,15 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 This version focuses on significant improvements to stability and process management.
 
+### Added
+
+- **Hard delay** - added to prevent your steps overwhelming backend services accidentally. This is a very minor delay that scales with the amount of steps in your workflow. It starts at 100ms and will stop at 10ms when your workflow includes _many_ steps. This does not impact your step timing but will impact the overall run time of your workflow.
+- **Wait time (delay)** - added to the start of each step. You'll see "action is waiting for Xs" in your logs.
+- **Hard limit added to response size** - your action must return a response of less than 256 KB or else it will fail. If your application needs to return more data, write the data to disk and return the path instead.
+
 ### Changed
 
+- **Error handling inside step process** has been significantly improved, you'll see more details in your results + logs.
 - **Configuration and latest result** are stored under your workflow name and config hash to make debugging easier. Configuration is no longer stored in your result file to keep file size small. If you disable collection, the results (including `config.json` and `latest.json`) will be removed.
 - **Function return values** must be an object, if not the returned value is wrapped into a `data` property.
 - **Workflow results and logs** are now stored outside of your project `/home/me/.xgsd/{workflow}`. Override this by setting `logs.path` to your desired path (works for both logs and results). Results are no longer sent between processes and instead are collected in a file.
