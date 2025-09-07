@@ -27,12 +27,12 @@ rm -f "$OUTPUT"
 chmod +x xgsd/bin
 
 # Move binary to /usr/local/bin
-sudo mv xgsd/bin /usr/local/bin/xgsd
+sudo mv xgsd /usr/local/bin/xgsd
 
 # Add to PATH in ~/.profile if not already present
-if ! grep -q '/usr/local/bin' ~/.profile; then
-    echo 'export PATH=$PATH:/usr/local/bin' >> ~/.profile
-    echo "Added /usr/local/bin to PATH in ~/.profile"
+if ! grep -q '/usr/local/bin/xgsd/bin' ~/.profile; then
+    echo 'export PATH=$PATH:/usr/local/bin/xgsd/bin' >> ~/.profile
+    echo "Added /usr/local/bin/xgsd/bin to PATH in ~/.profile"
 fi
 
 # Clean up extracted directory
