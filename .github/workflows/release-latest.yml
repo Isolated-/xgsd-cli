@@ -1,8 +1,9 @@
-name: CI & Release (Stable)
+name: CI & Release (Latest)
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -76,18 +77,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Get version from tag
-        id: version
-        run: |
-          TAG="${{ github.event.release.tag_name }}"
-          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
-
       - name: Get short SHA
         id: shortsha
         run: echo "sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-
-      - name: Update package version
-        run: yarn version --new-version ${{ steps.version.outputs.version }} --no-git-tag-version
 
       - name: Build release tarballs
         run: npx oclif pack tarballs --sha ${{ steps.shortsha.outputs.sha }}
@@ -101,41 +93,9 @@ jobs:
           AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
 
       - name: Promote tarballs
-        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ steps.shortsha.outputs.sha }} --ignore-missing
+        run: npx oclif promote --version latest.${{ github.run_id }} --sha ${{ steps.shortsha.outputs.sha }} --channel next --ignore-missing
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
           AWS_REGION: ${{ secrets.DO_SPACES_REGION }}
           AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
-
-  release-npm:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download dist folder
-        uses: actions/download-artifact@v4
-        with:
-          name: dist-folder
-          path: ./dist
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Set version from tag
-        id: version
-        run: |
-          TAG="${{ github.event.release.tag_name }}"
-          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
-
-      - name: Update package version
-        run: yarn version --new-version ${{ steps.version.outputs.version }} --no-git-tag-version
-
-      - name: Setup npm auth
-        run: echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish to npm
-        run: npm publish --access public

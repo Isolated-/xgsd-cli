@@ -99,6 +99,9 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
     retries: Joi.number().min(0).max(100).optional(),
     concurrency: Joi.number().min(1).max(32).optional(),
     backoff: Joi.string().valid('linear', 'squaring', 'exponential').optional(),
+    delay: Joi.string()
+      .pattern(/^\d+ms$|^\d+s$|^\d+m$|^\d+h$|^\d+d$|^\d+w$|^\d+mo$/)
+      .optional(),
   })
 
   // Perform validation logic here
@@ -172,6 +175,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
       retries: config.options?.retries || 5,
       concurrency: config.options?.concurrency || 4,
       backoff: config.options?.backoff || 'exponential',
+      delay: config.options?.delay || '0s',
     },
     collect: {
       logs: config.collect?.logs ?? true,
@@ -199,6 +203,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
       timeout: step.options?.timeout || header.options.timeout,
       retries: step.options?.retries || header.options.retries,
       backoff: step.options?.backoff || header.options.backoff,
+      delay: step.options?.delay || header.options.delay,
     },
     if: step.if ?? null,
     run: step.action || step.run || null,
@@ -253,4 +258,16 @@ export const getDurationString = (timeout: number | string): string => {
   }
 
   return ms(timeout as number)
+}
+
+export const getDurationNumber = (timeout: string | number): number => {
+  if (!timeout) {
+    return NaN
+  }
+
+  if (typeof timeout === 'number') {
+    return timeout
+  }
+
+  return ms(timeout as ms.StringValue)
 }

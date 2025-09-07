@@ -7,10 +7,39 @@ import {WorkflowEvent} from '../workflows/workflow.events'
 import {deepmerge2, isEmptyObject, merge} from '../util/object.util'
 import {WorkflowError, WorkflowErrorCode} from './workflow.error'
 import {getBackoffStrategy} from './workflow-backoff.strategies'
-import {defaultWith} from '../util/misc.util'
+import {defaultWith, delayFor} from '../util/misc.util'
+import ms = require('ms')
+import {getDurationNumber} from '../pipelines/pipelines.util'
+
+export const DATA_SIZE_LIMIT_KB = 512 // 512 KB
 
 export const log = (message: string, level: string = 'info') => {
   dispatchMessage('log', {log: {level, message, timestamp: new Date().toISOString()}}, true)
+}
+
+export const dataSizeRegulator = <T = unknown>(data: T, kb: number = DATA_SIZE_LIMIT_KB): T => {
+  if (!data) return data
+
+  const jsonData = JSON.stringify(data || '')
+  const bufLength = Buffer.byteLength(jsonData, 'utf-8')
+  if (bufLength > kb * 1024) {
+    throw new WorkflowError(`Step output exceeds ${kb} KB limit`, WorkflowErrorCode.HardDataSize)
+  }
+
+  return data
+}
+
+export function getStepDelay(stepCount: number): number {
+  if (stepCount <= 0) return 0
+
+  const base = 100 // ms max delay
+  const min = 10 // ms minimum delay floor
+
+  // Scale down with log — more steps = smaller delay
+  const delay = base / Math.log2(stepCount + 1)
+
+  // Clamp so we never go below min
+  return Math.max(min, Math.round(delay))
 }
 
 const fatal = (message: string) => {
@@ -80,6 +109,12 @@ export async function processStep(
 
   event(WorkflowEvent.StepStarted, {step: prepared})
 
+  if (step.options?.delay && step.options.delay !== '0s' && step.options.delay !== 0) {
+    const delayMs = getDurationNumber(step.options.delay as string) || 0
+    event(WorkflowEvent.StepWaiting, {step, delayMs})
+    await delayFor(delayMs || 0)
+  }
+
   prepared.errors = []
   const result = await retry(prepared.input, step.fn!, retries, {
     timeout,
@@ -92,7 +127,19 @@ export async function processStep(
     },
   })
 
-  let output = result.data
+  let data
+  try {
+    data = dataSizeRegulator(result.data)
+  } catch (error) {
+    prepared.error = error
+    prepared.errors!.push(error as WorkflowError)
+    prepared.state = PipelineState.Failed
+    prepared.endedAt = new Date().toISOString()
+    prepared.duration = Date.parse(prepared.endedAt) - Date.parse(prepared.startedAt)
+    return finaliseStepData(prepared, context)
+  }
+
+  let output = data
 
   if (
     typeof output === 'number' ||
@@ -104,7 +151,8 @@ export async function processStep(
   }
 
   prepared.fn = undefined
-  prepared.output = output as Record<string, any>
+  prepared.output = (output as Record<string, any>) || {}
+  prepared.error = result.error
   prepared.options = {retries, timeout}
   prepared.state = result.error ? PipelineState.Failed : PipelineState.Completed
   prepared.endedAt = new Date().toISOString()
@@ -138,9 +186,6 @@ export function finaliseStepData(step: PipelineStep, context: WorkflowContext) {
     step.after = undefined
   }
 
-  step.errors = step.errors || []
-  step.error = step.errors[0] ?? null
-
   return step
 }
 
@@ -164,7 +209,10 @@ export async function importUserModule(step: PipelineStep, context: WorkflowCont
   try {
     userModule = await import(context.package)
   } catch (error: any) {
-    throw new Error('MODULE_NOT_FOUND')
+    throw new WorkflowError(
+      `${context.package} couldn't be loaded. This could mean it wasn't found, or there's an error preventing its load. Check logs for more information. (${error.message})`,
+      WorkflowErrorCode.ModuleNotFound,
+    )
   }
 
   // step.run = step.action and vice versa
@@ -172,21 +220,39 @@ export async function importUserModule(step: PipelineStep, context: WorkflowCont
   const action = step.run ?? step.action!
   const fn = userModule[action]
   if (!fn) {
-    throw new WorkflowError(`${action} function not found in module`, WorkflowErrorCode.FunctionNotFound)
+    throw new WorkflowError(
+      `${action} function not found in module. Check that it's exported from your package ${context.package}`,
+      WorkflowErrorCode.FunctionNotFound,
+    )
   }
 
   return fn
 }
 
-process.on('uncaughtException', (error) => {
-  fatal(`uncaught exception: ${error.message}`)
-  process.exit(1) // <- fixes memory leak on uncaught exceptions
-})
+export const rejectionHandler = (step: PipelineStep) => {
+  const handler = (errorOrRejection: any) => {
+    const error = errorOrRejection instanceof Error ? errorOrRejection : null
+    const wrapped = new WorkflowError(
+      error?.message || String(errorOrRejection || 'Unhandled Exception'),
+      WorkflowErrorCode.FatalError,
+    ) as WrappedError
 
-process.on('unhandledRejection', (reason: any, promise) => {
-  fatal(`unhandled rejection: ${reason?.message || reason}`)
-  process.exit(1) // <- fixes memory leak on unhandled rejections
-})
+    const result = {
+      step: {
+        ...step,
+        state: PipelineState.Failed,
+        error: wrapped,
+        errors: [...(step.errors || []), wrapped],
+      },
+    }
+
+    event(WorkflowEvent.StepCompleted, {step: result.step as any})
+    dispatchMessage('result', {result})
+  }
+
+  process.on('uncaughtException', handler)
+  process.on('unhandledRejection', handler)
+}
 
 // this method now just deals with logging back up stream
 process.on('message', async (msg: {type: string; step: PipelineStep; context: WorkflowContext}) => {
@@ -194,20 +260,25 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
 
   const {step, context} = msg
 
-  let fn
-  try {
-    fn = await importUserModule(step, context)
-  } catch (error: any) {}
+  rejectionHandler(step)
+
+  const fn = await importUserModule(step, context)
 
   const method = defaultWith('exponential', step.options?.backoff, context.config.options?.backoff)!
   const delay = getBackoffStrategy(method)
   const onAttempt = async (attempt: RetryAttempt) => {
     event(WorkflowEvent.StepRetry, {attempt, step})
-    event(WorkflowEvent.StepError, {error: attempt.error, step})
+    //event(WorkflowEvent.StepError, {error: attempt.error, step})
   }
 
   step.fn = fn
   const result = await processStep(step, context, delay, onAttempt)
+
+  // v0.4.0 - allow some time for messages to be sent before exiting
+  // also prevents issues with very fast steps
+  // placing it here won't affect step timing
+  const nextStepDelayMs = getStepDelay(context.steps.length)
+  await delayFor(nextStepDelayMs)
 
   event(WorkflowEvent.StepCompleted, {step: result})
   dispatchMessage('result', {result: {step: result}})

@@ -43,7 +43,7 @@ export function getDockerVersion(): {client: string; server: string} {
 function ensureImageExists(watch: boolean = false): void {
   try {
     // Check if image exists
-    execSync('docker image inspect xgsd:v1', {stdio: watch ? 'inherit' : 'ignore'})
+    execSync('docker image inspect xgsd:v1', {stdio: 'ignore'})
   } catch {
     const cliPath = path.resolve(__dirname, '../../')
 
@@ -84,7 +84,7 @@ export default class Exec extends Command {
 
     ensureDockerInstalled()
     ensureDockerRunning()
-    ensureImageExists()
+    ensureImageExists(flags.watch)
 
     const args = ['run', '--rm', '-v', `${workflowPath}:/app/workflow`, 'xgsd:v1', 'run', '.']
     if (flags.watch) args.push('--watch')

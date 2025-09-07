@@ -97,8 +97,6 @@ export default class Run extends BaseCommand<typeof Command> {
       this.error(error.message)
     }
 
-    userConfig.name = userConfig.name || userCodePackageJson.name || 'not specified'
-
     const data = flags.data as any
 
     if (!userConfig.enabled) {
@@ -116,7 +114,7 @@ export default class Run extends BaseCommand<typeof Command> {
     const getWorkflowName = (path: string, configName?: string, packageName?: string) => {
       const base = basename(path)
       const configFileName = base.split('.').shift()
-      return normaliseWorkflowName(defaultWith('no name', configName, packageName, configFileName)!)
+      return normaliseWorkflowName(defaultWith('no name', configName, configFileName, packageName)!)
     }
 
     const workflowName = getWorkflowName(foundPath, userConfig.name, userCodePackageJson.name)

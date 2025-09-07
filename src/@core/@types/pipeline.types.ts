@@ -76,6 +76,7 @@ export enum PipelineState {
   Pending = 'pending',
   Running = 'running',
   Retrying = 'retrying',
+  Waiting = 'waiting',
   Failed = 'failed',
   Completed = 'completed',
   Succeeded = 'succeeded',
@@ -141,9 +142,7 @@ export type FlexibleWorkflowOptions = {
    *  @deprecated will be replaced with `error: exit`
    */
   stopOnError?: boolean
-  delay?: (attempt: number) => number
-  transformer?: TransformFn
-  validator?: ValidateFn
+  delay?: string | number
 }
 
 export type FlexibleWorkflowConfig<T = SourceData> = {

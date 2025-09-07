@@ -15,6 +15,15 @@ export async function runStep(idx: number, step: PipelineStep, context: Workflow
       typeof step.options.timeout === 'string' ? ms(step.options.timeout as ms.StringValue) : step.options.timeout
   }
 
+  if (step.options?.timeout && step.options?.delay) {
+    const delayMs =
+      typeof step.options.delay === 'string' ? ms(step.options.delay as ms.StringValue) : step.options.delay
+
+    if (delayMs && timeoutMs) {
+      timeoutMs += delayMs // extend timeout by delay
+    }
+  }
+
   const envResolved = resolveStepData(step.env || {}, {
     context,
     step,
@@ -44,19 +53,19 @@ export async function executeSteps(
 
   if (options.mode === 'async') {
     await runWithConcurrency(steps, options.concurrency ?? 4, async (step, idx) => {
-      step.data = input
+      step.data = input // don't need to assign to `data` each time
 
-      const result = await runStep(idx, step, {
+      await runStep(idx, step, {
         ...context,
         steps: results,
       })
 
-      //results.push(result.step)
+      results.push(step)
     })
   } else {
     let idx = 0
     for (const step of steps) {
-      step.data = input
+      step.data = input // same as here
 
       const result = await runStep(idx, step, {
         ...context,
@@ -67,7 +76,8 @@ export async function executeSteps(
         input = deepmerge2(input, result.step.output) as any
       }
 
-      //results.push(result.step)
+      results.push(result.step)
+
       idx++
     }
   }

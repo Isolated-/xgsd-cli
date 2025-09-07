@@ -8,3 +8,5 @@ export const resolvePath = (base: string, ...parts: string[]) => {
   const resolved = resolve(base)
   return join(resolved, ...parts)
 }
+
+export const delayFor = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))

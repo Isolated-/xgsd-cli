@@ -4,6 +4,16 @@ import {deepmerge} from '../util/object.util'
 export type HelperFn = (input: any, ...args: any[]) => any
 
 export const helpers: Record<string, HelperFn> = {
+  before: (input: any, date: string) => {
+    if (typeof input !== 'string') return false
+    const moment = require('moment')
+    return moment(input).isBefore(moment(date))
+  },
+  after: (input: any, date: string) => {
+    if (typeof input !== 'string') return false
+    const moment = require('moment')
+    return moment(input).isAfter(moment(date))
+  },
   upper: (input: any) => (typeof input === 'string' ? input.toUpperCase() : input),
   lower: (input: any) => (typeof input === 'string' ? input.toLowerCase() : input),
   trim: (input: any) => {

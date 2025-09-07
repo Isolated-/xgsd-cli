@@ -3,10 +3,18 @@ import {PipelineStep, PipelineState} from '../../@types/pipeline.types'
 import {WorkflowEvent} from '../../workflows/workflow.events'
 import {WorkflowContext} from '../context.builder'
 import {WorkflowError, WorkflowErrorCode} from '../workflow.error'
-import {log} from '../workflow.step-process'
 
 export const event = (name: string, payload: object) => {
   process.send!({type: 'PARENT:EVENT', event: name, payload})
+}
+
+export const log = (
+  message: string,
+  level: 'info' | 'error' | 'user',
+  context?: WorkflowContext,
+  step?: PipelineStep,
+) => {
+  process.send!({type: 'PARENT:LOG', log: {level, message, timestamp: new Date().toISOString()}, context, step})
 }
 
 export class ProcessManager {
@@ -30,18 +38,17 @@ export class ProcessManager {
         XGSD_WORKFLOW_HASH: this.context.hash,
         ...this.step.env,
       },
-      execArgv: ['--max-old-space-size=256'],
+      execArgv: ['--max-old-space-size=256', '--stack-size=1024'],
     })
 
     this.process.stdout?.on('data', (chunk: Buffer) => {
       const msg = chunk.toString().trim()
-      // log currently isn't working but will be fixed
-      if (msg) log(msg, 'user')
+      if (msg) log(msg, 'user', this.context, this.step)
     })
 
     this.process.stderr?.on('data', (chunk: Buffer) => {
       const msg = chunk.toString().trim()
-      if (msg) log(msg, 'error')
+      if (msg) log(msg, 'error', this.context, this.step)
     })
 
     process.on('exit', () => {

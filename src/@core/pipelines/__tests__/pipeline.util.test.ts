@@ -261,6 +261,7 @@ describe('validateWorkflowConfig', () => {
     const result = validateWorkflowConfig(validWorkflowConfig as any)
     expect(result.steps[1].options).toEqual({
       backoff: 'exponential',
+      delay: '0s',
       timeout: 5000,
       retries: 3,
     })
