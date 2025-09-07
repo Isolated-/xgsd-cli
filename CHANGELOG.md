@@ -11,6 +11,7 @@ This version focuses on significant improvements to stability and process manage
 
 ### Added
 
+- **Safety net for workflows already running** - if your workflow is _failing_ and in retry mode, multiple processes may be spawned. To protect against this a simple state check is made against the most recent running workflow. This may change in future if this becomes more of a limit than a safeguard.
 - **Hard delay** - added to prevent your steps overwhelming backend services accidentally. This is a very minor delay that scales with the amount of steps in your workflow. It starts at 100ms and will stop at 10ms when your workflow includes _many_ steps. This does not impact your step timing but will impact the overall run time of your workflow.
 - **Wait time (delay)** - added to the start of each step. You'll see "action is waiting for Xs" in your logs.
 - **Hard limit added to response size** - your action must return a response of less than 256 KB or else it will fail. If your application needs to return more data, write the data to disk and return the path instead.
