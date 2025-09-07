@@ -8,7 +8,11 @@ on:
 
 jobs:
   nightly-tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node-version: [lts/*, 24.x, 22.x, 20.x, 18.x] # three most recent LTS releases
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -16,7 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: ${{ matrix.node-version }}
           cache: yarn
 
       - name: Install dependencies
@@ -24,10 +28,3 @@ jobs:
 
       - name: Get test coverage
         run: yarn test --coverage
-
-      - name: Upload test reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage report
-          path: ./coverage

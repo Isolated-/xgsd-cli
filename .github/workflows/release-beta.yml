@@ -1,21 +1,17 @@
 name: CI & Release (Beta)
 
 on:
-  push:
-    tags:
-      - 'v*.*.*' # Trigger on all tags
-
+  tags:
+    - 'v*.*.*-beta*' # Trigger on all beta tags
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
+          node-version: ${{ matrix.node-version }}
           cache: yarn
 
       - name: Install dependencies
@@ -29,12 +25,11 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: ${{ matrix.node-version }}
           cache: yarn
 
       - name: Restore Yarn cache
@@ -62,8 +57,6 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Download dist folder
         uses: actions/download-artifact@v4
@@ -71,22 +64,14 @@ jobs:
           name: dist-folder
           path: ./dist
 
-      - name: Restore Yarn cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.yarn/cache
-            node_modules
-          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
-
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Set version from tag
+      - name: Get version from tag
         id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          TAG="${{ github.event.release.tag_name }}"
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
 
       - name: Get short SHA
         id: shortsha
@@ -107,7 +92,7 @@ jobs:
           AWS_ENDPOINT_URL: ${{ secrets.DO_SPACES_ENDPOINT }}
 
       - name: Promote tarballs
-        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64 --channel beta
+        run: npx oclif promote --version ${{ steps.version.outputs.version }} --sha ${{ steps.shortsha.outputs.sha }} --targets linux-x64 --ignore-missing
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
@@ -119,8 +104,6 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Download dist folder
         uses: actions/download-artifact@v4
@@ -134,13 +117,11 @@ jobs:
       - name: Set version from tag
         id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          TAG="${{ github.event.release.tag_name }}"
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
 
       - name: Update package version
-        run: yarn version --new-version "$VERSION" --no-git-tag-version
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
+        run: yarn version --new-version ${{ steps.version.outputs.version }} --no-git-tag-version
 
       - name: Setup npm auth
         run: echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
