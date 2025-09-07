@@ -142,8 +142,9 @@ logs:
 # applies to all steps without their own options
 options:
   timeout: 5s # or 5000
-  retries: 3
+  retries: 3 # min: 1, max:
   backoff: linear # <- this is coming in v0.3.1
+  concurrency: 4 # min: 1, max: 32
 
 # a map of anything you like
 # this data isn't used at all by xGSD
@@ -181,8 +182,8 @@ steps:
     # this is used for transforming the output
     after:
       city: ${{ .data.city }}
-      latitude: ${{ .output[0].lat }}
-      longitude: ${{ .output[0].lon }}
+      latitude: ${{ .output.data[0].lat }}
+      longitude: ${{ .output.data[0].lon }}
     # apply options at step level too
     options:
       timeout: 15s
@@ -217,6 +218,17 @@ If you need a mode introduced please let me know — more modes = more use cases
 - `chained` — order is preserved, however, the output from the _last successful step_ is passed into the input of the next step. This chaining allows for complex workflows and maintains order when things go wrong.
 
 It's worth noting that regardless of the mode used, you'll get full process isolation at the workflow level and individual steps.
+
+### Concurrency
+
+Concurrency was added in `v0.3.6` and ensures that **async** workflows do not spawn _n_ processes where _n_ is the number of steps in your workflow. Instead, a simple concurrency manager has been added and you can configure it with the `concurrency` option in `options`:
+
+```yaml
+options:
+  concurrency: 1 - 32 # defaults to 8
+```
+
+As of `v0.3.6` this does not affect **chained** or **fanout** mode as they currently run sequentially, this may change in future.
 
 ### Templating
 
@@ -391,6 +403,7 @@ Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable re
 ### Usage
 
 <!-- usage -->
+
 ```sh-session
 $ npm install -g @xgsd/cli
 $ xgsd COMMAND
@@ -402,26 +415,28 @@ USAGE
   $ xgsd COMMAND
 ...
 ```
+
 <!-- usagestop -->
 
 ### Commands
 
 <!-- commands -->
-* [`xgsd exec PACKAGE`](#xgsd-exec-package)
-* [`xgsd help [COMMAND]`](#xgsd-help-command)
-* [`xgsd plugins`](#xgsd-plugins)
-* [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
-* [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
-* [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
-* [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
-* [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
-* [`xgsd plugins reset`](#xgsd-plugins-reset)
-* [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
-* [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
-* [`xgsd plugins update`](#xgsd-plugins-update)
-* [`xgsd run FUNCTION`](#xgsd-run-function)
-* [`xgsd update [CHANNEL]`](#xgsd-update-channel)
-* [`xgsd version`](#xgsd-version)
+
+- [`xgsd exec PACKAGE`](#xgsd-exec-package)
+- [`xgsd help [COMMAND]`](#xgsd-help-command)
+- [`xgsd plugins`](#xgsd-plugins)
+- [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
+- [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
+- [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
+- [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
+- [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
+- [`xgsd plugins reset`](#xgsd-plugins-reset)
+- [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
+- [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
+- [`xgsd plugins update`](#xgsd-plugins-update)
+- [`xgsd run FUNCTION`](#xgsd-run-function)
+- [`xgsd update [CHANNEL]`](#xgsd-update-channel)
+- [`xgsd version`](#xgsd-version)
 
 ## `xgsd exec PACKAGE`
 
@@ -849,4 +864,5 @@ FLAG DESCRIPTIONS
 ```
 
 _See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/v2.2.32/src/commands/version.ts)_
+
 <!-- commandsstop -->
