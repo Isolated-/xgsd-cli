@@ -1,8 +1,9 @@
 name: CI & Release (Beta)
 
 on:
-  release:
-    types: [prereleased]
+  push:
+    tags:
+      - 'v*.*.*' # Trigger on all tags
 
 jobs:
   test:
@@ -84,8 +85,8 @@ jobs:
       - name: Set version from tag
         id: version
         run: |
-          TAG="${{ github.event.release.tag_name }}"
-          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Get short SHA
         id: shortsha
