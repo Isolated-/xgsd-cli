@@ -1,68 +1,46 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-# URL of the tarball
+# URL of tarball
 URL="https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/channels/stable/xgsd-linux-x64.tar.gz"
-
-# Output file
 OUTPUT="xgsd-linux-x64.tar.gz"
 
-# Check if curl is available, otherwise fallback to wget
+# Download file
 if command -v curl >/dev/null 2>&1; then
-  echo "Downloading with curl..."
-  curl -fSL "$URL" -o "$OUTPUT"
+    echo "Downloading with curl..."
+    curl -fSL "$URL" -o "$OUTPUT" || { echo "Download failed"; exit 1; }
 elif command -v wget >/dev/null 2>&1; then
-  echo "Downloading with wget..."
-  wget "$URL" -O "$OUTPUT"
+    echo "Downloading with wget..."
+    wget -O "$OUTPUT" "$URL" || { echo "Download failed"; exit 1; }
 else
-  echo "Error: curl or wget is required to download files."
-  exit 1
+    echo "Error: curl or wget is required."
+    exit 1
 fi
 
-# Verify download success
-if [[ -f "$OUTPUT" ]]; then
-  echo "Downloaded file to $OUTPUT"
-else
-  echo "Download failed."
-  exit 1
-fi
+# Extract tarball
+echo "Extracting tarball..."
+tar -xzf "$OUTPUT" || { echo "Extraction failed"; exit 1; }
 
-# Extract the tarball
-echo "Extracting the tarball..."
-tar -xzf "$OUTPUT"
+# Remove tarball
+rm -f "$OUTPUT"
 
-# Verify extraction success
-if [[ $? -ne 0 ]]; then
-  echo "Extraction failed."
-  exit 1
-fi
-
-# Remove the tarball
-rm "$OUTPUT"
-echo "Removed the tarball."
-
-# Make the binary executable
+# Make binary executable
 chmod +x xgsd/bin
-echo "Made xgsd executable."
 
-# Move the binary to /usr/local/bin
+# Move binary to /usr/local/bin
 sudo mv xgsd/bin /usr/local/bin/xgsd
 
-# Add binary to path
-if ! grep -q 'export PATH=$PATH:/usr/local/bin/xgsd' ~/.bashrc; then
-  echo 'export PATH=$PATH:/usr/local/bin/xgsd' >> ~/.bashrc
-  echo "Added /usr/local/bin/xgsd to PATH in ~/.bashrc"
-fi
-
-# Source the updated .bashrc
-source ~/.bashrc
-
-# Verify installation
-if command -v xgsd >/dev/null 2>&1; then
-  echo "xgsd installed successfully and is available in your PATH."
-else
-  echo "You need to restart your terminal or run 'source ~/.bashrc' to use xgsd."
-  exit 1
+# Add to PATH in ~/.profile if not already present
+if ! grep -q '/usr/local/bin' ~/.profile; then
+    echo 'export PATH=$PATH:/usr/local/bin' >> ~/.profile
+    echo "Added /usr/local/bin to PATH in ~/.profile"
 fi
 
 # Clean up extracted directory
 rm -rf xgsd
+
+# Verify installation
+if command -v xgsd >/dev/null 2>&1; then
+    echo "xgsd installed successfully!"
+else
+    echo "Installation complete, but restart your shell or run 'source ~/.profile' to use xgsd."
+fi

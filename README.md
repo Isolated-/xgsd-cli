@@ -16,11 +16,33 @@ xGSD only supports **Node.js**, you'll need to ensure it's installed before you 
 
 ## Install
 
-Installing the CLI is straightforward. Just make sure you already have **NPM** (or **Yarn**) installed.
+### Linux
 
-```bash
-# install with npm
+To enable `xgsd update` it's recommended to install via our install script as installing from NPM doesn't allow for the autoupdater to work correctly.
+
+```sh
+# using curl
+curl -fsSL https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/install.sh -o install.sh
+chmod +x install.sh
+./install.sh
+
+# using wget
+wget -qO install.sh https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/install.sh
+chmod +x install.sh
+./install.sh
+```
+
+You don't need node installed to install this way. The CLI will let you know when updates are available.
+
+### NPM
+
+You can still install with NPM but you'll need to ensure node and NPM are installed and you won't be able to use `xgsd update` as it doesn't work correctly.
+
+```sh
 npm install -g @xgsd/cli
+
+# or for beta
+npm install -g @xgsd/cli@beta
 ```
 
 ## Quickstart
@@ -403,6 +425,7 @@ Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable re
 ### Usage
 
 <!-- usage -->
+
 ```sh-session
 $ npm install -g @xgsd/cli
 $ xgsd COMMAND
@@ -414,26 +437,28 @@ USAGE
   $ xgsd COMMAND
 ...
 ```
+
 <!-- usagestop -->
 
 ### Commands
 
 <!-- commands -->
-* [`xgsd exec PACKAGE`](#xgsd-exec-package)
-* [`xgsd help [COMMAND]`](#xgsd-help-command)
-* [`xgsd plugins`](#xgsd-plugins)
-* [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
-* [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
-* [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
-* [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
-* [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
-* [`xgsd plugins reset`](#xgsd-plugins-reset)
-* [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
-* [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
-* [`xgsd plugins update`](#xgsd-plugins-update)
-* [`xgsd run FUNCTION`](#xgsd-run-function)
-* [`xgsd update [CHANNEL]`](#xgsd-update-channel)
-* [`xgsd version`](#xgsd-version)
+
+- [`xgsd exec PACKAGE`](#xgsd-exec-package)
+- [`xgsd help [COMMAND]`](#xgsd-help-command)
+- [`xgsd plugins`](#xgsd-plugins)
+- [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
+- [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
+- [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
+- [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
+- [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
+- [`xgsd plugins reset`](#xgsd-plugins-reset)
+- [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
+- [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
+- [`xgsd plugins update`](#xgsd-plugins-update)
+- [`xgsd run FUNCTION`](#xgsd-run-function)
+- [`xgsd update [CHANNEL]`](#xgsd-update-channel)
+- [`xgsd version`](#xgsd-version)
 
 ## `xgsd exec PACKAGE`
 
@@ -863,4 +888,5 @@ FLAG DESCRIPTIONS
 ```
 
 _See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/v2.2.32/src/commands/version.ts)_
+
 <!-- commandsstop -->
