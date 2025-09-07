@@ -8,5 +8,5 @@ export const userLogThemes: {[key: string]: (msg: string) => string} = {
   warn: chalk.yellow,
   success: chalk.green,
   status: chalk.magenta,
-  info: chalk.blue,
+  info: chalk.whiteBright,
 }
