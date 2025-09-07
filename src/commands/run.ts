@@ -109,7 +109,14 @@ export default class Run extends BaseCommand<typeof Command> {
       this.exit(1)
     }
 
-    const event = new EventEmitter2({maxListeners: 32})
+    const start = performance.now()
+    const event = new EventEmitter2({maxListeners: 32, wildcard: true})
+    event.on('event', (data) => {
+      const end = performance.now()
+      if (process.env.DETAIL) {
+        console.log(`(event) ${data.event} ${(end - start).toFixed(2)}ms`)
+      }
+    })
 
     // this will be moved somewhere else
     const getWorkflowName = (path: string, configName?: string, packageName?: string) => {
