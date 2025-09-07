@@ -209,7 +209,10 @@ export async function importUserModule(step: PipelineStep, context: WorkflowCont
   try {
     userModule = await import(context.package)
   } catch (error: any) {
-    throw new Error('MODULE_NOT_FOUND')
+    throw new WorkflowError(
+      `${context.package} couldn't be loaded. This could mean it wasn't found, or there's an error preventing its load. Check logs for more information. (${error.message})`,
+      WorkflowErrorCode.ModuleNotFound,
+    )
   }
 
   // step.run = step.action and vice versa
@@ -217,23 +220,39 @@ export async function importUserModule(step: PipelineStep, context: WorkflowCont
   const action = step.run ?? step.action!
   const fn = userModule[action]
   if (!fn) {
-    throw new WorkflowError(`${action} function not found in module`, WorkflowErrorCode.FunctionNotFound)
+    throw new WorkflowError(
+      `${action} function not found in module. Check that it's exported from your package ${context.package}`,
+      WorkflowErrorCode.FunctionNotFound,
+    )
   }
 
   return fn
 }
 
-process.on('uncaughtException', (error) => {
-  console.error(`uncaught exception: ${error.message}`)
-  fatal(`uncaught exception: ${error.message}`)
-  process.exit(1) // <- fixes memory leak on uncaught exceptions
-})
+export const rejectionHandler = (step: PipelineStep) => {
+  const handler = (errorOrRejection: any) => {
+    const error = errorOrRejection instanceof Error ? errorOrRejection : null
+    const wrapped = new WorkflowError(
+      error?.message || String(errorOrRejection || 'Unhandled Exception'),
+      WorkflowErrorCode.FatalError,
+    ) as WrappedError
 
-process.on('unhandledRejection', (reason: any, promise) => {
-  console.error(`unhandled rejection: ${reason?.message || reason}`)
-  fatal(`unhandled rejection: ${reason?.message || reason}`)
-  process.exit(1) // <- fixes memory leak on unhandled rejections
-})
+    const result = {
+      step: {
+        ...step,
+        state: PipelineState.Failed,
+        error: wrapped,
+        errors: [...(step.errors || []), wrapped],
+      },
+    }
+
+    event(WorkflowEvent.StepCompleted, {step: result.step as any})
+    dispatchMessage('result', {result})
+  }
+
+  process.on('uncaughtException', handler)
+  process.on('unhandledRejection', handler)
+}
 
 // this method now just deals with logging back up stream
 process.on('message', async (msg: {type: string; step: PipelineStep; context: WorkflowContext}) => {
@@ -241,10 +260,9 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
 
   const {step, context} = msg
 
-  let fn
-  try {
-    fn = await importUserModule(step, context)
-  } catch (error: any) {}
+  rejectionHandler(step)
+
+  const fn = await importUserModule(step, context)
 
   const method = defaultWith('exponential', step.options?.backoff, context.config.options?.backoff)!
   const delay = getBackoffStrategy(method)
