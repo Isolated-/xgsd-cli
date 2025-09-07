@@ -133,6 +133,10 @@ export const handleStepComplete = (context: WorkflowContext, step: PipelineStep,
     message = `${name} has failed, error: ${step.error?.message}, took ${duration}`
   }
 
+  if (step.state === PipelineState.Skipped) {
+    message = `${name} was skipped.`
+  }
+
   if (context.config.print?.output) {
     log(`${name} output data: ${JSON.stringify(step.output || {})}`, 'info', context, step)
   }
