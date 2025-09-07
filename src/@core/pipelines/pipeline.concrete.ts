@@ -224,6 +224,10 @@ export const userCodeOrchestration = async <T extends SourceData = SourceData>(
   const ctx = new WorkflowContext(config, handler, 'v' + config.cli)
 
   const isWorkflowRunning = (path: string) => {
+    if (!pathExistsSync(path)) {
+      return false
+    }
+
     const json = readJsonSync(path)
     return json.state !== PipelineState.Completed && json.state !== PipelineState.Failed
   }

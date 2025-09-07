@@ -1,15 +1,25 @@
 #!/bin/sh
 
-# URL of tarball
-URL="https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/channels/stable/xgsd-linux-x64.tar.gz"
-OUTPUT="xgsd-linux-x64.tar.gz"
+# Detect architecture
+ARCH=$(uname -m)
+case "$ARCH" in
+    x86_64) URL="https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/channels/beta/xgsd-linux-x64.tar.gz" ;;
+    aarch64) URL="https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/channels/beta/xgsd-linux-arm64.tar.gz" ;;
+    armv7l|armv6l) URL="https://xgsd-cli.ams3.cdn.digitaloceanspaces.com/channels/beta/xgsd-linux-arm.tar.gz" ;;
+    *)
+        echo "Unsupported architecture: $ARCH"
+        exit 1
+        ;;
+esac
+
+OUTPUT="xgsd.tar.gz"
 
 # Download file
 if command -v curl >/dev/null 2>&1; then
-    echo "Downloading with curl..."
+    echo "Downloading $URL with curl..."
     curl -fSL "$URL" -o "$OUTPUT" || { echo "Download failed"; exit 1; }
 elif command -v wget >/dev/null 2>&1; then
-    echo "Downloading with wget..."
+    echo "Downloading $URL with wget..."
     wget -O "$OUTPUT" "$URL" || { echo "Download failed"; exit 1; }
 else
     echo "Error: curl or wget is required."
