@@ -1,12 +1,12 @@
 import chalk from 'chalk'
 
 export const userLogThemes: {[key: string]: (msg: string) => string} = {
-  user: chalk.bold.cyan,
+  user: chalk.cyan,
   error: chalk.red,
-  fail: chalk.bold.red,
+  fail: chalk.red,
   retry: chalk.red,
   warn: chalk.yellow,
-  success: chalk.bold.green,
+  success: chalk.green,
   status: chalk.magenta,
   info: chalk.blue,
 }
