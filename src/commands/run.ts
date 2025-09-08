@@ -15,6 +15,7 @@ import {BaseCommand} from '../base'
 import {defaultWith} from '../@core/util/misc.util'
 import {normaliseWorkflowName} from '../@core/util/workflow.util'
 import {PipelineState} from '../@core/@types/pipeline.types'
+import {merge} from '../@core/util/object.util'
 
 export const prettyPrintLogs = (event: EventEmitter2, flags: Record<string, any>, cmd: Run) => {
   if (!flags.watch) {
@@ -63,7 +64,6 @@ export default class Run extends BaseCommand<typeof Command> {
       char: 'c',
       description: 'maximum number of concurrent processes (only for async mode)',
       required: false,
-      default: 8,
       max: 32,
       min: 1,
     }),
@@ -93,7 +93,10 @@ export default class Run extends BaseCommand<typeof Command> {
     let userConfig
     try {
       userConfig = validateWorkflowConfig(loadUserWorkflowConfig(userModulePath, flags.workflow!))
-      userConfig.options = {...userConfig.options, concurrency: flags.concurrency}
+      console.log(userConfig.options)
+      userConfig.options = merge(userConfig.options || {}, {
+        concurrency: flags.concurrency || userConfig.options?.concurrency,
+      })
     } catch (error: any) {
       this.error(error.message)
     }
