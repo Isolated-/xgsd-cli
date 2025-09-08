@@ -58,6 +58,10 @@
   ],
   "homepage": "https://github.com/Isolated-/xgsd-cli",
   "keywords": [
+    "xgsd",
+    "cli",
+    "workflow for Node.js",
+    "xgsd workflows",
     "oclif",
     "serverless",
     "workflow",
