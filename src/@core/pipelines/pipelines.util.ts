@@ -88,7 +88,7 @@ export const loadUserWorkflowConfig = (path: string, workflow?: string): Flexibl
 }
 
 export const validRunners = ['xgsd@v1']
-export const validModes = ['chained', 'fanout', 'async']
+export const validModes = ['chained', 'fanout', 'async', 'batched']
 export const validBackoffStrategies = ['manual', 'linear', 'exponential']
 
 export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): FlexibleWorkflowConfig => {

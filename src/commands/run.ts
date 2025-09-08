@@ -114,7 +114,7 @@ export default class Run extends BaseCommand<typeof Command> {
     event.on('event', (data) => {
       const end = performance.now()
       if (process.env.DETAIL) {
-        console.log(`(event) ${data.event} ${(end - start).toFixed(2)}ms`)
+        console.log(`(event) ${data.payload.step?.name} ${data.event} ${(end - start).toFixed(2)}ms`)
       }
     })
 

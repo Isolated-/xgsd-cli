@@ -36,7 +36,7 @@ export async function runStep(idx: number, step: PipelineStep, context: Workflow
   return manager.run()
 }
 
-export type ExecutionMode = 'async' | 'chained' | 'fanout'
+export type ExecutionMode = 'async' | 'chained' | 'fanout' | 'batched'
 
 export interface ExecutionOptions {
   mode: ExecutionMode
@@ -49,38 +49,59 @@ export async function executeSteps(
   context: WorkflowContext,
   options: ExecutionOptions,
 ): Promise<PipelineStep[]> {
-  const results: PipelineStep[] = []
+  let results: PipelineStep[] = []
 
-  if (options.mode === 'async') {
-    await runWithConcurrency(steps, options.concurrency ?? 4, async (step, idx) => {
-      step.data = input // don't need to assign to `data` each time
-
-      await runStep(idx, step, {
-        ...context,
-        steps: results,
-      })
-
-      results.push(step)
-    })
-  } else {
-    let idx = 0
-    for (const step of steps) {
-      step.data = input // same as here
-
-      const result = await runStep(idx, step, {
-        ...context,
-        steps: results,
-      })
-
-      if (options.mode === 'chained') {
-        input = deepmerge2(input, result.step.output) as any
-      }
-
-      results.push(result.step)
-
-      idx++
-    }
+  let concurrency = options.concurrency || 1
+  if (options.mode === 'chained' || options.mode === 'fanout') {
+    concurrency = 1
   }
 
+  if (options.mode === 'batched') {
+    const batchSize = concurrency
+
+    for (let i = 0; i < steps.length; i += batchSize) {
+      const batch = steps.slice(i, i + batchSize)
+
+      const batchResults: PipelineStep[] = []
+      await runWithConcurrency(batch, batch.length, async (step, idx) => {
+        step.data = input
+        const result = await runStep(idx, step, {...context, steps: results})
+        batchResults.push(result.step)
+        return result.step
+      })
+
+      // merge batch outputs for next batch input
+      const reduced = batchResults.reduce((acc, step) => {
+        acc = deepmerge2(acc, step.output) as any
+        return acc
+      }, {})
+
+      input = deepmerge2(input, reduced) as any
+      results.push(...batchResults)
+    }
+
+    results = []
+    return []
+  }
+
+  await runWithConcurrency(steps, concurrency!, async (step, idx) => {
+    step.data = input // don't need to assign to `data` each time
+
+    const result = await runStep(idx, step, {
+      ...context,
+      // empty array is sent to async/fanout as v0.4.2
+      steps: options.mode === 'chained' ? results : [],
+    })
+
+    // merge chained ouputs for next step input
+    if (options.mode === 'chained') {
+      input = deepmerge2(input, result.step.output) as any
+    }
+
+    results.push(result.step)
+  })
+
+  // clear the array as results are now saved to disk
+  results = []
   return results
 }
