@@ -33,6 +33,11 @@ export async function runStep(idx: number, step: PipelineStep, context: Workflow
   const path = join(__dirname, '..', 'workflow.step-process.js')
   const manager = new ProcessManager({...step, index: idx, startedAt}, context, path, timeoutMs)
   manager.fork()
+
+  process.on('exit', () => {
+    manager.process.kill()
+  })
+
   return manager.run()
 }
 
@@ -55,6 +60,8 @@ export async function executeSteps(
   if (options.mode === 'chained' || options.mode === 'fanout') {
     concurrency = 1
   }
+
+  process.setMaxListeners(context.config.steps.length)
 
   if (options.mode === 'batched') {
     const batchSize = concurrency

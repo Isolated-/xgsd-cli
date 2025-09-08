@@ -50,10 +50,6 @@ export class ProcessManager {
       const msg = chunk.toString().trim()
       if (msg) log(msg, 'error', this.context, this.step)
     })
-
-    process.on('exit', () => {
-      this.process.kill()
-    })
   }
 
   run(prefix: string = 'CHILD'): Promise<{step: any; fatal: boolean; errors: any[]}> {

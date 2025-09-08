@@ -14,7 +14,7 @@ export class WorkflowContext<T extends SourceData = SourceData> {
   stream: EventEmitter2
   runner: string
   route: string
-  mode: 'chained' | 'async' | 'fanout'
+  mode: 'chained' | 'async' | 'fanout' | 'batched'
   state: PipelineState
   name: string
   description: string

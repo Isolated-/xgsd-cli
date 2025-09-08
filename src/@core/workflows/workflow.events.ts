@@ -226,11 +226,6 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
   )}, backoff method: ${key(backoff)}.`
   log(message, 'info', context)
 
-  if (context.mode === 'async') {
-    log(`maximum of ${key(concurrency)} processes allowed to run at once.`, 'info', context)
-    log(`control this with the "concurrency" option in your workflow config.`, 'info', context)
-  }
-
   log(
     `runner: ${key(context.runner)}, cli: ${key(context.cli)}, node: ${key(process.version)}, config hash: ${key(
       context.hash,
@@ -258,6 +253,15 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
       'info',
       context,
     )
+  }
+
+  if (context.mode === 'async') {
+    log(`maximum of ${key(concurrency)} processes allowed to run at once.`, 'info', context)
+    log(`control this with the "concurrency" option in your workflow config.`, 'info', context)
+  }
+
+  if (context.mode === 'batched') {
+    log(`a maximum of ${key(concurrency)} steps will be executed per batch.`, 'info', context)
   }
 
   // create result file now
