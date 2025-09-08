@@ -121,6 +121,10 @@ Or, to try the experimental Docker support, replace `run` with `exec` and remove
 
 Since _v0.3.0_, logs and results are collected by default — see **Configuration** to disable them.
 
+## Are you using xGSD?
+
+xGSD will never collect analytics from your machine, nor does it integrate with any backend services (as of v0.4.6). If you find this project useful, please consider giving it a ⭐ on GitHub. This helps keep me motivated and gives me a clearer sense of how many people xGSD is supporting.
+
 ## Watchdog Protection
 
 Everyone’s been there: you forget a `break` in a loop, or a step never returns, and suddenly the whole process is hung forever.  
@@ -159,7 +163,7 @@ runner: xgsd@v1
 # quick enable/disable workflows
 enabled: true
 
-# three modes: async|fanout|chained (see Modes)
+# four modes: async|fanout|chained|batched (see Modes)
 mode: chained
 
 # v0.3.2 adds these options
@@ -244,6 +248,7 @@ If you need a mode introduced please let me know — more modes = more use cases
 - `async` — this mode is absolutely ideal for when ordering doesn't matter. Each step is executed initially in order but no waiting for results, retries, or timeouts. This mode won't allow one failing step to block your entire workflow.
 - `fanout` — this mode and `chained` are very similar and may be confusing for some. The main difference between this mode and `chained` is that in `fanout` the input data is passed to all steps in order. This is ideal for when the result of one step doesn't affect the next.
 - `chained` — order is preserved, however, the output from the _last successful step_ is passed into the input of the next step. This chaining allows for complex workflows and maintains order when things go wrong.
+- `batched` — _added in `v0.4.2`_. Steps are executed in batches with a fixed concurrency. The batch order is preserved, but the execution order of steps within a batch is not. After each batch completes, its combined output is passed as input to the next batch. This mode is useful when you need to process and aggregate data in groups, where the exact order of individual step execution doesn’t matter, but the batch-level result does.
 
 It's worth noting that regardless of the mode used, you'll get full process isolation at the workflow level and individual steps.
 
@@ -256,7 +261,7 @@ options:
   concurrency: 1 - 32 # defaults to 8
 ```
 
-As of `v0.3.6` this does not affect **chained** or **fanout** mode as they currently run sequentially, this may change in future.
+As of `v0.3.6` this does not affect **chained** or **fanout** mode as they currently run sequentially, this may change in future. Since `v0.4.2` this affects all modes. For sequential modes, **concurrency** is fixed at 1.
 
 ### Templating
 

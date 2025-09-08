@@ -9,7 +9,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- **Batched mode** - simmilar to async and chained, **batch** mode passes an input by batch instead of by step. The resulting batch output is merged and passed into the next batch.
+- **Batched mode** - similar to async and chained, **batch** mode passes an input by batch instead of by step. The resulting batch output is merged and passed into the next batch.
 - **Concurrency** - as a precaution, _all workflows_ go through the same concurrency handler that **async** uses, **chained** and **fanout** modes are forced to use a concurrency of 1.
 
 ### Fixed
