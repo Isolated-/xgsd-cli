@@ -93,7 +93,6 @@ export default class Run extends BaseCommand<typeof Command> {
     let userConfig
     try {
       userConfig = validateWorkflowConfig(loadUserWorkflowConfig(userModulePath, flags.workflow!))
-      console.log(userConfig.options)
       userConfig.options = merge(userConfig.options || {}, {
         concurrency: flags.concurrency || userConfig.options?.concurrency,
       })
