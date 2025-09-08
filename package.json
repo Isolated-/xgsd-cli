@@ -6,7 +6,7 @@
   "bin": {
     "xgsd": "./bin/run.js"
   },
-  "bugs": "https://github.com/Isolated-/xgsd/cli/issues",
+  "bugs": "https://github.com/Isolated-/xgsd-cli/issues",
   "dependencies": {
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
@@ -56,7 +56,7 @@
     "./dist",
     "./oclif.manifest.json"
   ],
-  "homepage": "https://github.com/Isolated-/xgsd/cli",
+  "homepage": "https://github.com/Isolated-/xgsd-cli",
   "keywords": [
     "oclif",
     "serverless",
