@@ -205,28 +205,16 @@ export function prepareStepData(step: PipelineStep, context: WorkflowContext) {
 }
 
 export async function importUserModule(step: PipelineStep, context: WorkflowContext) {
-  let userModule
   try {
-    userModule = await import(context.package)
+    const action = step.run || step.action!
+    const fn = require(context.package)[action]
+    return fn
   } catch (error: any) {
     throw new WorkflowError(
       `${context.package} couldn't be loaded. This could mean it wasn't found, or there's an error preventing its load. Check logs for more information. (${error.message})`,
       WorkflowErrorCode.ModuleNotFound,
     )
   }
-
-  // step.run = step.action and vice versa
-  // this becomes part of loadUserModule
-  const action = step.run ?? step.action!
-  const fn = userModule[action]
-  if (!fn) {
-    throw new WorkflowError(
-      `${action} function not found in module. Check that it's exported from your package ${context.package}`,
-      WorkflowErrorCode.FunctionNotFound,
-    )
-  }
-
-  return fn
 }
 
 export const rejectionHandler = (step: PipelineStep) => {
