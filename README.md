@@ -123,7 +123,7 @@ Since _v0.3.0_, logs and results are collected by default — see **Configuratio
 
 ## Are you using xGSD?
 
-xGSD will never collect analytics from your machine, nor does it integrate with any backend services (as of v0.4.6). If you find this project useful, please consider giving it a ⭐ on GitHub. This helps keep me motivated and gives me a clearer sense of how many people xGSD is supporting.
+xGSD will never collect analytics from your machine, nor does it integrate with any backend services (as of v0.3.6). If you find this project useful, please consider giving it a ⭐ on GitHub. This helps keep me motivated and gives me a clearer sense of how many people xGSD is supporting.
 
 ## Watchdog Protection
 
@@ -302,9 +302,9 @@ You can chain helpers (`|`) in order; **order matters** (e.g., `json | hash | sl
 
 > **Remember:**
 >
-> - Always start with **an input**: a number (`15`), a string (`"hello"`), or a path (`.input.user.name`).
+> - Always start with **an input**: a number (`15`), a string (`"hello"`), or a path (`.data.user.name`).
 > - For string arguments, use **double quotes**: `"number"`, `"world"`.
-> - Passing arrays/objects as _inline literals_ isn’t supported as the **first input** — use a path instead (e.g., `.input.items`).
+> - Passing arrays/objects as _inline literals_ isn’t supported as the **first input** — use a path instead (e.g., `.data.items`).
 > - Helpers that conceptually need no input (e.g., `uuid`, `now`) can be called with `""` as the input: `{{ "" | uuid }}`.
 
 #### Compare
@@ -338,20 +338,20 @@ You can chain helpers (`|`) in order; **order matters** (e.g., `json | hash | sl
 - `length` – **Usage**: `{{ "hello" | length }} → 5`
 - `slice` – **Usage**: `{{ "hello" | slice(1,3) }} → "el"`
 - `json` – _Stringify or parse_:
-  - Stringify object from context: `{{ .input.user | json }} → "{\"name\":\"Alice\"}"`
-  - Parse string JSON from context: `{{ .input.rawJson | json }}` → _(returns an object in the pipeline)_
+  - Stringify object from context: `{{ .data.user | json }} → "{\"name\":\"Alice\"}"`
+  - Parse string JSON from context: `{{ .data.rawJson | json }}` → _(returns an object in the pipeline)_
 
 #### Objects
 
-- `json` – **Usage**: `{{ .input.user | json }} → "{\"name\":\"Alice\"}"`
-- `merge` – **Usage**: `{{ .input.user | merge(.input.patch) }} → {…merged object…}`  
+- `json` – **Usage**: `{{ .data.user | json }} → "{\"name\":\"Alice\"}"`
+- `merge` – **Usage**: `{{ .data.user | merge(.data.patch) }} → {…merged object…}`  
   _(Use a context path for the second arg; inline object literals aren’t supported as args.)_
 
 #### Arrays
 
-- `slice` – **Usage**: `{{ .input.items | slice(1,3) }} → [item2,item3]`
-- `length` – **Usage**: `{{ .input.items | length }} → 3`
-- `concat` – **Usage**: `{{ .input.items | concat(.input.moreItems) }} → [ …combined… ]`
+- `slice` – **Usage**: `{{ .data.items | slice(1,3) }} → [item2,item3]`
+- `length` – **Usage**: `{{ .data.items | length }} → 3`
+- `concat` – **Usage**: `{{ .data.items | concat(.data.moreItems) }} → [ …combined… ]`
 
 #### Utility
 
@@ -360,16 +360,16 @@ You can chain helpers (`|`) in order; **order matters** (e.g., `json | hash | sl
 - `default` – **Usage**: `{{ null | default("fallback") }} → "fallback"`
 - `concat` (strings/arrays) – **Usage**:
   - Strings: `{{ "hello" | concat(", world") }} → "hello, world"`
-  - Arrays: `{{ .input.a | concat(.input.b) }} → [ … ]`
+  - Arrays: `{{ .data.a | concat(.data.b) }} → [ … ]`
 - `length` – _(works for strings/arrays/objects)_:
-  - `{{ .input.obj | length }} → 3` _(counts keys)_
+  - `{{ .data.obj | length }} → 3` _(counts keys)_
 
 #### Chaining examples
 
 - Email fingerprint:  
-  `{{ .input.user.email | lower | hash | slice(0,8) }}` → `"a1b2c3d4"`
+  `{{ .data.user.email | lower | hash | slice(0,8) }}` → `"a1b2c3d4"`
 - Compact user blob:  
-  `{{ .input.user | json | hash | truncate(6,4) }}` → `"1fa2b3...9c0d"`
+  `{{ .data.user | json | hash | truncate(6,4) }}` → `"1fa2b3...9c0d"`
 
 ## Support
 
@@ -378,25 +378,6 @@ If you're struggling with this CLI, want to give feedback, need changes to enabl
 If you want to make changes to xGSD, feel free to make a pull request [**do that here**](https://github.com/Isolated-/xgsd-cli).
 
 No analytic data is, or will be, collected from your machine. Please feel free to reach out with suggestions, criticism, or just to let me know what you're using this for.
-
-## Stability
-
-**xGSD isn’t fragile — it’s just immature.**
-
-xGSD is steadily moving toward production stability, but it’s still an **early-stage project** (`< v1.0.0`).  
-That means you should expect the occasional **bug, missing feature, or breaking change** along the way.
-
-It’s built and maintained by a **solo developer** — I’ll give it 100%, but sometimes things slip through.  
-For example, in `v0.3.0` I reworked the process handler and (oops) forgot to re-implement async mode 🙃.  
-I wish I’d never make mistakes, but they’re part of the process — and when they happen, I **fix them fast**.  
-(`v0.3.1` patched the async mode issue right after release.)
-
-If your workflow is **mission-critical**, you may want to wait until later versions.  
-But if you’re a **solo operator, tinkerer, or just curious**, _this is exactly the right time to jump in_.  
-Run xGSD on a Raspberry Pi as your own **serverless platform without vendor lock-in**, orchestrate your personal stack, or hack together new workflows — and please share feedback when you hit an edge case. **That’s how xGSD gets better.**
-
-If you’ve been down the frustrating road of debugging **brittle cloud jobs** — wiring retries, catching every edge case, and making sure nothing silently fails — you’ll feel right at home here.  
-xGSD is built to take that pain away, so you can **focus on building things that matter instead of babysitting error handlers.**
 
 ## Inspiration
 
@@ -436,40 +417,37 @@ Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable re
 ### Usage
 
 <!-- usage -->
-
 ```sh-session
 $ npm install -g @xgsd/cli
 $ xgsd COMMAND
 running command...
 $ xgsd (--version)
-@xgsd/cli/0.4.0 linux-arm node-v20.19.5
+@xgsd/cli/0.4.0 linux-x64 node-v24.4.1
 $ xgsd --help [COMMAND]
 USAGE
   $ xgsd COMMAND
 ...
 ```
-
 <!-- usagestop -->
 
 ### Commands
 
 <!-- commands -->
-
-- [`xgsd exec PACKAGE`](#xgsd-exec-package)
-- [`xgsd help [COMMAND]`](#xgsd-help-command)
-- [`xgsd plugins`](#xgsd-plugins)
-- [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
-- [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
-- [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
-- [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
-- [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
-- [`xgsd plugins reset`](#xgsd-plugins-reset)
-- [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
-- [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
-- [`xgsd plugins update`](#xgsd-plugins-update)
-- [`xgsd run FUNCTION`](#xgsd-run-function)
-- [`xgsd update [CHANNEL]`](#xgsd-update-channel)
-- [`xgsd version`](#xgsd-version)
+* [`xgsd exec PACKAGE`](#xgsd-exec-package)
+* [`xgsd help [COMMAND]`](#xgsd-help-command)
+* [`xgsd plugins`](#xgsd-plugins)
+* [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
+* [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
+* [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
+* [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
+* [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
+* [`xgsd plugins reset`](#xgsd-plugins-reset)
+* [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
+* [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
+* [`xgsd plugins update`](#xgsd-plugins-update)
+* [`xgsd run FUNCTION`](#xgsd-run-function)
+* [`xgsd update [CHANNEL]`](#xgsd-update-channel)
+* [`xgsd version`](#xgsd-version)
 
 ## `xgsd exec PACKAGE`
 
@@ -819,7 +797,7 @@ ARGUMENTS
   FUNCTION  function to run
 
 FLAGS
-  -c, --concurrency=<value>  [default: 8] maximum number of concurrent processes (only for async mode)
+  -c, --concurrency=<value>  maximum number of concurrent processes (only for async mode)
   -d, --data=<value>         data file to use (must be a path)
   -e, --workflow=<value>     you can specify a workflow by name when you have a workflows/ folder in your NPM package
   -l, --level=<option>...    [default: info,user,status,success,retry,warn,error] the level of log to output (must be
@@ -899,5 +877,4 @@ FLAG DESCRIPTIONS
 ```
 
 _See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/v2.2.32/src/commands/version.ts)_
-
 <!-- commandsstop -->
