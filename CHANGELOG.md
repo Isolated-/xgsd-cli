@@ -5,6 +5,18 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [`v0.4.3`] - Unreleased
+
+### Added
+
+- **Webhooks** can now be fired at the end of your workflow (experimental)
+
+### Fixed
+
+- **Batched mode** would error on some versions of `v0.4.2`, this has been fixed.
+
+---
+
 ## [`v0.4.2`] - 2025-09-09
 
 ### Added
