@@ -90,8 +90,9 @@ export async function processStep(
   context: WorkflowContext<any>,
   delay?: (attempt: number) => number,
   attempt?: (attempt: RetryAttempt) => Promise<any>,
+  event?: (name: string, payload: any) => void,
 ) {
-  const prepared = prepareStepData(step, context)
+  const prepared = step as any
   prepared.startedAt = new Date().toISOString()
 
   // by this point if/enabled are booleans
@@ -107,11 +108,11 @@ export async function processStep(
   const retries = options.retries!
   const timeout = options.timeout!
 
-  event(WorkflowEvent.StepStarted, {step: prepared})
+  //event?.(WorkflowEvent.StepStarted, {step: prepared})
 
   if (step.options?.delay && step.options.delay !== '0s' && step.options.delay !== 0) {
     const delayMs = getDurationNumber(step.options.delay as string) || 0
-    event(WorkflowEvent.StepWaiting, {step, delayMs})
+    //event?.(WorkflowEvent.StepWaiting, {step, delayMs})
     await delayFor(delayMs || 0)
   }
 

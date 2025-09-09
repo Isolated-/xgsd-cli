@@ -88,19 +88,21 @@ export class ProcessManager {
       this.process.on('message', (msg: any) => {
         switch (msg.type) {
           case `${prefix}:EVENT`:
+            if (msg.event === WorkflowEvent.StepStarted || msg.event === WorkflowEvent.StepCompleted) {
+              if (timer) clearTimeout(timer)
+              timer = setTimeout(timerHandler, this.timeoutMs! + 1000)
+              return
+            }
+
             if (msg.event === WorkflowEvent.StepRetry) {
               if (timer) clearTimeout(timer)
               timer = setTimeout(timerHandler, this.timeoutMs! + msg.payload.attempt.nextMs + 500)
-              this.context.stream.emit('event', {
-                event: msg.event,
-                payload: msg.payload,
-              })
             }
 
-            if (msg.event === WorkflowEvent.StepStarted) {
-              if (timer) clearTimeout(timer)
-              timer = setTimeout(timerHandler, this.timeoutMs! + 1000)
-            }
+            this.context.stream.emit('event', {
+              event: msg.event,
+              payload: msg.payload,
+            })
             break
 
           case `${prefix}:RESULT`:

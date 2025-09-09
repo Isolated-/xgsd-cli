@@ -4,7 +4,7 @@ import {WorkflowEvent} from '../../workflows/workflow.events'
 import {WorkflowContext} from '../context.builder'
 import {Orchestrator} from '../interfaces/orchestrator.interface'
 import {runWithConcurrency} from '../process/concurrency.process'
-import {executeSteps} from '../process/orchestration.process'
+import {executeSteps, runStep} from '../process/orchestration.process'
 import {resolveStepData} from '../runner.process'
 import {exponentialBackoff} from '../workflow-backoff.strategies'
 import {
@@ -14,10 +14,11 @@ import {
   prepareStepData,
   processStep,
 } from '../workflow.step-process'
-import {merge} from '../../util/object.util'
+import {deepmerge2, merge} from '../../util/object.util'
 import {getDurationNumber} from '../../pipelines/pipelines.util'
 import {retry} from '../runner'
 import {WorkflowError} from '../workflow.error'
+import {delayFor} from '../../util/misc.util'
 
 export class BasicOrchestrator<T extends SourceData = SourceData> implements Orchestrator<T> {
   constructor(public context: WorkflowContext<T>) {}
@@ -54,6 +55,8 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
       options: merge(config.options, step.options),
     }))
 
+    process.setMaxListeners(config.steps.length + 10)
+
     // import user module here too
     const userModule = await import(this.context.package)
     let concurrency = config.options.concurrency || 4
@@ -61,88 +64,75 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
       concurrency = 1
     }
 
+    let input = deepmerge2({}, config.data) as Record<string, any>
+    let results: PipelineStep<T>[] = []
+
+    if (ctx.mode === 'batched') {
+      const batchSize = concurrency
+
+      for (let i = 0; i < steps.length; i += batchSize) {
+        const batch = steps.slice(i, i + batchSize)
+
+        const batchResults: PipelineStep[] = []
+        await runWithConcurrency(batch, batch.length, async (step, idx) => {
+          step.fn = userModule[step.run ?? step.action!]
+          step.data = input
+          const result = await this.run(step)
+          batchResults.push(result)
+          return result
+        })
+
+        // merge batch outputs for next batch input
+        const reduced = batchResults.reduce((acc, step) => {
+          acc = deepmerge2(acc, step.output) as any
+          return acc
+        }, {})
+
+        input = deepmerge2(input, reduced) as any
+        results.push(...batchResults)
+      }
+
+      results = []
+      return
+    }
+
     // execute
-    await runWithConcurrency(steps, concurrency, async (step, idx) => {
+    await runWithConcurrency(steps, concurrency!, async (step, idx) => {
       step.fn = userModule[step.run ?? step.action!]
+      step.input = input as T // don't need to assign to `data` each time
 
-      this.event(WorkflowEvent.StepStarted, {
-        context: this.context,
-        step,
-      })
+      this.event(WorkflowEvent.StepStarted, {step, context: ctx})
 
-      const result = await this.run({
-        ...step,
-        after: this.context.config.steps[idx],
-      })
+      const result = await this.run(step)
 
-      this.event(WorkflowEvent.StepCompleted, {
-        step: result,
-        context: this.context,
-      })
+      // merge chained ouputs for next step input
+      if (ctx.mode === 'chained') {
+        input = deepmerge2(input, result.output) as any
+      }
+
+      results.push(result)
+      this.event(WorkflowEvent.StepCompleted, {step: result, context: ctx})
     })
 
     await this.after()
   }
 
   async run(step: PipelineStep<T>): Promise<PipelineStep<T>> {
-    const ctx = this.context
-    const prepared = prepareStepData(step, ctx as any)
-
-    // emit event step started
-    ctx.stream.emit('event', {
-      event: WorkflowEvent.StepStarted,
-      payload: {
-        step: prepared,
-        context: ctx,
+    return processStep(
+      step,
+      this.context,
+      exponentialBackoff,
+      async (attempt) => {
+        this.event(WorkflowEvent.StepRetry, {
+          step,
+          attempt,
+          context: this.context,
+        })
       },
-    })
-
-    const retries = prepared.options?.retries || 0
-    const timeout = getDurationNumber(prepared.options?.timeout as string) || 0
-    const delay = getDurationNumber(prepared.options?.delay as string) || 0
-    prepared.errors = []
-
-    const result = await retry(prepared.input, step.fn!, prepared.options?.retries || 0, {
-      timeout,
-      delay: exponentialBackoff,
-      onAttempt: async (a) => {
-        prepared.state = PipelineState.Retrying
-        prepared.attempt = a.attempt + 1
-        prepared.errors!.push(a.error) // this can be removed in v0.4+ (streaming to logs is implemented)
+      (name: string, payload) => {
+        this.event(name as WorkflowEvent, payload)
       },
-    })
-
-    let data: any
-    try {
-      data = dataSizeRegulator(result.data)
-    } catch (error) {
-      prepared.error = error
-      prepared.errors!.push(error as WorkflowError)
-      prepared.state = PipelineState.Failed
-      prepared.endedAt = new Date().toISOString()
-      prepared.duration = Date.parse(prepared.endedAt) - Date.parse(prepared.startedAt)
-      return finaliseStepData(prepared, ctx as any)
-    }
-
-    let output = data
-
-    if (
-      typeof output === 'number' ||
-      typeof output === 'string' ||
-      typeof output === 'boolean' ||
-      Array.isArray(output)
-    ) {
-      output = {data: output}
-    }
-
-    prepared.output = (output as Record<string, any>) || {}
-    prepared.error = result.error
-    prepared.options = {retries, timeout}
-    prepared.state = result.error ? PipelineState.Failed : PipelineState.Completed
-    prepared.endedAt = new Date().toISOString()
-    prepared.duration = Date.parse(prepared.endedAt) - Date.parse(prepared.startedAt)
-
-    return finaliseStepData(prepared, ctx as any)
+    )
   }
 
   async after(): Promise<void> {
