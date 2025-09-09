@@ -1,5 +1,21 @@
-import {defaultWith} from '../misc.util'
+import {byteSize, defaultWith} from '../misc.util'
 import {delayFor} from '../misc.util'
+
+describe('byteSize tests', () => {
+  test('should return 0 for null, undefined, and similar', () => {
+    expect(byteSize(null)).toBe(0)
+    expect(byteSize(undefined)).toBe(0)
+    expect(byteSize(0)).toBe(0)
+    expect(byteSize('')).toBe(0)
+  })
+
+  test('should return correct byte size for various inputs', () => {
+    expect(byteSize('hello')).toBe(7) // "hello" in JSON is "\"hello\""
+    expect(byteSize({key: 'value'})).toBe(15) // {"key":"value"}
+    expect(byteSize([1, 2, 3])).toBe(7) // [1,2,3]
+    expect(byteSize({a: 1, b: [2, 3], c: {d: 4}})).toBe(29) // {"a":1,"b":[2,3],"c":{"d":4}}
+  })
+})
 
 describe('defaultWith tests', () => {
   test('should return default value if value is undefined', () => {

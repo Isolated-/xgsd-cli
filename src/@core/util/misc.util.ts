@@ -10,3 +10,8 @@ export const resolvePath = (base: string, ...parts: string[]) => {
 }
 
 export const delayFor = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+export const byteSize = (data: unknown): number => {
+  if (!data) return 0
+  return Buffer.byteLength(JSON.stringify(data ?? ''), 'utf8')
+}
