@@ -104,6 +104,16 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
       .optional(),
   })
 
+  const webhookValidator = Joi.array()
+    .items(
+      Joi.object({
+        url: Joi.string().uri().required(),
+      }),
+    )
+    .min(1)
+    .max(5)
+    .optional()
+
   // Perform validation logic here
   const validationSchema = Joi.object({
     name: Joi.string().optional(),
@@ -122,6 +132,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
       logs: Joi.boolean().optional(),
       run: Joi.boolean().optional(),
     }).optional(),
+    webhooks: webhookValidator,
     logs: Joi.object({
       bucket: Joi.string().allow('1h', '1d'),
       path: Joi.string(),
@@ -177,6 +188,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
       backoff: config.options?.backoff || 'exponential',
       delay: config.options?.delay || '0s',
     },
+    webhooks: config.webhooks || [],
     collect: {
       logs: config.collect?.logs ?? true,
       run: config.collect?.run ?? true,

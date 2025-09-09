@@ -165,6 +165,9 @@ export type FlexibleWorkflowConfig<T = SourceData> = {
     logs?: boolean
     run?: boolean
   }
+  webhooks?: {
+    url: string
+  }[]
   logs?: {
     bucket?: string
     path?: string

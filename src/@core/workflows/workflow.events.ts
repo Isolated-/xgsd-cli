@@ -1,11 +1,15 @@
 import {ensureDirSync, pathExistsSync, readJsonSync, rmSync, writeJsonSync} from 'fs-extra'
 import {WorkflowContext} from '../@shared/context.builder'
 import {PipelineState, PipelineStep} from '../@types/pipeline.types'
-import {getDurationString, getWorkflowStats} from '../pipelines/pipelines.util'
-import {RetryAttempt} from '../@shared/runner/retry.runner'
+import {getDurationString, getWorkflowStats, orchestration} from '../pipelines/pipelines.util'
+import {retry, RetryAttempt} from '../@shared/runner/retry.runner'
 import {WrappedError} from '../@shared/runner'
 import {join} from 'path'
 import chalk from 'chalk'
+import {dispatchWebhook} from '../actions/dispatch-webhook.action'
+import {runWithConcurrency} from '../@shared/process/concurrency.process'
+import {exponentialBackoff} from '../@shared/workflow-backoff.strategies'
+import {helpers} from '../@shared/workflow.helpers'
 
 export enum WorkflowEvent {
   WorkflowStarted = 'workflow.started',
@@ -283,7 +287,7 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
   writeJsonSync(join(context.config.output, context.name + '.latest.json'), reduced, {spaces: 2, mode: 0o600})
 }
 
-export const handleWorkflowEnded = (context: WorkflowContext) => {
+export const handleWorkflowEnded = async (context: WorkflowContext) => {
   let message
 
   context.end = new Date().toISOString()
@@ -365,5 +369,30 @@ export const handleWorkflowEnded = (context: WorkflowContext) => {
       'warn',
       context,
     )
+  }
+
+  if (context.config.webhooks && context.config.webhooks.length > 0) {
+    log(`dispatching ${key(context.config.webhooks.length)} webhooks...`, 'info', context)
+    log(`this is a new feature, report any errors to https://github.com/Isolated-/xgsd-cli`, 'info', context)
+
+    runWithConcurrency(context.config.webhooks, 4, async (webhook) => {
+      const short = helpers.truncate(webhook.url, 8, 16)
+      const attempts = context.config.options.retries! > 0 ? context.config.options.retries! : 1
+      log(`sending webhook to ${key(short)}`, 'info', context)
+
+      retry({url: webhook.url, result}, dispatchWebhook, attempts, {
+        timeout: context.config.options.timeout!,
+        delay: exponentialBackoff,
+        onAttempt(attempt) {
+          log(
+            `${key(short)} is failing, attempt ${attempt.attempt + 1}/${attempts} next in ${getDurationString(
+              attempt.nextMs,
+            )}, error: ${attempt.error?.message}`,
+            'error',
+            context,
+          )
+        },
+      })
+    })
   }
 }
