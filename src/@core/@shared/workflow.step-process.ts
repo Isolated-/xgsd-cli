@@ -86,8 +86,8 @@ export const event = (
  *  It should return the updated step. And use resolveStepData exactly twice (before and after)
  */
 export async function processStep(
-  step: PipelineStep,
-  context: WorkflowContext,
+  step: PipelineStep<any>,
+  context: WorkflowContext<any>,
   delay?: (attempt: number) => number,
   attempt?: (attempt: RetryAttempt) => Promise<any>,
 ) {

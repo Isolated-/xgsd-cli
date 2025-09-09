@@ -19,6 +19,8 @@ import {captureEvents, WorkflowEvent} from '../workflows/workflow.events'
 import {createLogger, transports, format} from 'winston'
 import moment = require('moment')
 import {WorkflowError, WorkflowErrorCode} from '../@shared/workflow.error'
+import {BasicOrchestrator} from '../@shared/orchestration/basic.orchestrator'
+import {IsolatedOrchestrator} from '../@shared/orchestration/isolated.orchestrator'
 
 /**
  *  Orchestrates a single step in the pipeline.
@@ -207,6 +209,31 @@ export const userCodeLogCollector = (context: WorkflowContext<any>, path: string
       docker: pathExistsSync('/.dockerenv'),
     })
   })
+}
+
+export const userCodeOrchestrationv2 = async <T extends SourceData = SourceData>(
+  data: any,
+  config: FlexibleWorkflowConfig<T>,
+  event?: EventEmitter2,
+  lite: boolean = false,
+) => {
+  const handler = event ?? new EventEmitter2()
+  const {collect} = config
+
+  const ctx = new WorkflowContext(config, handler, 'v1')
+  const orchestrator = lite ? new BasicOrchestrator<T>(ctx) : new IsolatedOrchestrator<T>(ctx)
+
+  if (collect) {
+    ensureDirSync(config.output)
+  }
+
+  if (collect?.logs) {
+    userCodeLogCollector(ctx, config.output, ctx.stream)
+  }
+
+  captureEvents(ctx)
+
+  await orchestrator.orchestrate()
 }
 
 // remove the export once complete

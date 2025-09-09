@@ -25,7 +25,7 @@ export enum WorkflowEvent {
 
 export const key = (key: any) => chalk.bold(key)
 
-export const captureEvents = (context: WorkflowContext) => {
+export const captureEvents = (context: WorkflowContext<any>) => {
   context.stream.on('event', (event) => {
     if (!event) {
       return

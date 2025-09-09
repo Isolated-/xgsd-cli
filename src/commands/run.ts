@@ -1,7 +1,7 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {basename, extname, join, resolve} from 'path'
 import {mkdtempSync, pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
-import {userCodeOrchestration} from '../@core/pipelines/pipeline.concrete'
+import {userCodeOrchestration, userCodeOrchestrationv2} from '../@core/pipelines/pipeline.concrete'
 import {EventEmitter2} from 'eventemitter2'
 import chalk from 'chalk'
 import {
@@ -66,6 +66,10 @@ export default class Run extends BaseCommand<typeof Command> {
       required: false,
       max: 32,
       min: 1,
+    }),
+
+    lite: Flags.boolean({
+      description: 'run in lite mode (no isolation, faster for local development)',
     }),
   }
 
@@ -132,7 +136,20 @@ export default class Run extends BaseCommand<typeof Command> {
 
     prettyPrintLogs(event, flags, this)
     try {
-      await userCodeOrchestration(
+      await userCodeOrchestrationv2(
+        data,
+        {
+          ...userConfig,
+          name: workflowName,
+          version: userConfig.version || userCodePackageJson.version,
+          package: userModulePath,
+          output: newOutputPath,
+        },
+        event,
+        flags.lite || false,
+      )
+
+      /**await userCodeOrchestration(
         data,
         {
           ...userConfig,
@@ -144,7 +161,7 @@ export default class Run extends BaseCommand<typeof Command> {
           cli: this.config.version,
         },
         event,
-      )
+      )**/
     } catch (e: any) {
       if (e.message) {
         this.error(e.message)

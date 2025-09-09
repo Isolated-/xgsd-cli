@@ -7,7 +7,7 @@ import {deepmerge2} from '../../util/object.util'
 import {runWithConcurrency} from './concurrency.process'
 import {ProcessManager} from './manager.process'
 
-export async function runStep(idx: number, step: PipelineStep, context: WorkflowContext) {
+export async function runStep(idx: number, step: PipelineStep<any>, context: WorkflowContext) {
   const startedAt = new Date().toISOString()
   let timeoutMs: number | undefined
   if (step.options?.timeout) {
@@ -31,7 +31,7 @@ export async function runStep(idx: number, step: PipelineStep, context: Workflow
 
   step.env = envResolved as Record<string, string>
   const path = join(__dirname, '..', 'workflow.step-process.js')
-  const manager = new ProcessManager({...step, index: idx, startedAt}, context, path, timeoutMs)
+  const manager = new ProcessManager({...step, startedAt}, context, path, timeoutMs)
   manager.fork()
 
   process.on('exit', () => {
@@ -51,7 +51,7 @@ export interface ExecutionOptions {
 export async function executeSteps(
   steps: PipelineStep[],
   input: Record<string, any>,
-  context: WorkflowContext,
+  context: WorkflowContext<any>,
   options: ExecutionOptions,
 ): Promise<PipelineStep[]> {
   let results: PipelineStep[] = []

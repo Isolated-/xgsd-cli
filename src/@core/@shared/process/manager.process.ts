@@ -41,6 +41,15 @@ export class ProcessManager {
       execArgv: ['--max-old-space-size=256', '--stack-size=1024'],
     })
 
+    const log = (message: string, level: 'info' | 'error' | 'user', context?: WorkflowContext, step?: PipelineStep) => {
+      if (context?.stream) {
+        context.stream.emit('message', {log: {level, message, timestamp: new Date().toISOString(), context, step}})
+        return
+      }
+
+      process.send!({type: 'PARENT:LOG', log: {level, message, timestamp: new Date().toISOString()}, context, step})
+    }
+
     this.process.stdout?.on('data', (chunk: Buffer) => {
       const msg = chunk.toString().trim()
       if (msg) log(msg, 'user', this.context, this.step)
@@ -69,11 +78,6 @@ export class ProcessManager {
           errors: [error],
         }
 
-        event(WorkflowEvent.StepFailed, {
-          step: updated,
-          attempt: {error: updated.error, retries: 0, nextMs: 0, finalAttempt: true},
-        })
-
         resolve({step: updated, fatal: true, errors: []})
       }
 
@@ -84,11 +88,13 @@ export class ProcessManager {
       this.process.on('message', (msg: any) => {
         switch (msg.type) {
           case `${prefix}:EVENT`:
-            event(msg.event, msg.payload)
-
             if (msg.event === WorkflowEvent.StepRetry) {
               if (timer) clearTimeout(timer)
               timer = setTimeout(timerHandler, this.timeoutMs! + msg.payload.attempt.nextMs + 500)
+              this.context.stream.emit('event', {
+                event: msg.event,
+                payload: msg.payload,
+              })
             }
 
             if (msg.event === WorkflowEvent.StepStarted) {
