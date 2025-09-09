@@ -280,7 +280,8 @@ export const getDurationString = (timeout: number | string): string => {
     return 'unknown'
   }
 
-  return ms(timeout as number)
+  const rounded = Math.round(timeout)
+  return ms(rounded)
 }
 
 export const getDurationNumber = (timeout: string | number): number => {
