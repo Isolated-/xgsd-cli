@@ -93,7 +93,7 @@
     ],
     "topicSeparator": " "
   },
-  "repository": "xgsd/cli",
+  "repository": "https://github.com/Isolated-/xgsd-cli",
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
     "postpack": "shx rm -f oclif.manifest.json",
