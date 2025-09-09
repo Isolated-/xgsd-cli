@@ -92,7 +92,7 @@ export async function processStep(
   attempt?: (attempt: RetryAttempt) => Promise<any>,
   event?: (name: string, payload: any) => void,
 ) {
-  const prepared = step as any
+  const prepared = prepareStepData(step, context)
   prepared.startedAt = new Date().toISOString()
 
   // by this point if/enabled are booleans
