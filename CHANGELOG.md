@@ -9,7 +9,12 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **No isolation run mode** now supported through `$ xgsd run` only, use `--lite` to enable this. Perfect for workflows that don't benefit from process isolation.
 - **Webhooks** can now be fired at the end of your workflow (experimental)
+
+### Changed
+
+- **Isolation** has changed, workflows no longer run in their own process and instead are coupled with the CLI process. Steps continue to remain isolated. This reduces the time to start and when used with `--lite` can complete workflows in milliseconds vs seconds.
 
 ### Fixed
 

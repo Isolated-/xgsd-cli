@@ -117,7 +117,7 @@ export async function processStep(
   }
 
   prepared.errors = []
-  const result = await retry(prepared.input, step.fn!, retries, {
+  const result = await retry(prepared.data, step.fn!, retries, {
     timeout,
     delay,
     onAttempt: async (a) => {
@@ -192,13 +192,14 @@ export function finaliseStepData(step: PipelineStep, context: WorkflowContext) {
 
 export function prepareStepData(step: PipelineStep, context: WorkflowContext) {
   const {after, ...stepData} = step
-  const data = deepmerge2(context.config.data, step.data)
+  const data = deepmerge2(deepmerge2(context.config.data, step.data), step.input)
   const resolved = resolveStepData(step, {
     ...context,
     step: stepData,
     data,
   })
 
+  resolved.data = data
   resolved.input = deepmerge2(data, resolved.with)
   resolved.after = after
 
