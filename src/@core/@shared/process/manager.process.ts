@@ -91,7 +91,6 @@ export class ProcessManager {
             if (msg.event === WorkflowEvent.StepStarted || msg.event === WorkflowEvent.StepCompleted) {
               if (timer) clearTimeout(timer)
               timer = setTimeout(timerHandler, this.timeoutMs! + 1000)
-              return
             }
 
             if (msg.event === WorkflowEvent.StepRetry) {

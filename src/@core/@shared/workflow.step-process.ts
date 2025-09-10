@@ -42,16 +42,6 @@ export function getStepDelay(stepCount: number): number {
   return Math.max(min, Math.round(delay))
 }
 
-const fatal = (message: string) => {
-  log(message, 'error')
-
-  dispatchMessage('error', {
-    name: 'Fatal Error',
-    message: message,
-    fatal: true,
-  })
-}
-
 function dispatchMessage(
   type: 'error' | 'start' | 'result' | 'attempt' | 'log' | 'event',
   payload: any,
@@ -102,17 +92,19 @@ export async function processStep(
     return prepared
   }
 
+  console.log(prepared)
+
+  event?.(WorkflowEvent.StepStarted, {step: prepared})
+
   const options = merge(context.config.options, step.options) as {retries: number; timeout: number}
 
   prepared.state = PipelineState.Running
   const retries = options.retries!
   const timeout = options.timeout!
 
-  //event?.(WorkflowEvent.StepStarted, {step: prepared})
-
   if (step.options?.delay && step.options.delay !== '0s' && step.options.delay !== 0) {
     const delayMs = getDurationNumber(step.options.delay as string) || 0
-    //event?.(WorkflowEvent.StepWaiting, {step, delayMs})
+    event?.(WorkflowEvent.StepWaiting, {step, delayMs})
     await delayFor(delayMs || 0)
   }
 
@@ -137,7 +129,9 @@ export async function processStep(
     prepared.state = PipelineState.Failed
     prepared.endedAt = new Date().toISOString()
     prepared.duration = Date.parse(prepared.endedAt) - Date.parse(prepared.startedAt)
-    return finaliseStepData(prepared, context)
+    const finalData = finaliseStepData(prepared, context)
+    event?.(WorkflowEvent.StepCompleted, {step: finalData})
+    return finalData
   }
 
   let output = data
@@ -159,7 +153,11 @@ export async function processStep(
   prepared.endedAt = new Date().toISOString()
   prepared.duration = Date.parse(prepared.endedAt) - Date.parse(prepared.startedAt)
 
-  return finaliseStepData(prepared, context)
+  const finalData = finaliseStepData(prepared, context)
+
+  event?.(WorkflowEvent.StepCompleted, {step: finalData})
+
+  return finalData
 }
 
 export function shouldRun(step: PipelineStep): boolean {
@@ -262,7 +260,7 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
   }
 
   step.fn = fn
-  const result = await processStep(step, context, delay, onAttempt)
+  const result = await processStep(step, context, delay, onAttempt, event)
 
   // v0.4.0 - allow some time for messages to be sent before exiting
   // also prevents issues with very fast steps
@@ -270,6 +268,5 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
   const nextStepDelayMs = getStepDelay(context.steps.length)
   await delayFor(nextStepDelayMs)
 
-  event(WorkflowEvent.StepCompleted, {step: result})
   dispatchMessage('result', {result: {step: result}})
 })

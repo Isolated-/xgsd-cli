@@ -72,6 +72,7 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
 
       for (let i = 0; i < steps.length; i += batchSize) {
         const batch = steps.slice(i, i + batchSize)
+        console.log(input)
 
         const batchResults: PipelineStep[] = []
         await runWithConcurrency(batch, batch.length, async (step, idx) => {
@@ -89,6 +90,7 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
         }, {})
 
         input = deepmerge2(input, reduced) as any
+        console.log(input)
         results.push(...batchResults)
       }
 
@@ -101,8 +103,6 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
       step.fn = userModule[step.run ?? step.action!]
       step.input = input as T // don't need to assign to `data` each time
 
-      this.event(WorkflowEvent.StepStarted, {step, context: ctx})
-
       const result = await this.run(step)
 
       // merge chained ouputs for next step input
@@ -111,7 +111,6 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
       }
 
       results.push(result)
-      this.event(WorkflowEvent.StepCompleted, {step: result, context: ctx})
     })
 
     await this.after()
