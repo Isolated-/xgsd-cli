@@ -125,23 +125,6 @@ Since _v0.3.0_, logs and results are collected by default — see **Configuratio
 
 xGSD will never collect analytics from your machine, nor does it integrate with any backend services (as of v0.3.6). If you find this project useful, please consider giving it a ⭐ on GitHub. This helps keep me motivated and gives me a clearer sense of how many people xGSD is supporting.
 
-## Watchdog Protection
-
-Everyone’s been there: you forget a `break` in a loop, or a step never returns, and suddenly the whole process is hung forever.  
-To save you from that headache, xGSD runs each step under a **watchdog**.
-
-Here’s how it works:
-
-- If a step keeps emitting events (retries, backoff, logs, etc.), it’s considered alive and continues normally.
-- If a step goes completely silent — no events, no results, no errors — the watchdog kicks in and **kills the process** with a `hard timeout`.
-- This doesn’t interfere with soft timeouts (network delays, retries, backoff) — those are handled as expected.
-
-## Dangling Processes (`< v0.3.3`)
-
-`v0.3.2` fixes a major issue where processes were not exiting correctly if xGSD fails to exit gracefully (e.g. an error occurred before execution of your workflow). You may not have noticed this problem but you should upgrade to `v0.3.2` to prevent this happening. These processes will not exit on their own for sometime and will consume large amounts of memory `< 2GB` in a matter of seconds. `v0.3.2` version was corrupted was it was released as `v0.3.3` with new `env` option at step level.
-
-**Upgrade to `v0.3.3` to avoid this issue.**
-
 ## Configuration
 
 In _v0.3.0_, an entirely new way of configuring workflows was introduced.  
@@ -251,17 +234,6 @@ If you need a mode introduced please let me know — more modes = more use cases
 - `batched` — _added in `v0.4.2`_. Steps are executed in batches with a fixed concurrency. The batch order is preserved, but the execution order of steps within a batch is not. After each batch completes, its combined output is passed as input to the next batch. This mode is useful when you need to process and aggregate data in groups, where the exact order of individual step execution doesn’t matter, but the batch-level result does.
 
 It's worth noting that regardless of the mode used, you'll get full process isolation at the workflow level and individual steps.
-
-### Concurrency
-
-Concurrency was added in `v0.3.6` and ensures that **async** workflows do not spawn _n_ processes where _n_ is the number of steps in your workflow. Instead, a simple concurrency manager has been added and you can configure it with the `concurrency` option in `options`:
-
-```yaml
-options:
-  concurrency: 1 - 32 # defaults to 8
-```
-
-As of `v0.3.6` this does not affect **chained** or **fanout** mode as they currently run sequentially, this may change in future. Since `v0.4.2` this affects all modes. For sequential modes, **concurrency** is fixed at 1.
 
 ### Templating
 
@@ -417,6 +389,7 @@ Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable re
 ### Usage
 
 <!-- usage -->
+
 ```sh-session
 $ npm install -g @xgsd/cli
 $ xgsd COMMAND
@@ -428,26 +401,28 @@ USAGE
   $ xgsd COMMAND
 ...
 ```
+
 <!-- usagestop -->
 
 ### Commands
 
 <!-- commands -->
-* [`xgsd exec PACKAGE`](#xgsd-exec-package)
-* [`xgsd help [COMMAND]`](#xgsd-help-command)
-* [`xgsd plugins`](#xgsd-plugins)
-* [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
-* [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
-* [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
-* [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
-* [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
-* [`xgsd plugins reset`](#xgsd-plugins-reset)
-* [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
-* [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
-* [`xgsd plugins update`](#xgsd-plugins-update)
-* [`xgsd run FUNCTION`](#xgsd-run-function)
-* [`xgsd update [CHANNEL]`](#xgsd-update-channel)
-* [`xgsd version`](#xgsd-version)
+
+- [`xgsd exec PACKAGE`](#xgsd-exec-package)
+- [`xgsd help [COMMAND]`](#xgsd-help-command)
+- [`xgsd plugins`](#xgsd-plugins)
+- [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
+- [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
+- [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
+- [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
+- [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
+- [`xgsd plugins reset`](#xgsd-plugins-reset)
+- [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
+- [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
+- [`xgsd plugins update`](#xgsd-plugins-update)
+- [`xgsd run FUNCTION`](#xgsd-run-function)
+- [`xgsd update [CHANNEL]`](#xgsd-update-channel)
+- [`xgsd version`](#xgsd-version)
 
 ## `xgsd exec PACKAGE`
 
@@ -877,4 +852,5 @@ FLAG DESCRIPTIONS
 ```
 
 _See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/v2.2.32/src/commands/version.ts)_
+
 <!-- commandsstop -->
