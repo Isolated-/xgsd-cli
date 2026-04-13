@@ -131,6 +131,8 @@ export const userCodeLogCollector = (context: WorkflowContext<any>, path: string
   const hour = bucket.format('HH:mm')
   const logPath = join(context.output, 'logs')
 
+  console.log(logPath)
+
   let humanLog = join(logPath, `logs-${unit === 'h' ? hour : day}.log`)
   let jsonlLog = join(logPath, `logs-${day}.combined.jsonl`)
 

@@ -323,7 +323,8 @@ export const handleWorkflowEnded = async (context: WorkflowContext) => {
 
   writeJsonSync(path, result, {spaces: 2, mode: 0o600})
   writeJsonSync(join(context.output, 'latest.json'), result, {spaces: 2, mode: 0o600})
-  writeJsonSync(join(context.config.output, context.name + '.latest.json'), result, {spaces: 2, mode: 0o600})
+
+  writeJsonSync(join(context.config.output, 'runs', context.name + '.latest.json'), result, {spaces: 2, mode: 0o600})
 
   if (!context.config.collect?.run) {
     log(`you have disabled run collection, removing results file.`, 'warn', context)

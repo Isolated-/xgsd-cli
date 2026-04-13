@@ -137,7 +137,7 @@ export default class Run extends BaseCommand<typeof Command> {
 
     const workflowName = getWorkflowName(foundPath, userConfig.name, userCodePackageJson.name)
 
-    const newOutputPath = userConfig.logs?.path || join(this.config.home, '.xgsd')
+    const newOutputPath = userConfig.logs?.path || userModulePath
 
     prettyPrintLogs(event, flags, this)
     try {

@@ -42,8 +42,7 @@ export class WorkflowContext<T extends SourceData = SourceData> {
     this.state = PipelineState.Pending
     this.start = new Date().toISOString()
     const today = this.start.split('T')[0]
-    console.log(config.output)
-    this.output = join(config.output || '', today, this.name, this.route)
+    this.output = join(config.output || '', 'runs', today)
     this.end = null
     this.duration = null
     this.config = config
