@@ -8,14 +8,6 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
   static baseFlags = {
     // general
     force: Flags.boolean({description: 'force the action to complete (not recommended)'}),
-    // by default this should just be active
-    /*    watch: Flags.boolean({
-      char: 'w',
-      description:
-        'watch for changes (streams logs to console from containers/processes/etc), wont impact logs written to disk',
-      default: true,
-      allowNo: true,
-    }),*/
 
     level: Flags.string({
       char: 'l',
@@ -24,14 +16,6 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
       multipleNonGreedy: true,
       default: ['info', 'user', 'status', 'success', 'retry', 'warn', 'error'],
       options: ['info', 'user', 'status', 'success', 'retry', 'warn', 'error'],
-    }),
-
-    // workflow/orchestration
-    // remove thiss
-    workflow: Flags.string({
-      char: 'e',
-      description: 'you can specify a workflow by name when you have a workflows/ folder in your NPM package',
-      required: false,
     }),
 
     // UI/output

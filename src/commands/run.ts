@@ -39,6 +39,7 @@ export default class Run extends BaseCommand<typeof Command> {
     function: Args.string({
       description: 'function to run',
       required: true,
+      default: process.cwd(),
     }),
   }
   static override enableJsonFlag: boolean = true
@@ -64,9 +65,16 @@ export default class Run extends BaseCommand<typeof Command> {
       min: 1,
     }),
 
-    lite: Flags.boolean({
+    /*lite: Flags.boolean({
       description: 'run in lite mode (no isolation, faster for local development)',
+    }),*/
+
+    input: Flags.boolean({
+      char: 'i',
+      description: 'print input data to console',
     }),
+
+    output: Flags.boolean({char: 'o', description: 'print output data to console'}),
   }
 
   public async run(): Promise<any> {
@@ -141,6 +149,10 @@ export default class Run extends BaseCommand<typeof Command> {
           version: userConfig.version || userCodePackageJson.version,
           package: userModulePath,
           output: newOutputPath,
+          print: {
+            input: userConfig.print?.input || flags.input,
+            output: userConfig.print?.output || flags.output,
+          },
         },
         event,
         false,

@@ -29,7 +29,7 @@ export default class New extends Command {
 
     cpSync(join(process.cwd(), 'templates', 'bundled'), args.project!, {recursive: true})
 
-    const config = loadUserProjectConfig(args.project!)
+    let config = loadUserProjectConfig(args.project!)
 
     config.name = args.project!
 
