@@ -1,3 +1,4 @@
+// core method - document
 export async function runWithConcurrency<T>(
   items: T[],
   limit: number,

@@ -1,5 +1,7 @@
 import {HelperFn, helpers} from './workflow.helpers'
 
+// NOTE: this file is mainly just helpers (not much processing going on)
+
 export function callHelper(helperName: string, value: any, ...args: any[]) {
   const fn: HelperFn | undefined = helpers[helperName]
   if (!fn) throw new Error(`Helper "${helperName}" not found`)

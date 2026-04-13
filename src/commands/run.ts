@@ -18,10 +18,6 @@ import {PipelineState} from '../@core/@types/pipeline.types'
 import {merge} from '../@core/util/object.util'
 
 export const prettyPrintLogs = (event: EventEmitter2, flags: Record<string, any>, cmd: Run) => {
-  if (!flags.watch) {
-    return
-  }
-
   event.on('message', (msg) => {
     let message = `${msg.log.message}`
     if (!flags.level || !flags.level.includes(msg.log.level)) {
@@ -132,6 +128,7 @@ export default class Run extends BaseCommand<typeof Command> {
     }
 
     const workflowName = getWorkflowName(foundPath, userConfig.name, userCodePackageJson.name)
+
     const newOutputPath = userConfig.logs?.path || join(this.config.home, '.xgsd')
 
     prettyPrintLogs(event, flags, this)
@@ -146,22 +143,8 @@ export default class Run extends BaseCommand<typeof Command> {
           output: newOutputPath,
         },
         event,
-        flags.lite || false,
+        false,
       )
-
-      /**await userCodeOrchestration(
-        data,
-        {
-          ...userConfig,
-          name: workflowName,
-          version: userConfig.version || userCodePackageJson.version,
-          package: userModulePath,
-          output: newOutputPath,
-          force: flags.force || false,
-          cli: this.config.version,
-        },
-        event,
-      )**/
     } catch (e: any) {
       if (e.message) {
         this.error(e.message)

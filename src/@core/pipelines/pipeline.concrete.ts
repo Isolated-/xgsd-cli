@@ -21,6 +21,7 @@ import moment = require('moment')
 import {WorkflowError, WorkflowErrorCode} from '../@shared/workflow.error'
 import {BasicOrchestrator} from '../@shared/orchestration/basic.orchestrator'
 import {IsolatedOrchestrator} from '../@shared/orchestration/isolated.orchestrator'
+import {Project} from '../@types/project.types'
 
 /**
  *  Orchestrates a single step in the pipeline.

@@ -22,3 +22,5 @@ coverage/*
 runs/*
 
 ARCH.md
+userdocs/*
+templates/*

@@ -7,6 +7,7 @@ import {deepmerge2} from '../../util/object.util'
 import {runWithConcurrency} from './concurrency.process'
 import {ProcessManager} from './manager.process'
 
+// core method
 export async function runStep(idx: number, step: PipelineStep<any>, context: WorkflowContext) {
   const startedAt = new Date().toISOString()
   let timeoutMs: number | undefined

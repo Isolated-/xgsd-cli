@@ -10,6 +10,7 @@ import {dispatchWebhook} from '../actions/dispatch-webhook.action'
 import {runWithConcurrency} from '../@shared/process/concurrency.process'
 import {exponentialBackoff} from '../@shared/workflow-backoff.strategies'
 import {helpers} from '../@shared/workflow.helpers'
+import {Project} from '../@types/project.types'
 
 export enum WorkflowEvent {
   WorkflowStarted = 'workflow.started',
@@ -84,7 +85,8 @@ export const handleStepError = (context: WorkflowContext, step: PipelineStep, er
 }
 
 export const handleStepStarted = (context: WorkflowContext, step: PipelineStep) => {
-  let name = step.name ? step.name : 'unknown'
+  let name: any = 'unknown'
+  name = step.name || step.run
 
   const timeout = getDurationString(step.options?.timeout || context.config.options.timeout!)
   const delay = getDurationString(step.options?.delay as string)
@@ -208,9 +210,7 @@ export const handleStepFailing = (context: WorkflowContext, step: PipelineStep, 
 }
 
 export const handleWorkflowStarted = (context: WorkflowContext) => {
-  let message = `workflow "${key(context.name.slice(-30))}" (v${key(context.config.version)}) started in ${key(
-    context.mode,
-  )} mode.`
+  let message = `${key(context.name.slice(-30))} (${key(context.config.version)}) started.`
   log(message, 'info', context)
 
   const timeout = getDurationString(context.config.options.timeout!)
@@ -225,11 +225,12 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
   // refactor this later
   const isDocker = pathExistsSync('/.dockerenv')
 
-  message = `id: ${key(context.id)}, timeout: ${key(timeout)}, retries: ${key(retries)}, steps: ${key(
-    steps,
-  )}, backoff method: ${key(backoff)}.`
-  log(message, 'info', context)
+  log(`id: ${key(context.id)}`, 'info', context)
+  log(`description: ${key(context.description || 'no description')}`, 'info', context)
+  log(`metadata: ${key(JSON.stringify(context.config.metadata || {}))}`, 'info', context)
+  log(`mode: ${key(context.mode)}`, 'info', context)
 
+  /*
   log(
     `runner: ${key(context.runner)}, cli: ${key(context.cli)}, node: ${key(process.version)}, config hash: ${key(
       context.hash,
@@ -237,9 +238,6 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
     'info',
     context,
   )
-
-  log(`description: ${key(context.description || 'no description')}`, 'info', context)
-  log(`metadata: ${key(JSON.stringify(context.config.metadata || {}))}`, 'info', context)
 
   log(
     'note: this is a work in progress, please report any issues (https://github.com/Isolated-/xgsd-cli)',
@@ -266,7 +264,7 @@ export const handleWorkflowStarted = (context: WorkflowContext) => {
 
   if (context.mode === 'batched') {
     log(`a maximum of ${key(concurrency)} steps will be executed per batch.`, 'info', context)
-  }
+  }*/
 
   // create result file now
   const path = join(context.output, 'results')
@@ -356,10 +354,19 @@ export const handleWorkflowEnded = async (context: WorkflowContext) => {
     log(message, 'error', context)
   }
 
-  message = `executed ${key(steps.length)} steps, ${key(succeeded.length)} succeeded, ${key(
-    failed.length,
-  )} failed and ${key(skipped.length)} skipped in ${key(duration)}.`
+  message = `ran ${key(steps.length)} blocks, ${key(succeeded.length)} succeeded in ${key(duration)}`
   log(message, 'success', context)
+
+  message = `result available at ${key(join(context.output, 'latest.json'))}`
+  log(message, 'success', context)
+
+  if (failed.length !== 0) {
+    log(`${key(`${failed.length}`)} failed`, 'error', context)
+  }
+
+  if (skipped.length !== 0) {
+    log(`${skipped.length} blocks skipped this run`, 'info', context)
+  }
 
   if (unknown !== 0) {
     log(
@@ -369,30 +376,5 @@ export const handleWorkflowEnded = async (context: WorkflowContext) => {
       'warn',
       context,
     )
-  }
-
-  if (context.config.webhooks && context.config.webhooks.length > 0) {
-    log(`dispatching ${key(context.config.webhooks.length)} webhooks...`, 'info', context)
-    log(`this is a new feature, report any errors to https://github.com/Isolated-/xgsd-cli`, 'info', context)
-
-    runWithConcurrency(context.config.webhooks, 4, async (webhook) => {
-      const short = helpers.truncate(webhook.url, 8, 16)
-      const attempts = context.config.options.retries! > 0 ? context.config.options.retries! : 1
-      log(`sending webhook to ${key(short)}`, 'info', context)
-
-      retry({url: webhook.url, result}, dispatchWebhook, attempts, {
-        timeout: context.config.options.timeout!,
-        delay: exponentialBackoff,
-        onAttempt(attempt) {
-          log(
-            `${key(short)} is failing, attempt ${attempt.attempt + 1}/${attempts} next in ${getDurationString(
-              attempt.nextMs,
-            )}, error: ${attempt.error?.message}`,
-            'error',
-            context,
-          )
-        },
-      })
-    })
   }
 }
