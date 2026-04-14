@@ -5,6 +5,20 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [`v0.5.x`] - Unreleased
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+- **Docker support**
+
+---
+
 ## [`v0.4.3`] - Unreleased
 
 ### Added
