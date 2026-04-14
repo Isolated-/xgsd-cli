@@ -92,8 +92,6 @@ export async function processStep(
     return prepared
   }
 
-  console.log(prepared)
-
   event?.(WorkflowEvent.StepStarted, {step: prepared})
 
   const options = merge(context.config.options, step.options) as {retries: number; timeout: number}
