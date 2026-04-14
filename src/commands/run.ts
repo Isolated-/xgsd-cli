@@ -148,20 +148,6 @@ export default class Run extends BaseCommand<typeof Command> {
         event,
         flags.lite || false,
       )
-
-      /**await userCodeOrchestration(
-        data,
-        {
-          ...userConfig,
-          name: workflowName,
-          version: userConfig.version || userCodePackageJson.version,
-          package: userModulePath,
-          output: newOutputPath,
-          force: flags.force || false,
-          cli: this.config.version,
-        },
-        event,
-      )**/
     } catch (e: any) {
       if (e.message) {
         this.error(e.message)
