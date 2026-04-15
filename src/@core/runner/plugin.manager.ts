@@ -3,6 +3,14 @@ import {Hooks, ProjectContext, Block} from './runner.types'
 export type PluginFactory = (ctx: ProjectContext) => Hooks
 export type PluginInput = Hooks | PluginFactory | (new (ctx: ProjectContext) => Hooks)
 
+export const loadUserPlugins = (context: ProjectContext, container: PluginContainer) => {
+  const mod = require(context.package)
+
+  if (typeof mod.plugins === 'function') {
+    mod.plugins(container)
+  }
+}
+
 export class PluginContainer {
   private factories: ((ctx: ProjectContext) => Hooks)[] = []
 
@@ -42,6 +50,5 @@ export class PluginManager implements Hooks {
   }
 
   async blockStart(context: ProjectContext, block: Block): Promise<void> {}
-
   async blockEnd(context: ProjectContext, block: Block): Promise<void> {}
 }

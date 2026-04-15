@@ -5,7 +5,7 @@ import {BasicOrchestrator} from '../@shared/orchestration/basic.orchestrator'
 import {IsolatedOrchestrator} from '../@shared/orchestration/isolated.orchestrator'
 import {SourceData, FlexibleWorkflowConfig} from '../@types/pipeline.types'
 import {userCodeLogCollector} from '../pipelines/pipeline.concrete'
-import {captureRunnerEvents} from './runner.events'
+import {captureRunnerEvents} from './runner.lifecycle'
 
 export const userCodeOrchestrationv2 = async <T extends SourceData = SourceData>(
   data: any,
