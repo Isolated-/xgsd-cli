@@ -1,21 +1,19 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {basename, extname, join, resolve} from 'path'
 import {mkdtempSync, pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
-import {userCodeOrchestration, userCodeOrchestrationv2} from '../@core/pipelines/pipeline.concrete'
 import {EventEmitter2} from 'eventemitter2'
 import chalk from 'chalk'
 import {
   findUserWorkflowConfigPath,
   loadUserWorkflowConfig,
-  orchestration,
   validateWorkflowConfig,
 } from '../@core/pipelines/pipelines.util'
 import {userLogThemes} from '../constants'
 import {BaseCommand} from '../base'
 import {defaultWith} from '../@core/util/misc.util'
 import {normaliseWorkflowName} from '../@core/util/workflow.util'
-import {PipelineState} from '../@core/@types/pipeline.types'
 import {merge} from '../@core/util/object.util'
+import {userCodeOrchestrationv2} from '../@core/runner/runner.orchestration'
 
 export const prettyPrintLogs = (event: EventEmitter2, flags: Record<string, any>, cmd: Run) => {
   if (!flags.watch) {
