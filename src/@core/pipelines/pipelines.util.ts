@@ -146,7 +146,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
       .items(
         Joi.object({
           enabled: Joi.boolean().default(true),
-          name: Joi.string().required(),
+          name: Joi.string().required().optional(),
           description: Joi.string().optional(),
           data: Joi.object().optional(),
           env: Joi.object().pattern(Joi.string(), Joi.string()).optional(),
@@ -158,7 +158,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
           run: Joi.string().optional(),
         }),
       )
-      .min(1)
+      .min(0)
       .max(64),
   })
 
@@ -203,23 +203,25 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
     },
   }
 
-  const steps = config.steps.map((step) => ({
-    ...step,
-    name: step.name,
-    description: step.description || 'no description',
-    action: step.run || step.action || null,
-    enabled: step.enabled ?? true,
-    data: deepmerge({}, header.data, step.data, step.with),
-    env: step.env || null,
-    options: {
-      timeout: step.options?.timeout || header.options.timeout,
-      retries: step.options?.retries || header.options.retries,
-      backoff: step.options?.backoff || header.options.backoff,
-      delay: step.options?.delay || header.options.delay,
-    },
-    if: step.if ?? null,
-    run: step.action || step.run || null,
-  }))
+  const steps = config.steps
+    ? config.steps.map((step) => ({
+        ...step,
+        name: step.name,
+        description: step.description || 'no description',
+        action: step.run || step.action || null,
+        enabled: step.enabled ?? true,
+        data: deepmerge({}, header.data, step.data, step.with),
+        env: step.env || null,
+        options: {
+          timeout: step.options?.timeout || header.options.timeout,
+          retries: step.options?.retries || header.options.retries,
+          backoff: step.options?.backoff || header.options.backoff,
+          delay: step.options?.delay || header.options.delay,
+        },
+        if: step.if ?? null,
+        run: step.action || step.run || null,
+      }))
+    : []
 
   return {
     ...header,
