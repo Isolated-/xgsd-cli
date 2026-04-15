@@ -2,17 +2,19 @@ import chalk from 'chalk'
 import {Hooks, ProjectContext, Block} from '../runner.types'
 
 export class LoggerPlugin implements Hooks {
-  protected async log(message: string, level: string, context: ProjectContext, block?: Block): Promise<void> {
-    context.stream.emit('message', {
+  constructor(private readonly context: ProjectContext) {}
+
+  protected async log(message: string, level: string, context?: ProjectContext, block?: Block): Promise<void> {
+    this.context.stream.emit('message', {
       log: {
         level,
         message,
         timestamp: new Date().toISOString(),
         node: process.version,
         runner: 'xgsd@v1',
-        context: context.id,
-        workflow: context.name,
-        project: context.name,
+        context: context?.id || this.context.id,
+        workflow: context?.name || this.context.name,
+        project: context?.name || this.context.name,
         step: block ? block.name : undefined,
         block: block ? block.name : undefined,
       },

@@ -4,8 +4,13 @@ import {Block, Hooks, ProjectContext} from '../runner.types'
 let cachedModule: any = null
 
 const hookMap = {
+  // lifecycle
+  onMessage: 'onMessage',
+  // project/block
   projectStart: 'onProjectStart',
   projectEnd: 'onProjectEnd',
+  blockStart: 'onBlockStart',
+  blockEnd: 'onBlockEnd',
 } as const
 
 function loadUserModule(context: ProjectContext) {
@@ -42,6 +47,10 @@ export class UserHooksPlugin implements Hooks {
     }
   }
 
+  async onMessage(event: any, context: ProjectContext): Promise<void> {
+    this.callHook('onMessage', event.log, context)
+  }
+
   async projectStart(context: ProjectContext) {
     await this.callHook('projectStart', context)
   }
@@ -50,6 +59,11 @@ export class UserHooksPlugin implements Hooks {
     await this.callHook('projectEnd', context)
   }
 
-  async blockStart(_context?: ProjectContext, block?: Block) {}
-  async blockEnd(_context?: ProjectContext, block?: Block) {}
+  async blockStart(context: ProjectContext, block: Block) {
+    await this.callHook('blockStart', context, block)
+  }
+
+  async blockEnd(context: ProjectContext, block: Block) {
+    await this.callHook('blockEnd', context, block)
+  }
 }

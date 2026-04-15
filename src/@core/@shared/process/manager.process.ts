@@ -98,7 +98,8 @@ export class ProcessManager {
               timer = setTimeout(timerHandler, this.timeoutMs! + msg.payload.attempt.nextMs + 500)
             }
 
-            this.context.stream.emit('event', {
+            // v0.5 or later
+            this.context.stream.emit(msg.event, {
               event: msg.event,
               payload: msg.payload,
             })

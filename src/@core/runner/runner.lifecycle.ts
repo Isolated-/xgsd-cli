@@ -6,13 +6,18 @@ import {ReporterPlugin} from './plugins/reporter.plugin'
 import {Block, Hooks, ProjectContext} from './runner.types'
 import {UserHooksPlugin} from './plugins/userhooks.plugin'
 
-export enum RunnerEvent {
-  ProjectStarted = 'project.started',
-  ProjectEnded = 'project.ended',
-  BlockStarted = 'block.started',
-  BlockEnded = 'block.ended',
-  BlockFailed = 'block.failed',
-  BlockRetrying = 'block.retrying',
+export enum ProjectEvent {
+  Started = 'project.started',
+  Ended = 'project.ended',
+}
+
+export enum BlockEvent {
+  Started = 'block.started',
+  Ended = 'block.ended',
+  Failed = 'block.failed',
+  Retrying = 'block.retrying',
+  Skipped = 'block.skipped',
+  Error = 'block.error',
 }
 
 export type Payload = {
@@ -20,7 +25,15 @@ export type Payload = {
   block?: Block
 }
 
-const bind = (fn: Function, manager: PluginManager) => (e: any) => fn(e.payload, manager)
+const bind = (fn: Function, manager: PluginManager, context?: ProjectContext) => (e: any) => {
+  const payload = {
+    context,
+    ...e.payload,
+    block: e.payload.step,
+  }
+
+  return fn(payload, manager)
+}
 
 export const captureRunnerEvents = (context: WorkflowContext<any>) => {
   const container = new PluginContainer()
@@ -38,11 +51,16 @@ export const captureRunnerEvents = (context: WorkflowContext<any>) => {
   const hooks = container.createHooks(context)
   const manager = new PluginManager(hooks)
 
-  // project.started/workflow.started
-  context.stream.on(WorkflowEvent.WorkflowStarted, bind(onProjectStart, manager))
+  // lifecycle
+  context.stream.on('message', (e) => onMessage(e, manager, context))
 
-  // project.ended/workflow.ended
-  context.stream.on(WorkflowEvent.WorkflowCompleted, bind(onProjectEnd, manager))
+  // project events
+  context.stream.on(ProjectEvent.Started, bind(onProjectStart, manager))
+  context.stream.on(ProjectEvent.Ended, bind(onProjectEnd, manager))
+
+  // block events
+  context.stream.on(BlockEvent.Started, bind(onBlockStart, manager, context))
+  context.stream.on(BlockEvent.Ended, bind(onBlockEnd, manager, context))
 }
 
 export const onProjectStart = async (payload: Payload, manager: PluginManager) => {
@@ -51,4 +69,16 @@ export const onProjectStart = async (payload: Payload, manager: PluginManager) =
 
 export const onProjectEnd = async (payload: Payload, manager: PluginManager) => {
   await manager.projectEnd(payload.context)
+}
+
+export const onBlockStart = async (payload: Payload, manager: PluginManager) => {
+  await manager.blockStart(payload.context, payload.block!)
+}
+
+export const onBlockEnd = async (payload: Payload, manager: PluginManager) => {
+  await manager.blockEnd(payload.context, payload.block!)
+}
+
+export const onMessage = async (event: any, manager: PluginManager, context: ProjectContext) => {
+  await manager.onMessage(event, context)
 }

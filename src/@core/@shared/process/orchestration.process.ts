@@ -63,6 +63,8 @@ export async function executeSteps(
 
   process.setMaxListeners(context.config.steps.length)
 
+  // TODO: test that this is actually working
+  // seems to not complete the workflow (or atleast no final message)
   if (options.mode === 'batched') {
     const batchSize = concurrency
 

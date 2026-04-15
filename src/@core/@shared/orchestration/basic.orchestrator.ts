@@ -1,39 +1,28 @@
-import ms = require('ms')
-import {PipelineState, PipelineStep, SourceData} from '../../@types/pipeline.types'
-import {WorkflowEvent} from '../../workflows/workflow.events'
+import {PipelineStep, SourceData} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
 import {Orchestrator} from '../interfaces/orchestrator.interface'
 import {runWithConcurrency} from '../process/concurrency.process'
-import {executeSteps, runStep} from '../process/orchestration.process'
 import {resolveStepData} from '../runner.process'
 import {exponentialBackoff} from '../workflow-backoff.strategies'
-import {
-  dataSizeRegulator,
-  finaliseStepData,
-  importUserModule,
-  prepareStepData,
-  processStep,
-} from '../workflow.step-process'
+import {processStep} from '../workflow.step-process'
 import {deepmerge2, merge} from '../../util/object.util'
-import {getDurationNumber} from '../../pipelines/pipelines.util'
-import {retry} from '../runner'
-import {WorkflowError} from '../workflow.error'
-import {delayFor} from '../../util/misc.util'
+import {BlockEvent, ProjectEvent} from '../../runner/runner.lifecycle'
 
 export class BasicOrchestrator<T extends SourceData = SourceData> implements Orchestrator<T> {
   constructor(public context: WorkflowContext<T>) {}
 
   async before(): Promise<void> {
-    this.event(WorkflowEvent.WorkflowStarted, {
-      context: this.context,
-    })
+    this.event(ProjectEvent.Started, {context: this.context})
   }
 
-  event(name: WorkflowEvent, payload: any): void {
-    this.context.stream.emit('event', {
-      event: name,
-      payload,
-    })
+  event(name: ProjectEvent | BlockEvent, payload: any): void {
+    // leave this here for now (may break logging)
+    //this.context.stream.emit('event', {
+    //  event: name,
+    //  payload,
+    //})
+
+    this.context.stream.emit(name, {event: name, payload})
   }
 
   async orchestrate(): Promise<void> {
@@ -122,20 +111,20 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
       this.context,
       exponentialBackoff,
       async (attempt) => {
-        this.event(WorkflowEvent.StepRetry, {
+        this.event(BlockEvent.Retrying, {
           step,
           attempt,
           context: this.context,
         })
       },
       (name: string, payload) => {
-        this.event(name as WorkflowEvent, payload)
+        this.event(name as BlockEvent, payload)
       },
     )
   }
 
   async after(): Promise<void> {
-    this.event(WorkflowEvent.WorkflowCompleted, {
+    this.event(ProjectEvent.Ended, {
       context: this.context,
     })
   }

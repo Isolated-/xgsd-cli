@@ -4,9 +4,8 @@ import {PipelineState, PipelineStep} from '../@types/pipeline.types'
 import {getDurationString, getWorkflowStats, orchestration} from '../pipelines/pipelines.util'
 import {retry, RetryAttempt} from '../@shared/runner/retry.runner'
 import {WrappedError} from '../@shared/runner'
-import {join} from 'path'
+import {format, join} from 'path'
 import chalk from 'chalk'
-import {dispatchWebhook} from '../actions/dispatch-webhook.action'
 import {runWithConcurrency} from '../@shared/process/concurrency.process'
 import {exponentialBackoff} from '../@shared/workflow-backoff.strategies'
 import {helpers} from '../@shared/workflow.helpers'
@@ -25,11 +24,17 @@ export enum WorkflowEvent {
 
 export const key = (key: any) => chalk.bold(key)
 
+// this could be improved by changing how events are dispatched
+// from a general `event` into individual events (workflow.started for example)
+// instead of the switch statement:
+// context.stream.on('workflow.started', handleWorkflowStarted)
 export const captureEvents = (context: WorkflowContext<any>) => {
   context.stream.on('event', (event) => {
     if (!event) {
       return
     }
+
+    console.log(event.event)
 
     switch (event.event) {
       case WorkflowEvent.WorkflowStarted:
@@ -207,7 +212,64 @@ export const handleStepFailing = (context: WorkflowContext, step: PipelineStep, 
   )
 }
 
-export const handleWorkflowStarted = (context: WorkflowContext) => {
+export class UserLogger {
+  constructor(
+    private readonly context: WorkflowContext,
+    private readonly step?: PipelineStep,
+  ) {}
+
+  start() {
+    const {context, step} = this
+
+    let message = `workflow "${key(context.name.slice(-30))}" (v${key(context.config.version)}) started in ${key(
+      context.mode,
+    )} mode.`
+    log(message, 'info', context)
+  }
+}
+
+export class UserReporter {
+  private readonly _path: string
+
+  constructor(
+    private readonly context: WorkflowContext,
+    private readonly step?: PipelineStep,
+  ) {
+    this._path = join(context.output, 'results')
+  }
+
+  get path() {
+    return this._path
+  }
+
+  async create() {
+    const {context, path} = this
+
+    const formatted = context.format!()
+    formatted.state = PipelineState.Running
+    formatted.steps = []
+
+    ensureDirSync(path)
+
+    await this.save(`results-${context.start}.json`, formatted)
+  }
+
+  async save(file: string, data: any) {
+    writeJsonSync(join(this.path, file), data, {
+      spaces: 2,
+    })
+  }
+}
+
+export const handleWorkflowStarted = async (context: WorkflowContext) => {
+  const logger = new UserLogger(context)
+  const reporter = new UserReporter(context)
+
+  logger.start()
+  await reporter.create()
+}
+
+export const handleWorkflowStartedOld = (context: WorkflowContext) => {
   let message = `workflow "${key(context.name.slice(-30))}" (v${key(context.config.version)}) started in ${key(
     context.mode,
   )} mode.`
@@ -311,9 +373,10 @@ export const handleWorkflowEnded = async (context: WorkflowContext) => {
   }
 
   steps = result.steps || []
-  result.state = steps.some((step) => step.state === PipelineState.Completed)
-    ? PipelineState.Completed
-    : PipelineState.Failed
+  result.state =
+    steps.length === 0 || steps.some((step) => step.state === PipelineState.Completed)
+      ? PipelineState.Completed
+      : PipelineState.Failed
 
   result.end = context.end
   result.duration = context.duration
@@ -371,7 +434,7 @@ export const handleWorkflowEnded = async (context: WorkflowContext) => {
     )
   }
 
-  if (context.config.webhooks && context.config.webhooks.length > 0) {
+  /**if (context.config.webhooks && context.config.webhooks.length > 0) {
     log(`dispatching ${key(context.config.webhooks.length)} webhooks...`, 'info', context)
     log(`this is a new feature, report any errors to https://github.com/Isolated-/xgsd-cli`, 'info', context)
 
@@ -394,5 +457,5 @@ export const handleWorkflowEnded = async (context: WorkflowContext) => {
         },
       })
     })
-  }
+  }**/
 }

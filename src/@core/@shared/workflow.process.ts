@@ -1,5 +1,6 @@
 import {PipelineState, PipelineStep, SourceData} from '../@types/pipeline.types'
 import {ParentMessage} from '../pipelines/pipeline.concrete'
+import {ProjectEvent} from '../runner/runner.lifecycle'
 import {WorkflowEvent} from '../workflows/workflow.events'
 import {executeSteps} from './process/orchestration.process'
 
@@ -14,7 +15,7 @@ process.on('message', async (msg: ParentMessage<SourceData>) => {
   const {context, data} = msg
   const {config} = context
 
-  event(WorkflowEvent.WorkflowStarted, {context})
+  event(ProjectEvent.Started, {context})
 
   // v0.4.0 - concurrency is implemented
   // concurrency = max amount of processes at one time
@@ -24,7 +25,7 @@ process.on('message', async (msg: ParentMessage<SourceData>) => {
     concurrency: config.options?.concurrency,
   })
 
-  event(WorkflowEvent.WorkflowCompleted, {state: PipelineState.Completed})
+  event(ProjectEvent.Ended, {context, state: PipelineState.Completed})
   process.send!({
     type: 'PARENT:RESULT',
     result: {state: PipelineState.Completed},

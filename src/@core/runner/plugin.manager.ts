@@ -37,18 +37,43 @@ export class PluginContainer {
 export class PluginManager implements Hooks {
   constructor(private readonly _hooks: Hooks[]) {}
 
+  // lifecycle
+  async onMessage(event: any, context: ProjectContext): Promise<void> {
+    for (const hook of this._hooks) {
+      if (!hook.onMessage) continue
+
+      await hook.onMessage(event, context)
+    }
+  }
+
   async projectStart(context: ProjectContext): Promise<void> {
     for (const hook of this._hooks) {
+      if (!hook.projectStart) continue
+
       await hook.projectStart(context)
     }
   }
 
   async projectEnd(context: ProjectContext): Promise<void> {
     for (const hook of this._hooks) {
+      if (!hook.projectEnd) continue
+
       await hook.projectEnd(context)
     }
   }
 
-  async blockStart(context: ProjectContext, block: Block): Promise<void> {}
-  async blockEnd(context: ProjectContext, block: Block): Promise<void> {}
+  async blockStart(context: ProjectContext, block: Block): Promise<void> {
+    for (const hook of this._hooks) {
+      if (!hook.blockStart) continue
+
+      await hook.blockStart(context, block)
+    }
+  }
+
+  async blockEnd(context: ProjectContext, block: Block): Promise<void> {
+    for (const hook of this._hooks) {
+      if (!hook.blockEnd) continue
+      await hook.blockEnd(context, block)
+    }
+  }
 }

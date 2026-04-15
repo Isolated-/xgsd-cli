@@ -10,6 +10,7 @@ import {getBackoffStrategy} from './workflow-backoff.strategies'
 import {defaultWith, delayFor} from '../util/misc.util'
 import ms = require('ms')
 import {getDurationNumber} from '../pipelines/pipelines.util'
+import {BlockEvent, ProjectEvent} from '../runner/runner.lifecycle'
 
 export const DATA_SIZE_LIMIT_KB = 512 // 512 KB
 
@@ -92,7 +93,7 @@ export async function processStep(
     return prepared
   }
 
-  event?.(WorkflowEvent.StepStarted, {step: prepared})
+  event?.(BlockEvent.Started, {step: prepared})
 
   const options = merge(context.config.options, step.options) as {retries: number; timeout: number}
 
@@ -153,7 +154,7 @@ export async function processStep(
 
   const finalData = finaliseStepData(prepared, context)
 
-  event?.(WorkflowEvent.StepCompleted, {step: finalData})
+  event?.(BlockEvent.Ended, {step: finalData})
 
   return finalData
 }
@@ -205,8 +206,9 @@ export function prepareStepData(step: PipelineStep, context: WorkflowContext) {
 export async function importUserModule(step: PipelineStep, context: WorkflowContext) {
   try {
     const action = step.run || step.action!
-    const fn = require(context.package)[action]
-    return fn
+    //const fn = require(context.package)[action]
+    const fn = await import(context.package)
+    return fn[action]
   } catch (error: any) {
     throw new WorkflowError(
       `${context.package} couldn't be loaded. This could mean it wasn't found, or there's an error preventing its load. Check logs for more information. (${error.message})`,
@@ -232,7 +234,7 @@ export const rejectionHandler = (step: PipelineStep) => {
       },
     }
 
-    event(WorkflowEvent.StepCompleted, {step: result.step as any})
+    event(BlockEvent.Failed, {step: result.step as any})
     dispatchMessage('result', {result})
   }
 
@@ -253,7 +255,7 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
   const method = defaultWith('exponential', step.options?.backoff, context.config.options?.backoff)!
   const delay = getBackoffStrategy(method)
   const onAttempt = async (attempt: RetryAttempt) => {
-    event(WorkflowEvent.StepRetry, {attempt, step})
+    event(BlockEvent.Retrying, {attempt, step})
     //event(WorkflowEvent.StepError, {error: attempt.error, step})
   }
 

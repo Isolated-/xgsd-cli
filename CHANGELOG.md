@@ -9,7 +9,11 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Plugin support**
+
 ### Changed
+
+- Redesigned lifecycle event management
 
 ### Fixed
 
