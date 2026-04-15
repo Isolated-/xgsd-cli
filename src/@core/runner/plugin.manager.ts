@@ -1,7 +1,7 @@
 import {Hooks, ProjectContext, Block} from './runner.types'
 
-type PluginFactory = (ctx: ProjectContext) => Hooks
-type PluginInput = Hooks | PluginFactory | (new (ctx: ProjectContext) => Hooks)
+export type PluginFactory = (ctx: ProjectContext) => Hooks
+export type PluginInput = Hooks | PluginFactory | (new (ctx: ProjectContext) => Hooks)
 
 export class PluginContainer {
   private factories: ((ctx: ProjectContext) => Hooks)[] = []
@@ -30,11 +30,15 @@ export class PluginManager implements Hooks {
   constructor(private readonly _hooks: Hooks[]) {}
 
   async projectStart(context: ProjectContext): Promise<void> {
-    await Promise.all(this._hooks.map((h) => h.projectStart(context)))
+    for (const hook of this._hooks) {
+      await hook.projectStart(context)
+    }
   }
 
   async projectEnd(context: ProjectContext): Promise<void> {
-    //await Promise.all(this._hooks.map((h) => h.projectEnd(context)))
+    for (const hook of this._hooks) {
+      await hook.projectEnd(context)
+    }
   }
 
   async blockStart(context: ProjectContext, block: Block): Promise<void> {}
