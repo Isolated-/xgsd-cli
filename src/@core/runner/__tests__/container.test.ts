@@ -1,5 +1,5 @@
 import EventEmitter2 from 'eventemitter2'
-import {WorkflowContext} from '../../@shared/context.builder'
+import {WorkflowContext} from '../../@engine/context.builder'
 import {getWorkflowConfigDefaults} from '../../pipelines/pipelines.util'
 import {PluginContainer} from '../plugin.container'
 import {Hooks, ProjectContext} from '../runner.types'

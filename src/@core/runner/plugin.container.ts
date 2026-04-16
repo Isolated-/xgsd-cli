@@ -1,4 +1,5 @@
 import {FlexibleWorkflowConfig} from '../@types/pipeline.types'
+import {PluginManager} from './plugin.manager'
 import {Hooks, ProjectConfig, ProjectContext} from './runner.types'
 
 export type PluginFactory = (ctx: ProjectContext) => Hooks
@@ -10,6 +11,21 @@ export const loadUserPlugins = (context: ProjectContext, container: PluginContai
   if (typeof mod.plugins === 'function') {
     mod.plugins(container)
   }
+}
+
+export const createPluginManager = (context: ProjectContext, plugins?: PluginInput[]) => {
+  const container = new PluginContainer(context)
+
+  // register plugins
+  plugins?.forEach((plugin) => container.use(plugin))
+
+  // user plugins
+  loadUserPlugins(context.format!() as any, container)
+
+  const hooks = container.createHooks(context)
+  const manager = new PluginManager(hooks)
+
+  return manager
 }
 
 export class PluginContainer {

@@ -1,4 +1,4 @@
-import {RetryAttempt} from '../@shared/runner/retry.runner'
+import {RetryAttempt} from '../@engine/runner/retry.runner'
 import {Hooks, ProjectContext, Block} from './runner.types'
 
 const ctxOnly = (ctx: ProjectContext) => [ctx]

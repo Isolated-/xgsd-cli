@@ -1,4 +1,4 @@
-import {WorkflowContext} from '../@shared/context.builder'
+import {WorkflowContext} from '../@engine/context.builder'
 
 export const normaliseWorkflowName = (name: string): string => {
   if (!name) return ''

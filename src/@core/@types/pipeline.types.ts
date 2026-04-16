@@ -1,6 +1,6 @@
-import {IRunnable} from '../@shared/interfaces/runnable.interface'
-import {RunnerResult, WrappedError} from '../@shared/runner'
-import {RunFn} from '../@shared/types/runnable.types'
+import {IRunnable} from '../@engine/interfaces/runnable.interface'
+import {RunnerResult, WrappedError} from '../@engine/runner'
+import {RunFn} from '../@engine/types/runnable.types'
 import {Require} from './require.type'
 
 export type TransformFn<T extends SourceData = SourceData, R extends SourceData = T> = (data: T) => R

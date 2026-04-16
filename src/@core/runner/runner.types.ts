@@ -1,5 +1,5 @@
-import {WorkflowContext} from '../@shared/context.builder'
-import {RetryAttempt} from '../@shared/runner/retry.runner'
+import {WorkflowContext} from '../@engine/context.builder'
+import {RetryAttempt} from '../@engine/runner/retry.runner'
 import {FlexibleWorkflowConfig, PipelineStep} from '../@types/pipeline.types'
 import {BlockEvent, ProjectEvent} from './runner.lifecycle'
 

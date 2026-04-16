@@ -1,5 +1,5 @@
 import {dirname, extname, join, resolve} from 'path'
-import {RunFn} from '../@shared/types/runnable.types'
+import {RunFn} from '../@engine/types/runnable.types'
 import {FlexibleWorkflowConfig, PipelineConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
 import {ensureDirSync, pathExistsSync, readdirSync, readFileSync, readJsonSync} from 'fs-extra'
 import {load} from 'js-yaml'

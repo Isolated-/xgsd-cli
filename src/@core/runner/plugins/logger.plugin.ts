@@ -2,7 +2,7 @@ import chalk from 'chalk'
 import {Hooks, ProjectContext, Block} from '../runner.types'
 import {getDurationString} from '../../pipelines/pipelines.util'
 import {PipelineState} from '../../@types/pipeline.types'
-import {RetryAttempt} from '../../@shared/runner/retry.runner'
+import {RetryAttempt} from '../../@engine/runner/retry.runner'
 
 export class LoggerPlugin implements Hooks {
   constructor(private readonly context: ProjectContext) {}

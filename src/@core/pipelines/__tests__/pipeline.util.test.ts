@@ -1,5 +1,5 @@
 import {join} from 'path'
-import {RunFn} from '../../@shared/types/runnable.types'
+import {RunFn} from '../../@engine/types/runnable.types'
 import {FlexibleWorkflowConfig, PipelineMode, PipelineState} from '../../@types/pipeline.types'
 import {Require} from '../../@types/require.type'
 import {

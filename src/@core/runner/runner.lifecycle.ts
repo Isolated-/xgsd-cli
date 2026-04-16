@@ -1,11 +1,7 @@
-import {WorkflowContext} from '../@shared/context.builder'
-import {LoggerPlugin} from './plugins/logger.plugin'
+import {WorkflowContext} from '../@engine/context.builder'
 import {PluginManager} from './plugin.manager'
-import {ReporterPlugin} from './plugins/reporter.plugin'
-import {Block, Hooks, ProjectContext} from './runner.types'
-import {UserHooksPlugin} from './plugins/userhooks.plugin'
-import {RetryAttempt} from '../@shared/runner/retry.runner'
-import {loadUserPlugins, PluginContainer} from './plugin.container'
+import {Block, ProjectContext} from './runner.types'
+import {RetryAttempt} from '../@engine/runner/retry.runner'
 
 export enum ProjectEvent {
   Started = 'project.started',
@@ -40,30 +36,11 @@ const bind = (fn: Function, manager: PluginManager, context?: ProjectContext) =>
   return fn(payload, manager)
 }
 
-export const createPluginManager = (context: ProjectContext) => {
-  const container = new PluginContainer(context)
-
-  // as the project grows
-  // may want to remove these
-  // and load them as user plugins instead
-  container.use(ReporterPlugin)
-  container.use(LoggerPlugin)
-
-  // user plugins
-  loadUserPlugins(context.format!() as any, container)
-
-  // user hooks
-  container.use((ctx) => new UserHooksPlugin(ctx))
-
-  const hooks = container.createHooks(context)
-  const manager = new PluginManager(hooks)
-
-  return manager
-}
-
-export const captureRunnerEvents = (context: WorkflowContext<any>) => {
-  const manager = createPluginManager(context)
-
+/**
+ *  EVENT WIRING
+ *  Mapping incoming events to respective handlers
+ */
+export const captureRunnerEvents = (manager: PluginManager, context: WorkflowContext<any>) => {
   // project events
   context.stream.on(ProjectEvent.Started, bind(onProjectStart, manager))
   context.stream.on(ProjectEvent.Ended, bind(onProjectEnd, manager))
@@ -76,6 +53,10 @@ export const captureRunnerEvents = (context: WorkflowContext<any>) => {
   context.stream.on(BlockEvent.Waiting, bind(onBlockWaiting, manager, context))
 }
 
+/**
+ *  EVENT HANDLERS
+ *  These map to PluginManager methods
+ */
 export const onProjectStart = async (payload: Payload, manager: PluginManager) => {
   await manager.projectStart(payload.context)
 }

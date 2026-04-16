@@ -1,7 +1,7 @@
 import {EventEmitter2} from 'eventemitter2'
 import {join} from 'path'
 import {ensureDirSync, pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
-import {WorkflowContext} from '../@shared/context.builder'
+import {WorkflowContext} from '../@engine/context.builder'
 import {createLogger, transports, format} from 'winston'
 import moment = require('moment')
 
