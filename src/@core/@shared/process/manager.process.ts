@@ -1,8 +1,7 @@
 import {ForkOptions, fork} from 'child_process'
 import {PipelineStep, PipelineState} from '../../@types/pipeline.types'
-import {WorkflowEvent} from '../../workflows/workflow.events'
 import {WorkflowContext} from '../context.builder'
-import {WorkflowError, WorkflowErrorCode} from '../workflow.error'
+import {WorkflowError, WorkflowErrorCode} from '../error'
 import {BlockEvent} from '../../runner/runner.lifecycle'
 
 export const event = (name: string, payload: object) => {

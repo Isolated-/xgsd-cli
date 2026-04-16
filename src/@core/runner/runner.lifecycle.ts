@@ -1,5 +1,4 @@
 import {WorkflowContext} from '../@shared/context.builder'
-import {WorkflowEvent} from '../workflows/workflow.events'
 import {LoggerPlugin} from './plugins/logger.plugin'
 import {loadUserPlugins, PluginContainer, PluginManager} from './plugin.manager'
 import {ReporterPlugin} from './plugins/reporter.plugin'

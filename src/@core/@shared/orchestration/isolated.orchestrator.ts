@@ -1,7 +1,5 @@
 import {PipelineStep, SourceData} from '../../@types/pipeline.types'
 import {BlockEvent} from '../../runner/runner.lifecycle'
-import {WorkflowEvent} from '../../workflows/workflow.events'
-import {WorkflowContext} from '../context.builder'
 import {runStep} from '../process/orchestration.process'
 import {BasicOrchestrator} from './basic.orchestrator'
 

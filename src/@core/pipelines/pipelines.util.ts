@@ -1,22 +1,12 @@
 import {dirname, extname, join, resolve} from 'path'
 import {RunFn} from '../@shared/types/runnable.types'
 import {FlexibleWorkflowConfig, PipelineConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
-import {IPipeline} from './interfaces/pipeline.interfaces'
-import {Pipeline} from './pipeline.concrete'
 import {ensureDirSync, pathExistsSync, readdirSync, readFileSync, readJsonSync} from 'fs-extra'
 import {load} from 'js-yaml'
 import {Require} from '../@types/require.type'
 import * as Joi from 'joi'
 import ms = require('ms')
 import {deepmerge} from '../util/object.util'
-
-export const orchestration = async <T extends SourceData = SourceData, R extends SourceData = SourceData>(
-  input: T,
-  ...fns: RunFn<T, R>[]
-): Promise<PipelineConfig<R>> => {
-  const pipeline = new Pipeline(getDefaultPipelineConfig())
-  return pipeline.orchestrate(input, ...(fns as any)) as Promise<PipelineConfig<R>>
-}
 
 export const getDefaultPipelineConfig = <T extends SourceData = SourceData>(
   opts?: Partial<PipelineConfig<T>>,

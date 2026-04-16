@@ -2,13 +2,11 @@ import {join} from 'path'
 import {RunFn} from '../../@shared/types/runnable.types'
 import {FlexibleWorkflowConfig, PipelineMode, PipelineState} from '../../@types/pipeline.types'
 import {Require} from '../../@types/require.type'
-import {Pipeline} from '../pipeline.concrete'
 import {
   findUserWorkflowConfigPath,
   getDefaultPipelineConfig,
   getWorkflowConfigDefaults,
   loadUserWorkflowConfig,
-  orchestration,
   validateWorkflowConfig,
 } from '../pipelines.util'
 
@@ -296,13 +294,6 @@ describe('validateWorkflowConfig', () => {
         steps: [{name: 'My Step', action: 'myAction', options: {timeout: '5s'}}],
       } as any),
     ).not.toThrow()
-  })
-})
-
-describe('orchestration() util function', () => {
-  test('should orchestrate input data through pipe functions (without needing to manage Pipeline or Pipeline.orchestrate()', async () => {
-    const result = await orchestration({foo: 'bar'}, testFn)
-    expect(result.output).toEqual({foo: 'bar'})
   })
 })
 

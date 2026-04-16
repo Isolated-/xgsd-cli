@@ -1,5 +1,5 @@
 import {RetryAttempt} from '../../@shared/runner/retry.runner'
-import {WorkflowError, WorkflowErrorCode} from '../../@shared/workflow.error'
+import {WorkflowError, WorkflowErrorCode} from '../../@shared/error'
 import {Block, Hooks, ProjectContext} from '../runner.types'
 
 let cachedModule: any = null
