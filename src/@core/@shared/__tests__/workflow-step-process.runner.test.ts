@@ -2,8 +2,8 @@ import {EventEmitter2} from 'eventemitter2'
 import {PipelineState, PipelineStep, SourceData} from '../../@types/pipeline.types'
 import {getWorkflowConfigDefaults} from '../../pipelines/pipelines.util'
 import {WorkflowContext} from '../context.builder'
-import {prepareStepData, processStep, shouldRun} from '../block.process'
-import {resolveStepTemplates} from '../util'
+import {processStep, shouldRun} from '../block.process'
+import {prepareStepDataV1, resolveStepTemplates} from '../util'
 
 describe('workflow step process unit tests', () => {
   let step: PipelineStep<SourceData>
@@ -47,7 +47,7 @@ describe('workflow step process unit tests', () => {
   describe('processStep()', () => {
     describe('when starting the process', () => {
       test('should prepare data by resolving templates', () => {
-        const result = prepareStepData(step, ctx)
+        const result = prepareStepDataV1(step, ctx)
         expect(result).toEqual(
           expect.objectContaining({
             if: true,
@@ -62,7 +62,7 @@ describe('workflow step process unit tests', () => {
 
       test('should correctly convert timeout from string to int', () => {
         step.options = {timeout: '5s' as any}
-        const result = prepareStepData(step, ctx)
+        const result = prepareStepDataV1(step, ctx)
         expect(async () => await result).not.toThrow()
       })
     })
@@ -229,11 +229,11 @@ describe('workflow step process unit tests', () => {
       })
     })
 
-    describe('prepareStepData()', () => {
+    describe('prepareStepDataV1()', () => {
       test('should resolve step data correctly', () => {
         const {after, ...data} = step
 
-        const result = prepareStepData(step, ctx)
+        const result = prepareStepDataV1(step, ctx)
         expect(result).toEqual(
           expect.objectContaining({
             if: true,
@@ -252,12 +252,12 @@ describe('workflow step process unit tests', () => {
         step.data = data
         step.if = condition
 
-        const preparedStep = prepareStepData(step, ctx)
+        const preparedStep = prepareStepDataV1(step, ctx)
         expect(preparedStep.if).toBe(false)
       })
 
       test('after should remain untouched', () => {
-        const preparedStep = prepareStepData(step, ctx)
+        const preparedStep = prepareStepDataV1(step, ctx)
         expect(preparedStep.after).toEqual(step.after)
       })
 
@@ -267,7 +267,7 @@ describe('workflow step process unit tests', () => {
           email: '${{ .data.user.email | censor | slice(0, 4) | truncate(1, 1)  }}',
         }
 
-        const preparedStep = prepareStepData(step, ctx)
+        const preparedStep = prepareStepDataV1(step, ctx)
         expect(preparedStep.input).toEqual(
           expect.objectContaining({
             email: '*...*',

@@ -1,4 +1,56 @@
+import {Block, ProjectContext} from '../runner/runner.types'
+import {deepmerge2, isEmptyObject} from '../util/object.util'
+import {WorkflowError, WorkflowErrorCode} from './error'
 import {HelperFn, helpers} from './helpers'
+
+export function prepareStepDataV1(block: Block, context: ProjectContext) {
+  const {after, ...stepData} = block
+  const data = deepmerge2(deepmerge2(context.config.data, block.data), block.input)
+  const resolved = resolveStepData(block, {
+    ...context,
+    step: stepData,
+    data,
+  })
+
+  resolved.data = data
+  resolved.input = deepmerge2(data, resolved.with)
+  resolved.after = after
+
+  return resolved
+}
+
+export function finaliseStepDataV1(block: Block, context: ProjectContext) {
+  if (isEmptyObject(block.after)) {
+    return block
+  }
+
+  block.after = resolveStepData(block.after, {
+    ...context,
+    step: block,
+    data: block.input,
+    output: block.output,
+  })
+
+  if (!isEmptyObject(block.after) && block.output) {
+    block.output = block.after
+    block.after = undefined
+  }
+
+  return block
+}
+
+export async function importUserModuleV1(block: Block, context: ProjectContext) {
+  try {
+    const action = block.run!
+    const fn = await import(context.package)
+    return fn[action]
+  } catch (error: any) {
+    throw new WorkflowError(
+      `${context.package} couldn't be loaded. This could mean it wasn't found, or there's an error preventing its load. Check logs for more information. (${error.message})`,
+      WorkflowErrorCode.ModuleNotFound,
+    )
+  }
+}
 
 export function callHelper(helperName: string, value: any, ...args: any[]) {
   const fn: HelperFn | undefined = helpers[helperName]

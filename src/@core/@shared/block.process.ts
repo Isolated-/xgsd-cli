@@ -1,15 +1,15 @@
 import {PipelineState, PipelineStep} from '../@types/pipeline.types'
 import {retry, WrappedError} from './runner'
-import {resolveStepData, resolveStepTemplates, resolveTemplate} from './util'
+import {finaliseStepDataV1, importUserModuleV1, prepareStepDataV1} from './util'
 import {WorkflowContext} from './context.builder'
 import {RetryAttempt} from './runner/retry.runner'
-import {deepmerge2, isEmptyObject, merge} from '../util/object.util'
+import {merge} from '../util/object.util'
 import {WorkflowError, WorkflowErrorCode} from './error'
 import {getBackoffStrategy} from './backoff'
 import {defaultWith, delayFor} from '../util/misc.util'
 import ms = require('ms')
 import {getDurationNumber} from '../pipelines/pipelines.util'
-import {BlockEvent, ProjectEvent} from '../runner/runner.lifecycle'
+import {BlockEvent} from '../runner/runner.lifecycle'
 
 export const DATA_SIZE_LIMIT_KB = 2048 // 2048 KB
 
@@ -70,7 +70,7 @@ export async function processStep(
   attempt?: (attempt: RetryAttempt) => Promise<any>,
   event?: (name: string, payload: any) => void,
 ) {
-  const prepared = prepareStepData(step, context)
+  const prepared = prepareStepDataV1(step, context)
   prepared.startedAt = new Date().toISOString()
 
   // by this point if/enabled are booleans
@@ -127,11 +127,7 @@ export async function processStep(
   prepared.endedAt = new Date().toISOString()
   prepared.duration = Date.parse(prepared.endedAt) - Date.parse(prepared.startedAt)
 
-  const finalData = finaliseStepData(prepared, context)
-
-  //event?.(BlockEvent.Ended, {step: finalData})
-
-  return finalData
+  return finaliseStepDataV1(prepared, context)
 }
 
 export function shouldRun(step: PipelineStep): boolean {
@@ -140,56 +136,6 @@ export function shouldRun(step: PipelineStep): boolean {
   }
 
   return false
-}
-
-export function finaliseStepData(step: PipelineStep, context: WorkflowContext) {
-  if (isEmptyObject(step.after)) {
-    return step
-  }
-
-  step.after = resolveStepData(step.after, {
-    ...context,
-    step: step,
-    data: step.input,
-    output: step.output,
-  })
-
-  if (!isEmptyObject(step.after) && step.output) {
-    step.output = step.after
-    step.after = undefined
-  }
-
-  return step
-}
-
-export function prepareStepData(step: PipelineStep, context: WorkflowContext) {
-  const {after, ...stepData} = step
-  const data = deepmerge2(deepmerge2(context.config.data, step.data), step.input)
-  const resolved = resolveStepData(step, {
-    ...context,
-    step: stepData,
-    data,
-  })
-
-  resolved.data = data
-  resolved.input = deepmerge2(data, resolved.with)
-  resolved.after = after
-
-  return resolved
-}
-
-export async function importUserModule(step: PipelineStep, context: WorkflowContext) {
-  try {
-    const action = step.run || step.action!
-    //const fn = require(context.package)[action]
-    const fn = await import(context.package)
-    return fn[action]
-  } catch (error: any) {
-    throw new WorkflowError(
-      `${context.package} couldn't be loaded. This could mean it wasn't found, or there's an error preventing its load. Check logs for more information. (${error.message})`,
-      WorkflowErrorCode.ModuleNotFound,
-    )
-  }
 }
 
 export const rejectionHandler = (step: PipelineStep) => {
@@ -225,7 +171,7 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
 
   rejectionHandler(step)
 
-  const fn = await importUserModule(step, context)
+  const fn = await importUserModuleV1(step, context)
 
   const method = defaultWith('exponential', step.options?.backoff, context.config.options?.backoff)!
   const delay = getBackoffStrategy(method)
