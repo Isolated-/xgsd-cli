@@ -1,14 +1,17 @@
 import {RetryAttempt} from '../@shared/runner/retry.runner'
 import {Hooks, ProjectContext, Block} from './runner.types'
 
-const INVOKE_ARGS = {
-  projectStart: (ctx: ProjectContext) => [ctx],
-  projectEnd: (ctx: ProjectContext) => [ctx],
+const ctxOnly = (ctx: ProjectContext) => [ctx]
+const ctxBlock = (ctx: ProjectContext, block?: Block) => [ctx, block]
 
-  blockStart: (ctx: ProjectContext, block?: Block) => [ctx, block],
-  blockEnd: (ctx: ProjectContext, block?: Block) => [ctx, block],
-  blockWait: (ctx: ProjectContext, block?: Block) => [ctx, block],
-  blockSkip: (ctx: ProjectContext, block?: Block) => [ctx, block],
+const INVOKE_ARGS = {
+  projectStart: ctxOnly,
+  projectEnd: ctxOnly,
+
+  blockStart: ctxBlock,
+  blockEnd: ctxBlock,
+  blockWait: ctxBlock,
+  blockSkip: ctxBlock,
 
   blockRetry: (ctx: ProjectContext, block?: Block, attempt?: RetryAttempt) => [ctx, block, attempt],
 } as const
@@ -33,7 +36,7 @@ export class PluginManager implements Hooks {
 
       try {
         const args = INVOKE_ARGS[fn](context, block, attempt)
-        await (method as any)(...args)
+        await (method as any).call(hook, ...args)
       } catch (error) {
         // handle error
       }
@@ -41,30 +44,30 @@ export class PluginManager implements Hooks {
   }
 
   async projectStart(context: ProjectContext): Promise<void> {
-    return this.invoke('projectStart', context)
+    await this.invoke('projectStart', context)
   }
 
   async projectEnd(context: ProjectContext): Promise<void> {
-    return this.invoke('projectEnd', context)
+    await this.invoke('projectEnd', context)
   }
 
   async blockStart(context: ProjectContext, block: Block): Promise<void> {
-    return this.invoke('blockStart', context, block)
+    await this.invoke('blockStart', context, block)
   }
 
   async blockEnd(context: ProjectContext, block: Block): Promise<void> {
-    return this.invoke('blockEnd', context, block)
+    await this.invoke('blockEnd', context, block)
   }
 
   async blockRetry(context: ProjectContext, block: Block, attempt: RetryAttempt): Promise<void> {
-    return this.invoke('blockRetry', context, block, attempt)
+    await this.invoke('blockRetry', context, block, attempt)
   }
 
   async blockWait(context: ProjectContext, block: Block): Promise<void> {
-    return this.invoke('blockWait', context, block)
+    await this.invoke('blockWait', context, block)
   }
 
   async blockSkip(context: ProjectContext, block: Block): Promise<void> {
-    return this.invoke('blockSkip', context, block)
+    await this.invoke('blockSkip', context, block)
   }
 }
