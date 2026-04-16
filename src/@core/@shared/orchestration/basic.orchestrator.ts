@@ -2,9 +2,9 @@ import {PipelineState, PipelineStep, SourceData} from '../../@types/pipeline.typ
 import {WorkflowContext} from '../context.builder'
 import {Orchestrator} from '../interfaces/orchestrator.interface'
 import {runWithConcurrency} from '../process/concurrency.process'
-import {resolveStepData} from '../runner.process'
-import {exponentialBackoff} from '../workflow-backoff.strategies'
-import {processStep} from '../workflow.step-process'
+import {resolveStepData} from '../util'
+import {exponentialBackoff} from '../backoff'
+import {processStep} from '../block.process'
 import {deepmerge2, merge} from '../../util/object.util'
 import {BlockEvent, ProjectEvent} from '../../runner/runner.lifecycle'
 import {ProjectContext} from '../../runner/runner.types'
@@ -26,6 +26,9 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
     this.context.stream.emit(name, {event: name, payload})
   }
 
+  // TODO: refactor this - shouldn't be recreating the same code
+  // as within orchestration.process.ts
+  // find a way to either re-use that logic or remove BasicOrchestrator entirely
   async orchestrate(): Promise<void> {
     // fire start event
     await this.before()

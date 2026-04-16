@@ -2,8 +2,8 @@ import {EventEmitter2} from 'eventemitter2'
 import {PipelineState, PipelineStep, SourceData} from '../../@types/pipeline.types'
 import {getWorkflowConfigDefaults} from '../../pipelines/pipelines.util'
 import {WorkflowContext} from '../context.builder'
-import {prepareStepData, processStep, shouldRun} from '../workflow.step-process'
-import {resolveStepTemplates} from '../runner.process'
+import {prepareStepData, processStep, shouldRun} from '../block.process'
+import {resolveStepTemplates} from '../util'
 
 describe('workflow step process unit tests', () => {
   let step: PipelineStep<SourceData>

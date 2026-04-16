@@ -1,12 +1,12 @@
 import {PipelineState, PipelineStep} from '../@types/pipeline.types'
 import {retry, WrappedError} from './runner'
-import {resolveStepData, resolveStepTemplates, resolveTemplate} from './runner.process'
+import {resolveStepData, resolveStepTemplates, resolveTemplate} from './util'
 import {WorkflowContext} from './context.builder'
 import {RetryAttempt} from './runner/retry.runner'
 import {WorkflowEvent} from '../workflows/workflow.events'
 import {deepmerge2, isEmptyObject, merge} from '../util/object.util'
 import {WorkflowError, WorkflowErrorCode} from './workflow.error'
-import {getBackoffStrategy} from './workflow-backoff.strategies'
+import {getBackoffStrategy} from './backoff'
 import {defaultWith, delayFor} from '../util/misc.util'
 import ms = require('ms')
 import {getDurationNumber} from '../pipelines/pipelines.util'
@@ -16,18 +16,6 @@ export const DATA_SIZE_LIMIT_KB = 2048 // 2048 KB
 
 export const log = (message: string, level: string = 'info') => {
   dispatchMessage('log', {log: {level, message, timestamp: new Date().toISOString()}}, true)
-}
-
-export const dataSizeRegulator = <T = unknown>(data: T, kb: number = DATA_SIZE_LIMIT_KB): T => {
-  if (!data) return data
-
-  const jsonData = JSON.stringify(data || '')
-  const bufLength = Buffer.byteLength(jsonData, 'utf-8')
-  if (bufLength > kb * 1024) {
-    throw new WorkflowError(`Step output exceeds ${kb} KB limit`, WorkflowErrorCode.HardDataSize)
-  }
-
-  return data
 }
 
 export function getStepDelay(stepCount: number): number {
@@ -108,6 +96,8 @@ export async function processStep(
   }
 
   prepared.errors = []
+  // NOTE: this is where the work is actually happening
+  // retry() is used here
   const result = await retry(prepared.data, step.fn!, retries, {
     timeout,
     delay,
@@ -119,22 +109,7 @@ export async function processStep(
     },
   })
 
-  let data
-  try {
-    data = dataSizeRegulator(result.data)
-  } catch (error) {
-    prepared.error = error
-    prepared.errors!.push(error as WorkflowError)
-    prepared.state = PipelineState.Failed
-    prepared.endedAt = new Date().toISOString()
-    prepared.duration = Date.parse(prepared.endedAt) - Date.parse(prepared.startedAt)
-    const finalData = finaliseStepData(prepared, context)
-
-    //event?.(BlockEvent.Ended, {step: finalData})
-    return finalData
-  }
-
-  let output = data
+  let output = result.data
 
   if (
     typeof output === 'number' ||

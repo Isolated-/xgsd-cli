@@ -1,4 +1,4 @@
-import {resolveTemplate} from '../runner.process'
+import {resolveTemplate} from '../util'
 import {createHash} from 'crypto'
 import moment = require('moment')
 

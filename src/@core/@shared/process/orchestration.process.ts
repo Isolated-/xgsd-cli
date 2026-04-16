@@ -2,7 +2,7 @@ import ms = require('ms')
 import {join} from 'path'
 import {PipelineStep} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
-import {resolveStepData} from '../runner.process'
+import {resolveStepData} from '../util'
 import {deepmerge2} from '../../util/object.util'
 import {runWithConcurrency} from './concurrency.process'
 import {ProcessManager} from './manager.process'
@@ -30,7 +30,7 @@ export async function runStep(idx: number, step: PipelineStep<any>, context: Wor
   })
 
   step.env = envResolved as Record<string, string>
-  const path = join(__dirname, '..', 'workflow.step-process.js')
+  const path = join(__dirname, '..', 'block.process.js')
   const manager = new ProcessManager({...step, startedAt}, context, path, timeoutMs)
   manager.fork()
 

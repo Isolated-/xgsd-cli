@@ -7,8 +7,8 @@ import {WrappedError} from '../@shared/runner'
 import {format, join} from 'path'
 import chalk from 'chalk'
 import {runWithConcurrency} from '../@shared/process/concurrency.process'
-import {exponentialBackoff} from '../@shared/workflow-backoff.strategies'
-import {helpers} from '../@shared/workflow.helpers'
+import {exponentialBackoff} from '../@shared/backoff'
+import {helpers} from '../@shared/helpers'
 
 export enum WorkflowEvent {
   WorkflowStarted = 'workflow.started',

@@ -1,4 +1,4 @@
-import {HelperFn, helpers} from './workflow.helpers'
+import {HelperFn, helpers} from './helpers'
 
 export function callHelper(helperName: string, value: any, ...args: any[]) {
   const fn: HelperFn | undefined = helpers[helperName]
