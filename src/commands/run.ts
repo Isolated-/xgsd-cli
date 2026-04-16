@@ -65,10 +65,6 @@ export default class Run extends BaseCommand<typeof Command> {
       max: 32,
       min: 1,
     }),
-
-    lite: Flags.boolean({
-      description: 'run in lite mode (no isolation, faster for local development)',
-    }),
   }
 
   public async run(): Promise<any> {
@@ -144,7 +140,7 @@ export default class Run extends BaseCommand<typeof Command> {
           output: newOutputPath,
         },
         event,
-        flags.lite || false,
+        false,
       )
     } catch (e: any) {
       if (e.message) {

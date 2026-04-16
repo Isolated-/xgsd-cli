@@ -1,5 +1,8 @@
 import chalk from 'chalk'
 import {Hooks, ProjectContext, Block} from '../runner.types'
+import {getDurationString} from '../../pipelines/pipelines.util'
+import {PipelineState} from '../../@types/pipeline.types'
+import {RetryAttempt} from '../../@shared/runner/retry.runner'
 
 export class LoggerPlugin implements Hooks {
   constructor(private readonly context: ProjectContext) {}
@@ -22,7 +25,7 @@ export class LoggerPlugin implements Hooks {
   }
 
   async projectStart(context: ProjectContext): Promise<void> {
-    let message = `workflow "${key(context.name.slice(-30))}" (v${key(context.config.version)}) started in ${key(
+    let message = `"${key(context.name.slice(-30))}" (${key(context.config.version)}) started in ${key(
       context.mode,
     )} mode.`
 
@@ -36,16 +39,63 @@ export class LoggerPlugin implements Hooks {
   }
 
   async blockStart(context: ProjectContext, block: Block): Promise<void> {
-    let message = `block started!`
+    const timeout = getDurationString(block.options?.timeout || context.config.options.timeout!)
+    const delay = getDurationString(block.options?.delay as string)
+    const retries = block.options?.retries!
+    const backoff = block.options?.backoff
+
+    let message = `${key(block.name)} has started - timeout: ${key(timeout)}, delay: ${key(delay)}, retries: ${key(retries)}, backoff: ${key(backoff)}`
 
     this.log(message, 'info', context, block)
+
+    if (context.config.print?.input) {
+      this.log(`${key(block.name)} - input data: ${key(JSON.stringify(block.input || {}))}`, 'info', context, block)
+    }
   }
 
   async blockEnd(context: ProjectContext, block: Block): Promise<void> {
-    let message = `block ended!`
+    const duration = getDurationString(block.duration || 0)
 
-    this.log(message, 'info', context, block)
+    let message = `${key(block.name)} has completed successfully in ${key(duration)}`
+
+    if (block.state === PipelineState.Failed) {
+      message = `${key(block.name)} has failed, error: ${key(block.error?.message)}, took ${key(duration)}.`
+    }
+
+    if (block.state === PipelineState.Skipped) {
+      message = `${key(block.name)} was skipped.`
+    }
+
+    if (context.config.print?.output) {
+      this.log(`${key(block.name)} output data: ${key(JSON.stringify(block.output || {}))}`, 'info', context, block)
+    }
+
+    this.log(message, block.state === PipelineState.Failed ? 'error' : 'success', context, block)
   }
+
+  async blockRetry(context: ProjectContext, block: Block, attempt: RetryAttempt): Promise<void> {
+    let name = block.name ? block.name : block.run
+
+    const duration = getDurationString(attempt.nextMs || 0)
+    const maxRetries = block.options?.retries
+
+    // don't log if it's the final attempt and there are no retries
+    if (attempt.finalAttempt && attempt.attempt === 0) return
+
+    // next in was a bit misleading when we have exponential backoff
+    // so changed to just show the delay time
+    this.log(
+      `${key(name)} is failing, attempt: ${attempt.attempt + 1}/${maxRetries} next in ${key(duration)}. Error: ${key(
+        attempt.error?.message,
+      )}`,
+      'warn',
+      context,
+      block,
+    )
+  }
+
+  async blockSkip(context: ProjectContext, block: Block): Promise<void> {}
+  async blockWait(context: ProjectContext, block: Block): Promise<void> {}
 }
 
 // move this to utils

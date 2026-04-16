@@ -12,7 +12,7 @@ import ms = require('ms')
 import {getDurationNumber} from '../pipelines/pipelines.util'
 import {BlockEvent, ProjectEvent} from '../runner/runner.lifecycle'
 
-export const DATA_SIZE_LIMIT_KB = 512 // 512 KB
+export const DATA_SIZE_LIMIT_KB = 2048 // 2048 KB
 
 export const log = (message: string, level: string = 'info') => {
   dispatchMessage('log', {log: {level, message, timestamp: new Date().toISOString()}}, true)
@@ -103,7 +103,7 @@ export async function processStep(
 
   if (step.options?.delay && step.options.delay !== '0s' && step.options.delay !== 0) {
     const delayMs = getDurationNumber(step.options.delay as string) || 0
-    event?.(WorkflowEvent.StepWaiting, {step, delayMs})
+    event?.(BlockEvent.Waiting, {step, delayMs})
     await delayFor(delayMs || 0)
   }
 
@@ -129,7 +129,8 @@ export async function processStep(
     prepared.endedAt = new Date().toISOString()
     prepared.duration = Date.parse(prepared.endedAt) - Date.parse(prepared.startedAt)
     const finalData = finaliseStepData(prepared, context)
-    event?.(WorkflowEvent.StepCompleted, {step: finalData})
+
+    //event?.(BlockEvent.Ended, {step: finalData})
     return finalData
   }
 
@@ -154,7 +155,7 @@ export async function processStep(
 
   const finalData = finaliseStepData(prepared, context)
 
-  event?.(BlockEvent.Ended, {step: finalData})
+  //event?.(BlockEvent.Ended, {step: finalData})
 
   return finalData
 }
@@ -234,7 +235,7 @@ export const rejectionHandler = (step: PipelineStep) => {
       },
     }
 
-    event(BlockEvent.Failed, {step: result.step as any})
+    //event(BlockEvent.Ended, {step: result.step as any})
     dispatchMessage('result', {result})
   }
 
@@ -256,11 +257,16 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
   const delay = getBackoffStrategy(method)
   const onAttempt = async (attempt: RetryAttempt) => {
     event(BlockEvent.Retrying, {attempt, step})
+
     //event(WorkflowEvent.StepError, {error: attempt.error, step})
   }
 
   step.fn = fn
   const result = await processStep(step, context, delay, onAttempt, event)
+
+  if (result.state === PipelineState.Skipped) {
+    event(BlockEvent.Skipped, {step})
+  }
 
   // v0.4.0 - allow some time for messages to be sent before exiting
   // also prevents issues with very fast steps

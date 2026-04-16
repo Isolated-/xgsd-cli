@@ -3,6 +3,7 @@ import {PipelineStep, PipelineState} from '../../@types/pipeline.types'
 import {WorkflowEvent} from '../../workflows/workflow.events'
 import {WorkflowContext} from '../context.builder'
 import {WorkflowError, WorkflowErrorCode} from '../workflow.error'
+import {BlockEvent} from '../../runner/runner.lifecycle'
 
 export const event = (name: string, payload: object) => {
   process.send!({type: 'PARENT:EVENT', event: name, payload})
@@ -88,12 +89,12 @@ export class ProcessManager {
       this.process.on('message', (msg: any) => {
         switch (msg.type) {
           case `${prefix}:EVENT`:
-            if (msg.event === WorkflowEvent.StepStarted || msg.event === WorkflowEvent.StepCompleted) {
+            if (msg.event === BlockEvent.Started || msg.event === BlockEvent.Ended) {
               if (timer) clearTimeout(timer)
               timer = setTimeout(timerHandler, this.timeoutMs! + 1000)
             }
 
-            if (msg.event === WorkflowEvent.StepRetry) {
+            if (msg.event === BlockEvent.Retrying) {
               if (timer) clearTimeout(timer)
               timer = setTimeout(timerHandler, this.timeoutMs! + msg.payload.attempt.nextMs + 500)
             }

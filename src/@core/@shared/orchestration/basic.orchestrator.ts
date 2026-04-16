@@ -1,4 +1,4 @@
-import {PipelineStep, SourceData} from '../../@types/pipeline.types'
+import {PipelineState, PipelineStep, SourceData} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
 import {Orchestrator} from '../interfaces/orchestrator.interface'
 import {runWithConcurrency} from '../process/concurrency.process'
@@ -7,6 +7,7 @@ import {exponentialBackoff} from '../workflow-backoff.strategies'
 import {processStep} from '../workflow.step-process'
 import {deepmerge2, merge} from '../../util/object.util'
 import {BlockEvent, ProjectEvent} from '../../runner/runner.lifecycle'
+import {ProjectContext} from '../../runner/runner.types'
 
 export class BasicOrchestrator<T extends SourceData = SourceData> implements Orchestrator<T> {
   constructor(public context: WorkflowContext<T>) {}
@@ -124,8 +125,15 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
   }
 
   async after(): Promise<void> {
+    // finalise context?
+
+    const ctx = this.context
+
+    ctx.state = PipelineState.Completed
+    ctx.end = new Date().toISOString()
+
     this.event(ProjectEvent.Ended, {
-      context: this.context,
+      context: ctx,
     })
   }
 }

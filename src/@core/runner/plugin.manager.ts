@@ -1,3 +1,5 @@
+import {RetryAttempt} from '../@shared/runner/retry.runner'
+import {FlexibleWorkflowConfig} from '../@types/pipeline.types'
 import {Hooks, ProjectContext, Block} from './runner.types'
 
 export type PluginFactory = (ctx: ProjectContext) => Hooks
@@ -12,6 +14,12 @@ export const loadUserPlugins = (context: ProjectContext, container: PluginContai
 }
 
 export class PluginContainer {
+  public readonly config: FlexibleWorkflowConfig
+
+  constructor(context: ProjectContext) {
+    this.config = context.config
+  }
+
   private factories: ((ctx: ProjectContext) => Hooks)[] = []
 
   use(input: PluginInput) {
@@ -42,7 +50,7 @@ export class PluginManager implements Hooks {
     for (const hook of this._hooks) {
       if (!hook.onMessage) continue
 
-      await hook.onMessage(event, context)
+      await hook.onMessage(event.log, context)
     }
   }
 
@@ -74,6 +82,27 @@ export class PluginManager implements Hooks {
     for (const hook of this._hooks) {
       if (!hook.blockEnd) continue
       await hook.blockEnd(context, block)
+    }
+  }
+
+  async blockRetry(context: ProjectContext, block: Block, attempt: RetryAttempt): Promise<void> {
+    for (const hook of this._hooks) {
+      if (!hook.blockRetry) continue
+      await hook.blockRetry(context, block, attempt)
+    }
+  }
+
+  async blockWait(context: ProjectContext, block: Block): Promise<void> {
+    for (const hook of this._hooks) {
+      if (!hook.blockWait) continue
+      await hook.blockWait(context, block)
+    }
+  }
+
+  async blockSkip(context: ProjectContext, block: Block): Promise<void> {
+    for (const hook of this._hooks) {
+      if (!hook.blockSkip) continue
+      await hook.blockSkip(context, block)
     }
   }
 }

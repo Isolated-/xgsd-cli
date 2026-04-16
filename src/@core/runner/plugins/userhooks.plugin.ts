@@ -1,3 +1,4 @@
+import {RetryAttempt} from '../../@shared/runner/retry.runner'
 import {WorkflowError, WorkflowErrorCode} from '../../@shared/workflow.error'
 import {Block, Hooks, ProjectContext} from '../runner.types'
 
@@ -11,6 +12,9 @@ const hookMap = {
   projectEnd: 'onProjectEnd',
   blockStart: 'onBlockStart',
   blockEnd: 'onBlockEnd',
+  blockRetry: 'onBlockRetry',
+  blockWait: 'onBlockWait',
+  blockSkip: 'onBlockSkipped',
 } as const
 
 function loadUserModule(context: ProjectContext) {
@@ -48,7 +52,7 @@ export class UserHooksPlugin implements Hooks {
   }
 
   async onMessage(event: any, context: ProjectContext): Promise<void> {
-    this.callHook('onMessage', event.log, context)
+    this.callHook('onMessage', event, context)
   }
 
   async projectStart(context: ProjectContext) {
@@ -65,5 +69,17 @@ export class UserHooksPlugin implements Hooks {
 
   async blockEnd(context: ProjectContext, block: Block) {
     await this.callHook('blockEnd', context, block)
+  }
+
+  async blockWait(context: ProjectContext, block: Block): Promise<void> {
+    await this.callHook('blockWait', context, block)
+  }
+
+  async blockRetry(context: ProjectContext, block: Block, attempt: RetryAttempt): Promise<void> {
+    await this.callHook('blockRetry', context, block, attempt)
+  }
+
+  async blockSkip(context: ProjectContext, block: Block): Promise<void> {
+    await this.callHook('blockSkip', context, block)
   }
 }

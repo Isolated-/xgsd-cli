@@ -206,7 +206,7 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
   const steps = config.steps
     ? config.steps.map((step) => ({
         ...step,
-        name: step.name,
+        name: step.name || step.run || 'no name',
         description: step.description || 'no description',
         action: step.run || step.action || null,
         enabled: step.enabled ?? true,
