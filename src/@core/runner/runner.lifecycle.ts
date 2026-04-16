@@ -1,10 +1,11 @@
 import {WorkflowContext} from '../@shared/context.builder'
 import {LoggerPlugin} from './plugins/logger.plugin'
-import {loadUserPlugins, PluginContainer, PluginManager} from './plugin.manager'
+import {PluginManager} from './plugin.manager'
 import {ReporterPlugin} from './plugins/reporter.plugin'
 import {Block, Hooks, ProjectContext} from './runner.types'
 import {UserHooksPlugin} from './plugins/userhooks.plugin'
 import {RetryAttempt} from '../@shared/runner/retry.runner'
+import {loadUserPlugins, PluginContainer} from './plugin.container'
 
 export enum ProjectEvent {
   Started = 'project.started',
@@ -39,7 +40,7 @@ const bind = (fn: Function, manager: PluginManager, context?: ProjectContext) =>
   return fn(payload, manager)
 }
 
-export const captureRunnerEvents = (context: WorkflowContext<any>) => {
+export const createPluginManager = (context: ProjectContext) => {
   const container = new PluginContainer(context)
 
   // as the project grows
@@ -57,8 +58,11 @@ export const captureRunnerEvents = (context: WorkflowContext<any>) => {
   const hooks = container.createHooks(context)
   const manager = new PluginManager(hooks)
 
-  // lifecycle
-  //  context.stream.on('message', (e) => onMessage(e, manager, context))
+  return manager
+}
+
+export const captureRunnerEvents = (context: WorkflowContext<any>) => {
+  const manager = createPluginManager(context)
 
   // project events
   context.stream.on(ProjectEvent.Started, bind(onProjectStart, manager))

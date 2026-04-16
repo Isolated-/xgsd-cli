@@ -1,0 +1,19 @@
+import {BlockEvent, captureRunnerEvents, ProjectEvent} from '../runner.lifecycle'
+
+test('captureRunnerEvents', () => {
+  const onMock = jest.fn()
+  const context = {
+    stream: {on: onMock},
+    format: () => ({}),
+  } as any
+
+  captureRunnerEvents(context)
+  expect(onMock).toHaveBeenCalledWith(ProjectEvent.Started, expect.any(Function))
+  expect(onMock).toHaveBeenCalledWith(ProjectEvent.Ended, expect.any(Function))
+
+  expect(onMock).toHaveBeenCalledWith(BlockEvent.Started, expect.any(Function))
+  expect(onMock).toHaveBeenCalledWith(BlockEvent.Ended, expect.any(Function))
+  expect(onMock).toHaveBeenCalledWith(BlockEvent.Retrying, expect.any(Function))
+  expect(onMock).toHaveBeenCalledWith(BlockEvent.Skipped, expect.any(Function))
+  expect(onMock).toHaveBeenCalledWith(BlockEvent.Waiting, expect.any(Function))
+})
