@@ -58,19 +58,19 @@ test('calls internal hook/event handlers', async () => {
 
   await manager.projectStart(context)
   expect(projectStart).toHaveBeenCalledTimes(1)
-  expect(projectStart).toHaveBeenCalledWith(context, undefined, undefined)
+  expect(projectStart).toHaveBeenCalledWith(context)
 
   await manager.projectEnd(context)
   expect(projectEnd).toHaveBeenCalledTimes(1)
-  expect(projectEnd).toHaveBeenCalledWith(context, undefined, undefined)
+  expect(projectEnd).toHaveBeenCalledWith(context)
 
   await manager.blockStart(context, block)
   expect(blockStart).toHaveBeenCalledTimes(1)
-  expect(blockStart).toHaveBeenCalledWith(context, block, undefined)
+  expect(blockStart).toHaveBeenCalledWith(context, block)
 
   await manager.blockEnd(context, block)
   expect(blockEnd).toHaveBeenCalledTimes(1)
-  expect(blockEnd).toHaveBeenCalledWith(context, block, undefined)
+  expect(blockEnd).toHaveBeenCalledWith(context, block)
 
   await manager.blockRetry(context, block, attempt)
   expect(blockRetry).toHaveBeenCalledTimes(1)
@@ -78,11 +78,11 @@ test('calls internal hook/event handlers', async () => {
 
   await manager.blockWait(context, block)
   expect(blockWait).toHaveBeenCalledTimes(1)
-  expect(blockWait).toHaveBeenCalledWith(context, block, undefined)
+  expect(blockWait).toHaveBeenCalledWith(context, block)
 
   await manager.blockSkip(context, block)
   expect(blockSkip).toHaveBeenCalledTimes(1)
-  expect(blockSkip).toHaveBeenCalledWith(context, block, undefined)
+  expect(blockSkip).toHaveBeenCalledWith(context, block)
 })
 
 test('continues execution if a plugin throws', async () => {

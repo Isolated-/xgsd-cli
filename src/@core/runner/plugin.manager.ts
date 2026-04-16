@@ -1,6 +1,20 @@
 import {RetryAttempt} from '../@shared/runner/retry.runner'
 import {Hooks, ProjectContext, Block} from './runner.types'
 
+const INVOKE_ARGS = {
+  projectStart: (ctx: ProjectContext) => [ctx],
+  projectEnd: (ctx: ProjectContext) => [ctx],
+
+  blockStart: (ctx: ProjectContext, block?: Block) => [ctx, block],
+  blockEnd: (ctx: ProjectContext, block?: Block) => [ctx, block],
+  blockWait: (ctx: ProjectContext, block?: Block) => [ctx, block],
+  blockSkip: (ctx: ProjectContext, block?: Block) => [ctx, block],
+
+  blockRetry: (ctx: ProjectContext, block?: Block, attempt?: RetryAttempt) => [ctx, block, attempt],
+} as const
+
+type InvokeFn = keyof typeof INVOKE_ARGS
+
 export class PluginManager implements Hooks {
   constructor(private readonly _hooks: Hooks[]) {}
 
@@ -12,21 +26,16 @@ export class PluginManager implements Hooks {
     }
   }
 
-  private async invoke<K extends keyof Hooks>(
-    fn: K,
-    context: ProjectContext,
-    block?: Block,
-    attempt?: RetryAttempt,
-  ): Promise<void> {
+  private async invoke(fn: InvokeFn, context: ProjectContext, block?: Block, attempt?: RetryAttempt): Promise<void> {
     for (const hook of this._hooks) {
       const method = hook[fn]
-      if (!method) continue
+      if (typeof method !== 'function') continue
 
       try {
-        await (method as any)(context, block, attempt)
+        const args = INVOKE_ARGS[fn](context, block, attempt)
+        await (method as any)(...args)
       } catch (error) {
-        // TODO: handle this error
-        // for now just silently skip any failing plugins
+        // handle error
       }
     }
   }
