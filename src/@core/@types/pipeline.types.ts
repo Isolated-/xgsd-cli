@@ -1,7 +1,7 @@
 import {IRunnable} from '../@engine/interfaces/runnable.interface'
 import {RunnerResult, WrappedError} from '../@engine/runner'
 import {RunFn} from '../@engine/types/runnable.types'
-import {Require} from './require.type'
+import {Require} from '../@engine/types/require.type'
 
 export type TransformFn<T extends SourceData = SourceData, R extends SourceData = T> = (data: T) => R
 export type ValidateFn<T extends SourceData = SourceData> = (data: T) => boolean

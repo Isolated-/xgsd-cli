@@ -3,7 +3,7 @@ import {RunFn} from '../@engine/types/runnable.types'
 import {FlexibleWorkflowConfig, PipelineConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
 import {ensureDirSync, pathExistsSync, readdirSync, readFileSync, readJsonSync} from 'fs-extra'
 import {load} from 'js-yaml'
-import {Require} from '../@types/require.type'
+import {Require} from '../@engine/types/require.type'
 import * as Joi from 'joi'
 import ms = require('ms')
 import {deepmerge} from '../util/object.util'
