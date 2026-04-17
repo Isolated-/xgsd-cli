@@ -3,32 +3,44 @@ import {PluginContainer} from '../plugin.container'
 
 class MockPlugin implements Hooks {}
 
-describe('PluginContainer', () => {
-  test('returns hooks correctly', () => {
-    const context = {} as any
+test('returns hooks correctly', () => {
+  const context = {} as any
 
-    const container = new PluginContainer(context)
+  const container = new PluginContainer(context)
 
-    // class
-    container.use(MockPlugin)
+  // class
+  container.use(MockPlugin)
 
-    // factory style
-    container.use((ctx) => {
-      expect(ctx).toBe(context)
-      return new MockPlugin()
-    })
-
-    // instance
-    container.use(new MockPlugin())
-
-    // doesn't re-create instances
-    const instance = new MockPlugin()
-    container.use(instance)
-
-    const hooks = container.createHooks(context)
-    expect(hooks).toHaveLength(4)
-
-    // preserves order
-    expect(hooks).toEqual([expect.any(MockPlugin), expect.any(MockPlugin), expect.any(MockPlugin), instance])
+  // factory style
+  container.use((ctx) => {
+    expect(ctx).toBe(context)
+    return new MockPlugin()
   })
+
+  // instance
+  container.use(new MockPlugin())
+
+  // doesn't re-create instances
+  const instance = new MockPlugin()
+  container.use(instance)
+
+  const hooks = container.createHooks(context)
+  expect(hooks).toHaveLength(4)
+
+  // preserves order
+  expect(hooks).toEqual([expect.any(MockPlugin), expect.any(MockPlugin), expect.any(MockPlugin), instance])
+})
+
+test('.use doesnt register undefined plugins', () => {
+  const context = {} as any
+  const container = new PluginContainer(context) as any
+
+  // when no return value is provided with factory style construction
+  // the plugin would still be added to _hooks
+  // this would result in "Cannot read properties of undefined (reading 'projectStart')"
+  container.use((ctx: any) => {})
+
+  // expected behaviour is an empty array of hooks:
+  const hooks = container.createHooks(context)
+  expect(hooks).toHaveLength(0)
 })

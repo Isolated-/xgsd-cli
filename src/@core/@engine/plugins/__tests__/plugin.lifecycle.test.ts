@@ -1,5 +1,5 @@
 import {PluginManager} from '../plugin.manager'
-import {captureRunnerEvents} from '../plugin.lifecycle'
+import {attachPluginEventListeners} from '../plugin.lifecycle'
 import {BlockEvent, ProjectEvent} from '../../types/events.types'
 
 test('captureRunnerEvents', () => {
@@ -10,7 +10,7 @@ test('captureRunnerEvents', () => {
   } as any
 
   const manager = new PluginManager([])
-  captureRunnerEvents(manager, context)
+  attachPluginEventListeners(manager, context)
   expect(onMock).toHaveBeenCalledWith(ProjectEvent.Started, expect.any(Function))
   expect(onMock).toHaveBeenCalledWith(ProjectEvent.Ended, expect.any(Function))
 
