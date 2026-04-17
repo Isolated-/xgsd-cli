@@ -1,31 +1,12 @@
 import {dirname, extname, join, resolve} from 'path'
 import {RunFn} from '../@engine/types/runnable.types'
-import {FlexibleWorkflowConfig, PipelineConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
+import {FlexibleWorkflowConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
 import {ensureDirSync, pathExistsSync, readdirSync, readFileSync, readJsonSync} from 'fs-extra'
 import {load} from 'js-yaml'
 import {Require} from '../@engine/types/require.type'
 import * as Joi from 'joi'
 import ms = require('ms')
 import {deepmerge} from '../util/object.util'
-
-export const getDefaultPipelineConfig = <T extends SourceData = SourceData>(
-  opts?: Partial<PipelineConfig<T>>,
-): PipelineConfig<T> => {
-  return {
-    input: null,
-    output: null,
-    runs: [],
-    steps: [],
-    errors: [],
-    state: PipelineState.Pending,
-    timeout: 10000,
-    max: 3,
-    retries: 0,
-    stopOnError: false,
-    mode: PipelineMode.Async,
-    ...opts,
-  }
-}
 
 /**
  *  Find the user workflow configuration file path.

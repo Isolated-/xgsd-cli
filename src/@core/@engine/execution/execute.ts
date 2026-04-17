@@ -1,5 +1,6 @@
 import {SourceData} from '../../@types/pipeline.types'
-import {WrappedError, timeout} from './runner'
+import {WrappedError} from './error'
+import {timeout} from './timeout'
 import {RunFn} from '../types/runnable.types'
 import * as mils from 'ms'
 

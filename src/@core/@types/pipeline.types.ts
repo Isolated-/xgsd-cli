@@ -1,5 +1,5 @@
 import {IRunnable} from '../@engine/types/interfaces/runnable.interface'
-import {RunnerResult, WrappedError} from '../@engine/execution/runner'
+import {WrappedError} from '../@engine/execution/error'
 import {RunFn} from '../@engine/types/runnable.types'
 import {Require} from '../@engine/types/require.type'
 
@@ -101,30 +101,6 @@ export enum PipelineMode {
    * (chained != sync) as chained will *only pass the output of the previous step into the next step.*
    */
   Chained = 'chained',
-}
-
-/**
- *  Pipeline configuration (simplified).
- *  Represents the entire pipeline configuration.
- *  @note not all properties are implemented yet.
- *  @since v1
- *  @version v1
- */
-export type PipelineConfig<T extends SourceData = SourceData> = {
-  input: T | null | undefined
-  output: T | null | undefined
-  state: PipelineState
-  mode: PipelineMode
-  runs: RunnerResult<T>[]
-  steps: PipelineStep<T>[]
-  errors: unknown[]
-  timeout: number
-  max: number
-  retries: number
-  stopOnError: boolean
-  delay?: (attempt: number) => number
-  transformer?: TransformFn<T>
-  validator?: ValidateFn<T>
 }
 
 export type FlexibleWorkflowOptions = {
