@@ -1,8 +1,6 @@
 import {EventEmitter2} from 'eventemitter2'
 import {ensureDirSync} from 'fs-extra'
 import {WorkflowContext} from './@engine/context.builder'
-import {BasicOrchestrator} from './@engine/orchestrators/basic.orchestrator'
-import {IsolatedOrchestrator} from './@engine/orchestrators/isolated.orchestrator'
 import {SourceData, FlexibleWorkflowConfig} from './@types/pipeline.types'
 import {createPluginManager} from './@engine/plugins/plugin.util'
 import {LoggerPlugin} from './plugins/logger.plugin'
@@ -12,6 +10,9 @@ import {UserHooksPlugin} from './plugins/userhooks.plugin'
 import {ProjectContext} from './@engine/types/project.types'
 import {attachProcessLogAdapter} from './@engine/logs'
 import {deepmerge2} from './util/object.util'
+import {InProcessExecutor} from './@engine/executors/in-process.executor'
+import {ProcessExecutor} from './@engine/executors/process.executor'
+import {Orchestrator} from './@engine/orchestrator'
 
 /**
  *  @param {any} data
@@ -30,7 +31,8 @@ export const runProject = async <T extends SourceData = SourceData>(
   const {collect} = config
 
   const ctx = new WorkflowContext(config, handler, 'v1')
-  const orchestrator = lite ? new BasicOrchestrator<T>(ctx) : new IsolatedOrchestrator<T>(ctx)
+  const executor = lite ? new InProcessExecutor<T>() : new ProcessExecutor<T>()
+  const orchestrator = new Orchestrator<T>(ctx, executor)
 
   if (collect) {
     ensureDirSync(config.output)

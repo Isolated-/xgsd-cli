@@ -1,14 +1,15 @@
-import {PipelineState, PipelineStep, SourceData} from '../../@types/pipeline.types'
-import {WorkflowContext} from '../context.builder'
-import {Orchestrator} from '../types/interfaces/orchestrator.interface'
-import {exponentialBackoff} from '../execution/backoff'
-import {processStep} from '../process/block.process'
-import {deepmerge2, merge} from '../../util/object.util'
-import {executeSteps} from '../process/orchestration.process'
-import {BlockEvent, ProjectEvent} from '../types/events.types'
+import {SourceData, PipelineStep, PipelineState} from '../@types/pipeline.types'
+import {deepmerge2} from '../util/object.util'
+import {WorkflowContext} from './context.builder'
+import {executeSteps} from './process/orchestration.process'
+import {ProjectEvent, BlockEvent} from './types/events.types'
+import {Executor} from './types/interfaces/executor.interface'
 
-export class BasicOrchestrator<T extends SourceData = SourceData> implements Orchestrator<T> {
-  constructor(public context: WorkflowContext<T>) {}
+export class Orchestrator<T extends SourceData = SourceData> {
+  constructor(
+    public context: WorkflowContext<T>,
+    private executor: Executor<T>,
+  ) {}
 
   async before(): Promise<void> {
     this.event(ProjectEvent.Started, {context: this.context})
@@ -65,21 +66,7 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
   }
 
   async run(step: PipelineStep<T>): Promise<PipelineStep<T>> {
-    return processStep(
-      step,
-      this.context,
-      exponentialBackoff,
-      async (attempt) => {
-        this.event(BlockEvent.Retrying, {
-          step,
-          attempt,
-          context: this.context,
-        })
-      },
-      (name: string, payload) => {
-        this.event(name as BlockEvent, payload)
-      },
-    )
+    return this.executor.run(step, this.context)
   }
 
   async after(): Promise<void> {

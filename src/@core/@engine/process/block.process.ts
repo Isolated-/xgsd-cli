@@ -94,12 +94,15 @@ export async function processStep(
     await delayFor(delayMs || 0)
   }
 
+  const delayFn = getBackoffStrategy(context.config.options.backoff || 'exponential')
+  console.log(delayFn)
+
   prepared.errors = []
   // NOTE: this is where the work is actually happening
   // retry() is used here
   const result = await retry(prepared.data, step.fn!, retries, {
     timeout,
-    delay,
+    delay: delayFn,
     onAttempt: async (a) => {
       attempt?.(a)
       prepared.state = PipelineState.Retrying
