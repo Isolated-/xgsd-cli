@@ -13,7 +13,7 @@ import {BaseCommand} from '../base'
 import {defaultWith} from '../@core/util/misc.util'
 import {normaliseWorkflowName} from '../@core/util/workflow.util'
 import {merge} from '../@core/util/object.util'
-import {runProject} from '../@core/orchestration'
+import {runProject} from '../@core'
 
 export const prettyPrintLogs = (event: EventEmitter2, flags: Record<string, any>, cmd: Run) => {
   if (!flags.watch) {
