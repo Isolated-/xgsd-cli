@@ -7,6 +7,7 @@ import {ProjectContext} from './types/project.types'
 export function prepareStepData(block: Block, context: ProjectContext) {
   const {after, ...stepData} = block
   const data = deepmerge2(deepmerge2(context.config.data, block.data), block.input)
+
   const resolved = resolveStepData(block, {
     ...context,
     step: stepData,

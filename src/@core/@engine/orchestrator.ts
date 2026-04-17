@@ -47,13 +47,13 @@ export class Orchestrator<T extends SourceData = SourceData> {
         mode: config.mode,
         ...config.options,
       },
-      async (step, input) => {
+      async (step, context) => {
         // drop "action" before v0.5 release
         step.fn = userModule[step.run ?? step.action!]
 
         const result = await this.run({
           ...step,
-          input,
+          input: context.input,
         })
 
         return result
