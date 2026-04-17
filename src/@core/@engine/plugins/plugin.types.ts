@@ -1,4 +1,4 @@
-import {Hooks} from '../../@types/hooks.types'
+import {Hooks} from '../types/hooks.types'
 import {ProjectContext} from '../types/project.types'
 
 export type PluginFactory = (ctx: ProjectContext) => Hooks

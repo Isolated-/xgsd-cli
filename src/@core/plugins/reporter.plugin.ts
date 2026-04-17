@@ -1,7 +1,7 @@
 import {join} from 'path'
 import {ensureDirSync, pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
 import {ProjectContext} from '../@engine/types/project.types'
-import {Hooks} from '../@types/hooks.types'
+import {Hooks} from '../@engine/types/hooks.types'
 import {Block} from '../@engine/types/block.types'
 
 export class ReporterPlugin implements Hooks {

@@ -3,7 +3,7 @@ import {getDurationString} from '../pipelines/pipelines.util'
 import {PipelineState} from '../@types/pipeline.types'
 import {RetryAttempt} from '../@engine/runner/retry.runner'
 import {ProjectContext} from '../@engine/types/project.types'
-import {Hooks} from '../@types/hooks.types'
+import {Hooks} from '../@engine/types/hooks.types'
 import {Block} from '../@engine/types/block.types'
 
 export class LoggerPlugin implements Hooks {

@@ -1,8 +1,6 @@
-import {RetryAttempt} from '../@engine/runner/retry.runner'
-import {WorkflowContext} from '../@engine/context.builder'
-import {FlexibleWorkflowConfig, PipelineStep} from '../@types/pipeline.types'
-import {ProjectContext} from '../@engine/types/project.types'
-import {Block} from '../@engine/types/block.types'
+import {RetryAttempt} from '../runner/retry.runner'
+import {ProjectContext} from './project.types'
+import {Block} from './block.types'
 
 export interface Hooks {
   // advanced lifecycle hooks

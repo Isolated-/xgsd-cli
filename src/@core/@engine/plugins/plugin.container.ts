@@ -1,4 +1,4 @@
-import {Hooks} from '../../@types/hooks.types'
+import {Hooks} from '../types/hooks.types'
 import {ProjectConfig, ProjectContext} from '../types/project.types'
 import {PluginInput, PluginFactory} from './plugin.types'
 

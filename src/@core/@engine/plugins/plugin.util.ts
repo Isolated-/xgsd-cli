@@ -1,4 +1,4 @@
-import {Hooks} from '../../@types/hooks.types'
+import {Hooks} from '../types/hooks.types'
 import {RetryAttempt} from '../runner/retry.runner'
 import {Block} from '../types/block.types'
 import {ProjectContext} from '../types/project.types'
