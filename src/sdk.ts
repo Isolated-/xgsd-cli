@@ -27,3 +27,7 @@ export type ExecuteOpts = {
 export async function execute(run: RunFn<any, any>, data?: any, opts?: ExecuteOpts) {
   return coreExecute(data, run, opts?.transform, opts?.timeout)
 }
+
+export {processStep} from './@core/@engine/process/block.process'
+export {ProcessExecutor} from './@core/@engine/executors/process.executor'
+export {InProcessExecutor} from './@core/@engine/executors/in-process.executor'

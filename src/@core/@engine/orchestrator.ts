@@ -56,8 +56,6 @@ export class Orchestrator<T extends SourceData = SourceData> {
           input,
         })
 
-        this.event(BlockEvent.Ended, {step: result, context: ctx})
-
         return result
       },
     )

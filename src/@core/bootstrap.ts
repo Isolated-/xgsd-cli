@@ -2,7 +2,7 @@ import {EventEmitter2} from 'eventemitter2'
 import {ensureDirSync} from 'fs-extra'
 import {WorkflowContext} from './@engine/context.builder'
 import {SourceData, FlexibleWorkflowConfig} from './@types/pipeline.types'
-import {createPluginManager} from './@engine/plugins/plugin.util'
+import {createPluginManager, createRuntime} from './@engine/plugins/plugin.util'
 import {LoggerPlugin} from './plugins/logger.plugin'
 import {attachPluginEventListeners} from './@engine/plugins/plugin.lifecycle'
 import {ReporterPlugin} from './plugins/reporter.plugin'
@@ -31,19 +31,23 @@ export const runProject = async <T extends SourceData = SourceData>(
   const {collect} = config
 
   const ctx = new WorkflowContext(config, handler, 'v1')
-  const executor = lite ? new InProcessExecutor<T>() : new ProcessExecutor<T>()
-  const orchestrator = new Orchestrator<T>(ctx, executor)
 
   if (collect) {
     ensureDirSync(config.output)
   }
 
-  // plugin layer (added in v0.5)
-  const pluginManager = createPluginManager(ctx as ProjectContext, [
+  // plugins + executor added in v0.5
+  // executor allows users to override how
+  // blocks are processed (in process/isolation/remote/etc)
+  // hooks provide a simple way of reacting to events
+  // these are registered as a plugin
+  const {pluginManager, executor} = await createRuntime(ctx as ProjectContext, [
     ReporterPlugin,
     LoggerPlugin,
     (ctx) => new UserHooksPlugin(ctx),
   ])
+
+  const orchestrator = new Orchestrator<T>(ctx, executor as any)
 
   attachPluginEventListeners(pluginManager, ctx as ProjectContext)
 

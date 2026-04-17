@@ -1,4 +1,6 @@
+import {ProcessExecutor} from '../executors/process.executor'
 import {Hooks} from '../types/hooks.types'
+import {Executor} from '../types/interfaces/executor.interface'
 import {ProjectConfig, ProjectContext} from '../types/project.types'
 import {PluginInput, PluginFactory} from './plugin.types'
 

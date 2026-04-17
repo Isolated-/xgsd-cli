@@ -5,6 +5,7 @@ import {PluginContainer} from './plugin.container'
 import {PluginManager} from './plugin.manager'
 import {PluginInput} from './plugin.types'
 import {RetryAttempt} from '../types/retry.types'
+import {SetupContainer} from '../setup'
 
 export const loadUserPlugins = (context: ProjectContext, container: PluginContainer) => {
   const mod = require(context.package)
@@ -14,6 +15,26 @@ export const loadUserPlugins = (context: ProjectContext, container: PluginContai
   }
 }
 
+export const loadUserSetup = async (context: ProjectContext, setup: SetupContainer) => {
+  const userModule = await import(context.package)
+
+  if (typeof userModule.setup === 'function') {
+    await userModule.setup(setup)
+  }
+}
+
+export const createRuntime = async (context: ProjectContext, plugins?: PluginInput[]) => {
+  const setup = new SetupContainer(context)
+
+  plugins?.forEach((plugin) => setup.use(plugin))
+
+  await loadUserSetup(context, setup)
+
+  const {pluginManager, executor} = setup.build(context)
+
+  return {pluginManager, executor}
+}
+
 export const createPluginManager = (context: ProjectContext, plugins?: PluginInput[]) => {
   const container = new PluginContainer(context)
 
@@ -21,9 +42,10 @@ export const createPluginManager = (context: ProjectContext, plugins?: PluginInp
   plugins?.forEach((plugin) => container.use(plugin))
 
   // user plugins
-  loadUserPlugins(context.format!() as any, container)
+  //loadUserPlugins(context.format!() as any, container)
 
   const hooks = container.createHooks(context)
+
   const manager = new PluginManager(hooks)
 
   return manager

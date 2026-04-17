@@ -66,17 +66,22 @@ export const event = (
 export async function processStep(
   step: PipelineStep<any>,
   context: WorkflowContext<any>,
-  delay?: (attempt: number) => number,
-  attempt?: (attempt: RetryAttempt) => Promise<any>,
-  event?: (name: string, payload: any) => void,
+  opts: {
+    event?: (name: string, payload: any) => void
+    attempt?: (attempt: RetryAttempt) => Promise<any>
+  },
 ) {
   const prepared = prepareStepData(step, context)
   prepared.startedAt = new Date().toISOString()
+
+  const {event, attempt} = opts
 
   // by this point if/enabled are booleans
   // not undefined/null
   if (!shouldRun(prepared)) {
     prepared.state = PipelineState.Skipped
+    event?.(BlockEvent.Skipped, {step: prepared})
+    event?.(BlockEvent.Ended, {step: prepared})
     return prepared
   }
 
@@ -94,7 +99,8 @@ export async function processStep(
     await delayFor(delayMs || 0)
   }
 
-  const delayFn = getBackoffStrategy(context.config.options.backoff || 'exponential')
+  const method = defaultWith('exponential', step.options?.backoff, context.config.options?.backoff)!
+  const delayFn = getBackoffStrategy(method)
 
   prepared.errors = []
   // NOTE: this is where the work is actually happening
@@ -129,7 +135,12 @@ export async function processStep(
   prepared.endedAt = new Date().toISOString()
   prepared.duration = Date.parse(prepared.endedAt) - Date.parse(prepared.startedAt)
 
-  return finaliseStepData(prepared, context)
+  const finalisedData = finaliseStepData(prepared, context)
+  event?.(BlockEvent.Ended, {
+    step: finalisedData,
+  })
+
+  return finalisedData
 }
 
 export function shouldRun(step: PipelineStep): boolean {
@@ -174,21 +185,9 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
   rejectionHandler(step)
 
   const fn = await importUserModule(step, context)
-
-  const method = defaultWith('exponential', step.options?.backoff, context.config.options?.backoff)!
-  const delay = getBackoffStrategy(method)
-  const onAttempt = async (attempt: RetryAttempt) => {
-    event(BlockEvent.Retrying, {attempt, step})
-
-    //event(WorkflowEvent.StepError, {error: attempt.error, step})
-  }
-
   step.fn = fn
-  const result = await processStep(step, context, delay, onAttempt, event)
 
-  if (result.state === PipelineState.Skipped) {
-    event(BlockEvent.Skipped, {step})
-  }
+  const result = await processStep(step, context, {event})
 
   // v0.4.0 - allow some time for messages to be sent before exiting
   // also prevents issues with very fast steps
