@@ -6,7 +6,7 @@ import {IsolatedOrchestrator} from './@engine/orchestrators/isolated.orchestrato
 import {SourceData, FlexibleWorkflowConfig} from './@types/pipeline.types'
 import {createPluginManager} from './@engine/plugins/plugin.util'
 import {LoggerPlugin} from './plugins/logger.plugin'
-import {captureRunnerEvents} from './@engine/plugins/plugin.lifecycle'
+import {attachPluginEventListeners, captureRunnerEvents} from './@engine/plugins/plugin.lifecycle'
 import {ReporterPlugin} from './plugins/reporter.plugin'
 import {UserHooksPlugin} from './plugins/userhooks.plugin'
 import {ProjectContext} from './@engine/types/project.types'
@@ -38,7 +38,7 @@ export const userCodeOrchestrationv2 = async <T extends SourceData = SourceData>
     (ctx) => new UserHooksPlugin(ctx),
   ])
 
-  captureRunnerEvents(pluginManager, ctx as ProjectContext)
+  attachPluginEventListeners(pluginManager, ctx as ProjectContext)
 
   await orchestrator.orchestrate()
 }

@@ -27,6 +27,17 @@ export class PluginContainer {
   }
 
   createHooks(context: ProjectContext): Hooks[] {
-    return this.factories.map((f) => f(context))
+    // this fixes user errors like:
+    // xgsd.use((ctx) => {}) (no returns)
+    // by dropping the plugin before its registered
+    return this.factories
+      .map((f) => {
+        try {
+          return f(context)
+        } catch {
+          return undefined
+        }
+      })
+      .filter((hook): hook is Hooks => !!hook)
   }
 }

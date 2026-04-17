@@ -23,6 +23,20 @@ const bind = (fn: Function, manager: PluginManager, context?: ProjectContext) =>
 }
 
 /**
+ *  Attaches listeners for incoming events used by Plugins
+ *
+ *  (alias for captureRunnerEvents)
+ *
+ *  Use this for readability
+ *
+ *  @param {PluginManager} manager
+ *  @param {ProjectContext} context
+ */
+export const attachPluginEventListeners = (manager: PluginManager, context: ProjectContext) => {
+  captureRunnerEvents(manager, context)
+}
+
+/**
  *  EVENT WIRING
  *  Mapping incoming events to respective handlers
  */
