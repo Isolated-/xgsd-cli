@@ -18,7 +18,7 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
     this.context.stream.emit(name, {event: name, payload})
   }
 
-  async orchestrate(): Promise<void> {
+  async orchestrate(data: T): Promise<void> {
     // fire start event
     await this.before()
 
@@ -34,7 +34,7 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
       concurrency = 1
     }
 
-    let input = deepmerge2({}, config.data) as Record<string, any>
+    let input = deepmerge2({}, data) as Record<string, any>
 
     // this was refactored to reduce duplication
     // and to fix issues caused by slightly different implementations

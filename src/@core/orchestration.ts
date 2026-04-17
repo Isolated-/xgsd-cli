@@ -6,12 +6,24 @@ import {IsolatedOrchestrator} from './@engine/orchestrators/isolated.orchestrato
 import {SourceData, FlexibleWorkflowConfig} from './@types/pipeline.types'
 import {createPluginManager} from './@engine/plugins/plugin.util'
 import {LoggerPlugin} from './plugins/logger.plugin'
-import {attachPluginEventListeners, captureRunnerEvents} from './@engine/plugins/plugin.lifecycle'
+import {attachPluginEventListeners} from './@engine/plugins/plugin.lifecycle'
 import {ReporterPlugin} from './plugins/reporter.plugin'
 import {UserHooksPlugin} from './plugins/userhooks.plugin'
 import {ProjectContext} from './@engine/types/project.types'
 import {attachProcessLogAdapter} from './@engine/logs'
+import {deepmerge2} from './util/object.util'
 
+/**
+ *  This is the main entry point to the engine.
+ *
+ *  It brings various components together into a re-useable function (albeit poorly named)
+ *
+ *  @param {any} data
+ *  @param {FlexibleWorkflowConfig} config
+ *  @param {EventEmitter2} event
+ *  @param {boolean} lite
+ *
+ */
 export const userCodeOrchestrationv2 = async <T extends SourceData = SourceData>(
   data: any,
   config: FlexibleWorkflowConfig<T>,
@@ -28,9 +40,6 @@ export const userCodeOrchestrationv2 = async <T extends SourceData = SourceData>
     ensureDirSync(config.output)
   }
 
-  // process log adapter (added in v0.5)
-  attachProcessLogAdapter(ctx as ProjectContext)
-
   // plugin layer (added in v0.5)
   const pluginManager = createPluginManager(ctx as ProjectContext, [
     ReporterPlugin,
@@ -40,5 +49,10 @@ export const userCodeOrchestrationv2 = async <T extends SourceData = SourceData>
 
   attachPluginEventListeners(pluginManager, ctx as ProjectContext)
 
-  await orchestrator.orchestrate()
+  // process log adapter (added in v0.5)
+  attachProcessLogAdapter(ctx as ProjectContext)
+
+  const input = deepmerge2(config.data, data) as T
+
+  await orchestrator.orchestrate(input)
 }
