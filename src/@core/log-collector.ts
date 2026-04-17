@@ -1,10 +1,11 @@
 import {EventEmitter2} from 'eventemitter2'
 import {join} from 'path'
 import {ensureDirSync, pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
-import {WorkflowContext} from '../@engine/context.builder'
+import {WorkflowContext} from './@engine/context.builder'
 import {createLogger, transports, format} from 'winston'
 import moment = require('moment')
 
+// refactor this into its own plugin or manager
 export const userCodeLogCollector = (context: WorkflowContext<any>, path: string, event: EventEmitter2) => {
   const date = new Date()
 

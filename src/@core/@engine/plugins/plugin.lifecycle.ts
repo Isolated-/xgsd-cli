@@ -1,22 +1,8 @@
-import {WorkflowContext} from '../@engine/context.builder'
+import {RetryAttempt} from '../runner/retry.runner'
+import {Block} from '../types/block.types'
+import {ProjectEvent, BlockEvent} from '../types/events.types'
+import {ProjectContext} from '../types/project.types'
 import {PluginManager} from './plugin.manager'
-import {Block, ProjectContext} from './runner.types'
-import {RetryAttempt} from '../@engine/runner/retry.runner'
-
-export enum ProjectEvent {
-  Started = 'project.started',
-  Ended = 'project.ended',
-}
-
-export enum BlockEvent {
-  Started = 'block.started',
-  Ended = 'block.ended',
-  Failed = 'block.failed',
-  Retrying = 'block.retrying',
-  Skipped = 'block.skipped',
-  Waiting = 'block.waiting',
-  Error = 'block.error',
-}
 
 export type Payload = {
   context: ProjectContext
@@ -40,7 +26,7 @@ const bind = (fn: Function, manager: PluginManager, context?: ProjectContext) =>
  *  EVENT WIRING
  *  Mapping incoming events to respective handlers
  */
-export const captureRunnerEvents = (manager: PluginManager, context: WorkflowContext<any>) => {
+export const captureRunnerEvents = (manager: PluginManager, context: ProjectContext) => {
   // project events
   context.stream.on(ProjectEvent.Started, bind(onProjectStart, manager))
   context.stream.on(ProjectEvent.Ended, bind(onProjectEnd, manager))

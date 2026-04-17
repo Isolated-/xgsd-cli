@@ -1,6 +1,8 @@
 import {join} from 'path'
-import {Hooks, ProjectContext, Block} from '../runner.types'
 import {ensureDirSync, pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
+import {ProjectContext} from '../@engine/types/project.types'
+import {Hooks} from '../@types/hooks.types'
+import {Block} from '../@engine/types/block.types'
 
 export class ReporterPlugin implements Hooks {
   async projectStart(context: ProjectContext): Promise<void> {

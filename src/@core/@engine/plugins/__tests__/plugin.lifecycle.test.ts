@@ -1,5 +1,6 @@
 import {PluginManager} from '../plugin.manager'
-import {BlockEvent, captureRunnerEvents, ProjectEvent} from '../runner.lifecycle'
+import {captureRunnerEvents} from '../plugin.lifecycle'
+import {BlockEvent, ProjectEvent} from '../../types/events.types'
 
 test('captureRunnerEvents', () => {
   const onMock = jest.fn()

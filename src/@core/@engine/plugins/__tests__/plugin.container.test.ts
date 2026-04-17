@@ -1,8 +1,5 @@
-import EventEmitter2 from 'eventemitter2'
-import {WorkflowContext} from '../../@engine/context.builder'
-import {getWorkflowConfigDefaults} from '../../pipelines/pipelines.util'
+import {Hooks} from '../../../@types/hooks.types'
 import {PluginContainer} from '../plugin.container'
-import {Hooks, ProjectContext} from '../runner.types'
 
 class MockPlugin implements Hooks {}
 

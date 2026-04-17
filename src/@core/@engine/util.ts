@@ -1,7 +1,8 @@
-import {Block, ProjectContext} from '../runner/runner.types'
 import {deepmerge2, isEmptyObject} from '../util/object.util'
 import {WorkflowError, WorkflowErrorCode} from './error'
 import {HelperFn, helpers} from './helpers'
+import {Block} from './types/block.types'
+import {ProjectContext} from './types/project.types'
 
 export function prepareStepDataV1(block: Block, context: ProjectContext) {
   const {after, ...stepData} = block

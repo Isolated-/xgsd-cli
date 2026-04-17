@@ -9,7 +9,7 @@ import {getBackoffStrategy} from './backoff'
 import {defaultWith, delayFor} from '../util/misc.util'
 import ms = require('ms')
 import {getDurationNumber} from '../pipelines/pipelines.util'
-import {BlockEvent} from '../runner/runner.lifecycle'
+import {BlockEvent} from './types/events.types'
 
 export const DATA_SIZE_LIMIT_KB = 2048 // 2048 KB
 

@@ -1,22 +1,8 @@
-import {RetryAttempt} from '../@engine/runner/retry.runner'
-import {Hooks, ProjectContext, Block} from './runner.types'
-
-const ctxOnly = (ctx: ProjectContext) => [ctx]
-const ctxBlock = (ctx: ProjectContext, block?: Block) => [ctx, block]
-
-const INVOKE_ARGS = {
-  projectStart: ctxOnly,
-  projectEnd: ctxOnly,
-
-  blockStart: ctxBlock,
-  blockEnd: ctxBlock,
-  blockWait: ctxBlock,
-  blockSkip: ctxBlock,
-
-  blockRetry: (ctx: ProjectContext, block?: Block, attempt?: RetryAttempt) => [ctx, block, attempt],
-} as const
-
-type InvokeFn = keyof typeof INVOKE_ARGS
+import {Hooks} from '../../@types/hooks.types'
+import {RetryAttempt} from '../runner/retry.runner'
+import {Block} from '../types/block.types'
+import {ProjectContext} from '../types/project.types'
+import {invoke, InvokeFn} from './plugin.util'
 
 export class PluginManager implements Hooks {
   constructor(private readonly _hooks: Hooks[]) {}
@@ -30,17 +16,7 @@ export class PluginManager implements Hooks {
   }
 
   private async invoke(fn: InvokeFn, context: ProjectContext, block?: Block, attempt?: RetryAttempt): Promise<void> {
-    for (const hook of this._hooks) {
-      const method = hook[fn]
-      if (typeof method !== 'function') continue
-
-      try {
-        const args = INVOKE_ARGS[fn](context, block, attempt)
-        await (method as any).call(hook, ...args)
-      } catch (error) {
-        // handle error
-      }
-    }
+    return invoke(this._hooks, fn, context, block, attempt)
   }
 
   async projectStart(context: ProjectContext): Promise<void> {

@@ -1,14 +1,11 @@
 import {PipelineState, PipelineStep, SourceData} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
 import {Orchestrator} from '../interfaces/orchestrator.interface'
-import {runWithConcurrency} from '../process/concurrency.process'
-import {resolveStepData} from '../util'
 import {exponentialBackoff} from '../backoff'
 import {processStep} from '../block.process'
 import {deepmerge2, merge} from '../../util/object.util'
-import {BlockEvent, ProjectEvent} from '../../runner/runner.lifecycle'
-import {ProjectContext} from '../../runner/runner.types'
 import {executeStepsV1} from '../process/orchestration.process'
+import {BlockEvent, ProjectEvent} from '../types/events.types'
 
 export class BasicOrchestrator<T extends SourceData = SourceData> implements Orchestrator<T> {
   constructor(public context: WorkflowContext<T>) {}

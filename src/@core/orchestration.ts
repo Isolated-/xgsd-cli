@@ -1,16 +1,16 @@
-import EventEmitter2 from 'eventemitter2'
+import {EventEmitter2} from 'eventemitter2'
 import {ensureDirSync} from 'fs-extra'
-import {WorkflowContext} from '../@engine/context.builder'
-import {BasicOrchestrator} from '../@engine/orchestration/basic.orchestrator'
-import {IsolatedOrchestrator} from '../@engine/orchestration/isolated.orchestrator'
-import {SourceData, FlexibleWorkflowConfig} from '../@types/pipeline.types'
-import {captureRunnerEvents} from './runner.lifecycle'
-import {userCodeLogCollector} from './runner.log-collector'
-import {ProjectContext} from './runner.types'
-import {ReporterPlugin} from './plugins/reporter.plugin'
+import {WorkflowContext} from './@engine/context.builder'
+import {BasicOrchestrator} from './@engine/orchestration/basic.orchestrator'
+import {IsolatedOrchestrator} from './@engine/orchestration/isolated.orchestrator'
+import {SourceData, FlexibleWorkflowConfig} from './@types/pipeline.types'
+import {userCodeLogCollector} from './log-collector'
+import {createPluginManager} from './@engine/plugins/plugin.util'
 import {LoggerPlugin} from './plugins/logger.plugin'
+import {captureRunnerEvents} from './@engine/plugins/plugin.lifecycle'
+import {ReporterPlugin} from './plugins/reporter.plugin'
 import {UserHooksPlugin} from './plugins/userhooks.plugin'
-import {createPluginManager} from './plugin.container'
+import {ProjectContext} from './@engine/types/project.types'
 
 export const userCodeOrchestrationv2 = async <T extends SourceData = SourceData>(
   data: any,
@@ -39,7 +39,7 @@ export const userCodeOrchestrationv2 = async <T extends SourceData = SourceData>
     (ctx) => new UserHooksPlugin(ctx),
   ])
 
-  captureRunnerEvents(manager, ctx)
+  captureRunnerEvents(manager, ctx as ProjectContext)
 
   await orchestrator.orchestrate()
 }

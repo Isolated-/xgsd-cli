@@ -2,7 +2,7 @@ import {ForkOptions, fork} from 'child_process'
 import {PipelineStep, PipelineState} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
 import {WorkflowError, WorkflowErrorCode} from '../error'
-import {BlockEvent} from '../../runner/runner.lifecycle'
+import {BlockEvent} from '../types/events.types'
 
 export const event = (name: string, payload: object) => {
   process.send!({type: 'PARENT:EVENT', event: name, payload})
