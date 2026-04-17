@@ -1,4 +1,4 @@
-import {execute} from '../runner'
+import {execute} from '../../execution/execute'
 
 /**
  *  execute() - execute fn with error handler/wrapper

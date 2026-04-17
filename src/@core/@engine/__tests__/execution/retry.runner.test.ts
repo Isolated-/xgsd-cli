@@ -1,5 +1,5 @@
-import {retry} from '../runner' // <- ensure runner API exports at (runner.ts)
-import {RetryAttempt} from '../types/retry.types'
+import {retry} from '../../execution/retry' // <- ensure runner API exports at (runner.ts)
+import {RetryAttempt} from '../../types/retry.types'
 
 /**
  *  retry calls execute() and retries the given function

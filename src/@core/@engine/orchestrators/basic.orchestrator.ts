@@ -1,10 +1,10 @@
 import {PipelineState, PipelineStep, SourceData} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
-import {Orchestrator} from '../interfaces/orchestrator.interface'
+import {Orchestrator} from '../types/interfaces/orchestrator.interface'
 import {exponentialBackoff} from '../backoff'
 import {processStep} from '../block.process'
 import {deepmerge2, merge} from '../../util/object.util'
-import {executeStepsV1} from '../process/orchestration.process'
+import {executeSteps} from '../process/orchestration.process'
 import {BlockEvent, ProjectEvent} from '../types/events.types'
 
 export class BasicOrchestrator<T extends SourceData = SourceData> implements Orchestrator<T> {
@@ -38,7 +38,7 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
 
     // this was refactored to reduce duplication
     // and to fix issues caused by slightly different implementations
-    await executeStepsV1(
+    await executeSteps(
       config.steps,
       input,
       ctx,

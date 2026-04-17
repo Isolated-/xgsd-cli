@@ -1,4 +1,4 @@
-import {PipelineStep, SourceData} from '../../@types/pipeline.types'
+import {PipelineStep, SourceData} from '../../../@types/pipeline.types'
 
 export interface Orchestrator<T extends SourceData> {
   before(): Promise<void> | void

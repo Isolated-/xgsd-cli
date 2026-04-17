@@ -1,4 +1,4 @@
-import {runWithConcurrency} from '../process/concurrency.process'
+import {runWithConcurrency} from '../../execution/concurrency'
 
 describe('runWithConcurrency()', () => {
   test('should process items with concurrency limit', async () => {
