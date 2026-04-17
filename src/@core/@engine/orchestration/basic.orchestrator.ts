@@ -59,7 +59,7 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
           input,
         })
 
-        this.event(BlockEvent.Ended, {step, context: ctx})
+        this.event(BlockEvent.Ended, {step: result, context: ctx})
 
         return result
       },
