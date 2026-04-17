@@ -1,6 +1,6 @@
-import {RetryAttempt} from '../runner/retry.runner'
 import {ProjectContext} from './project.types'
 import {Block} from './block.types'
+import {RetryAttempt} from './retry.types'
 
 export interface Hooks {
   // advanced lifecycle hooks

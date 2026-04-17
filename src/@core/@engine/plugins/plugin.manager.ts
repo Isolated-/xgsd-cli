@@ -1,8 +1,8 @@
 import {Hooks} from '../types/hooks.types'
-import {RetryAttempt} from '../runner/retry.runner'
 import {Block} from '../types/block.types'
 import {ProjectContext} from '../types/project.types'
 import {invoke, InvokeFn} from './plugin.util'
+import {RetryAttempt} from '../types/retry.types'
 
 export class PluginManager implements Hooks {
   constructor(private readonly _hooks: Hooks[]) {}

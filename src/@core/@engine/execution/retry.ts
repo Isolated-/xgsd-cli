@@ -1,12 +1,6 @@
 import {execute, WrappedError, timeout as withTimeout} from '../runner'
+import {RetryAttempt} from '../types/retry.types'
 import {RunFn} from '../types/runnable.types'
-
-export type RetryAttempt = {
-  attempt: number
-  error: WrappedError
-  nextMs: number
-  finalAttempt: boolean
-}
 
 /**
  * Retry a function call with exponential backoff.

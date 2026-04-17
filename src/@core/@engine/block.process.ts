@@ -2,7 +2,6 @@ import {PipelineState, PipelineStep} from '../@types/pipeline.types'
 import {retry, WrappedError} from './runner'
 import {finaliseStepDataV1, importUserModuleV1, prepareStepDataV1} from './util'
 import {WorkflowContext} from './context.builder'
-import {RetryAttempt} from './runner/retry.runner'
 import {merge} from '../util/object.util'
 import {WorkflowError, WorkflowErrorCode} from './error'
 import {getBackoffStrategy} from './backoff'
@@ -10,6 +9,7 @@ import {defaultWith, delayFor} from '../util/misc.util'
 import ms = require('ms')
 import {getDurationNumber} from '../pipelines/pipelines.util'
 import {BlockEvent} from './types/events.types'
+import {RetryAttempt} from './types/retry.types'
 
 export const DATA_SIZE_LIMIT_KB = 2048 // 2048 KB
 

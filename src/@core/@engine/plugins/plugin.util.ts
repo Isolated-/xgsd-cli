@@ -1,10 +1,10 @@
 import {Hooks} from '../types/hooks.types'
-import {RetryAttempt} from '../runner/retry.runner'
 import {Block} from '../types/block.types'
 import {ProjectContext} from '../types/project.types'
 import {PluginContainer} from './plugin.container'
 import {PluginManager} from './plugin.manager'
 import {PluginInput} from './plugin.types'
+import {RetryAttempt} from '../types/retry.types'
 
 export const loadUserPlugins = (context: ProjectContext, container: PluginContainer) => {
   const mod = require(context.package)

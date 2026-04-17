@@ -1,8 +1,8 @@
-import {RetryAttempt} from '../@engine/runner/retry.runner'
 import {WorkflowError, WorkflowErrorCode} from '../@engine/error'
 import {ProjectContext} from '../@engine/types/project.types'
 import {Hooks} from '../@engine/types/hooks.types'
 import {Block} from '../@engine/types/block.types'
+import {RetryAttempt} from '../@engine/types/retry.types'
 
 let cachedModule: any = null
 

@@ -1,14 +1,13 @@
-import {SourceData} from '../@types/pipeline.types'
 import {debug} from '../util/debug.util'
 import {RunFn} from './types/runnable.types'
-import {Worker} from 'worker_threads'
 
 /**
  *  Runner API exports
  */
-import {execute} from './runner/execute.runner'
+import {execute} from './execution/execute'
 export {execute}
-import {retry, RetryAttempt} from './runner/retry.runner'
+import {retry} from './execution/retry'
+import {RetryAttempt} from './types/retry.types'
 export {retry}
 
 export type RunnerOpts = {
