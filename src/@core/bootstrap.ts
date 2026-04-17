@@ -14,17 +14,13 @@ import {attachProcessLogAdapter} from './@engine/logs'
 import {deepmerge2} from './util/object.util'
 
 /**
- *  This is the main entry point to the engine.
- *
- *  It brings various components together into a re-useable function (albeit poorly named)
- *
  *  @param {any} data
  *  @param {FlexibleWorkflowConfig} config
  *  @param {EventEmitter2} event
  *  @param {boolean} lite
  *
  */
-export const userCodeOrchestrationv2 = async <T extends SourceData = SourceData>(
+export const runProject = async <T extends SourceData = SourceData>(
   data: any,
   config: FlexibleWorkflowConfig<T>,
   event?: EventEmitter2,

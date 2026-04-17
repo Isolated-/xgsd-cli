@@ -13,7 +13,7 @@ import {BaseCommand} from '../base'
 import {defaultWith} from '../@core/util/misc.util'
 import {normaliseWorkflowName} from '../@core/util/workflow.util'
 import {merge} from '../@core/util/object.util'
-import {userCodeOrchestrationv2} from '../@core/orchestration'
+import {runProject} from '../@core/orchestration'
 
 export const prettyPrintLogs = (event: EventEmitter2, flags: Record<string, any>, cmd: Run) => {
   if (!flags.watch) {
@@ -132,7 +132,7 @@ export default class Run extends BaseCommand<typeof Command> {
 
     prettyPrintLogs(event, flags, this)
     try {
-      await userCodeOrchestrationv2(
+      await runProject(
         data,
         {
           ...userConfig,
