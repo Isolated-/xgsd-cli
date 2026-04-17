@@ -18,9 +18,6 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
     this.context.stream.emit(name, {event: name, payload})
   }
 
-  // TODO: refactor this - shouldn't be recreating the same code
-  // as within orchestration.process.ts
-  // find a way to either re-use that logic or remove BasicOrchestrator entirely
   async orchestrate(): Promise<void> {
     // fire start event
     await this.before()
@@ -39,6 +36,8 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
 
     let input = deepmerge2({}, config.data) as Record<string, any>
 
+    // this was refactored to reduce duplication
+    // and to fix issues caused by slightly different implementations
     await executeStepsV1(
       config.steps,
       input,
