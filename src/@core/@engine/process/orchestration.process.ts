@@ -1,45 +1,8 @@
 import ms = require('ms')
-import {join} from 'path'
 import {PipelineStep} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
-import {resolveStepData} from '../util'
 import {deepmerge2} from '../../util/object.util'
 import {runWithConcurrency} from '../execution/concurrency'
-import {ProcessManager} from './manager.process'
-
-export async function runStep(idx: number, step: PipelineStep<any>, context: WorkflowContext) {
-  const startedAt = new Date().toISOString()
-  let timeoutMs: number | undefined
-  if (step.options?.timeout) {
-    timeoutMs =
-      typeof step.options.timeout === 'string' ? ms(step.options.timeout as ms.StringValue) : step.options.timeout
-  }
-
-  if (step.options?.timeout && step.options?.delay) {
-    const delayMs =
-      typeof step.options.delay === 'string' ? ms(step.options.delay as ms.StringValue) : step.options.delay
-
-    if (delayMs && timeoutMs) {
-      timeoutMs += delayMs // extend timeout by delay
-    }
-  }
-
-  const envResolved = resolveStepData(step.env || {}, {
-    context,
-    step,
-  })
-
-  step.env = envResolved as Record<string, string>
-  const path = join(__dirname, 'block.process.js')
-  const manager = new ProcessManager({...step, startedAt}, context, path, timeoutMs)
-  manager.fork()
-
-  process.on('exit', () => {
-    manager.process.kill()
-  })
-
-  return manager.run()
-}
 
 export type ExecutionMode = 'async' | 'chained' | 'fanout' | 'batched'
 

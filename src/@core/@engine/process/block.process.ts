@@ -95,7 +95,6 @@ export async function processStep(
   }
 
   const delayFn = getBackoffStrategy(context.config.options.backoff || 'exponential')
-  console.log(delayFn)
 
   prepared.errors = []
   // NOTE: this is where the work is actually happening
