@@ -128,6 +128,7 @@ export type FlexibleWorkflowConfig<T = SourceData> = {
   version: string | undefined
   enabled: boolean
   mode: PipelineMode
+  lite: boolean
   print?: {
     input?: boolean
     output?: boolean

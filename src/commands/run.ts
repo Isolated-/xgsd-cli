@@ -6,6 +6,7 @@ import chalk from 'chalk'
 import {
   findUserWorkflowConfigPath,
   loadUserWorkflowConfig,
+  validateAndPrepareWorkflowConfig,
   validateWorkflowConfig,
 } from '../@core/pipelines/pipelines.util'
 import {userLogThemes} from '../constants'
@@ -92,7 +93,7 @@ export default class Run extends BaseCommand<typeof Command> {
 
     let userConfig
     try {
-      userConfig = validateWorkflowConfig(loadUserWorkflowConfig(userModulePath, flags.workflow!))
+      userConfig = validateAndPrepareWorkflowConfig(loadUserWorkflowConfig(userModulePath))
       userConfig.options = merge(userConfig.options || {}, {
         concurrency: flags.concurrency || userConfig.options?.concurrency,
       })

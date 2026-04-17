@@ -1,3 +1,4 @@
+import {InProcessExecutor} from './executors/in-process.executor'
 import {ProcessExecutor} from './executors/process.executor'
 import {PluginContainer, PluginManager} from './plugins'
 import {PluginInput} from './plugins/plugin.types'
@@ -38,9 +39,10 @@ export class SetupContainer {
   }
 
   build(context: ProjectContext) {
+    const defaultExecutor = context.config.lite ? new InProcessExecutor() : new ProcessExecutor()
     return {
       pluginManager: new PluginManager(this.pluginContainer.createHooks(context)),
-      executor: this.executorFactory ? this.executorFactory(context) : new ProcessExecutor(),
+      executor: this.executorFactory ? this.executorFactory(context) : defaultExecutor,
     }
   }
 }

@@ -62,6 +62,113 @@ export const validRunners = ['xgsd@v1']
 export const validModes = ['chained', 'fanout', 'async', 'batched']
 export const validBackoffStrategies = ['manual', 'linear', 'exponential']
 
+export const validateAndPrepareWorkflowConfig = (config: FlexibleWorkflowConfig): FlexibleWorkflowConfig => {
+  const duration = Joi.string().pattern(/^\d+ms$|^\d+s$|^\d+m$|^\d+h$|^\d+d$|^\d+w$|^\d+mo$/)
+
+  const optionsSchema = Joi.object({
+    timeout: duration.default('5s'),
+    retries: Joi.number().min(0).max(100).default(5),
+    concurrency: Joi.number().min(1).max(32).default(4),
+    backoff: Joi.string().valid('linear', 'squaring', 'exponential').default('exponential'),
+    delay: duration.default('0s'),
+  }).default()
+
+  const stepSchema = Joi.object({
+    enabled: Joi.boolean().default(true),
+    name: Joi.string().optional(),
+    description: Joi.string().optional(),
+    data: Joi.object().optional(),
+    env: Joi.object().pattern(Joi.string(), Joi.string()).optional(),
+    if: Joi.alternatives().try(Joi.boolean(), Joi.string()).optional(),
+    with: Joi.object().optional(),
+    after: Joi.object().optional(),
+    action: Joi.string().optional(),
+    run: Joi.string().optional(),
+    options: optionsSchema,
+  })
+
+  const schema = Joi.object({
+    name: Joi.string().allow('').default(''),
+    description: Joi.string().allow('').default(''),
+    enabled: Joi.boolean().default(true),
+    version: Joi.string().optional(),
+    runner: Joi.string()
+      .valid(...validRunners)
+      .default('xgsd@v1'),
+    metadata: Joi.object().default({}),
+    data: Joi.object().default({}),
+    mode: Joi.string()
+      .valid(...validModes)
+      .default(PipelineMode.Chained),
+    lite: Joi.boolean().default(false),
+
+    options: optionsSchema,
+
+    collect: Joi.object({
+      logs: Joi.boolean().default(true),
+      run: Joi.boolean().default(true),
+    }).default(),
+
+    webhooks: Joi.array()
+      .items(Joi.object({url: Joi.string().uri().required()}))
+      .max(5)
+      .default([]),
+
+    logs: Joi.object({
+      bucket: Joi.string().valid('1h', '1d').default('1h'),
+      path: Joi.string().optional(),
+    }).default(),
+
+    print: Joi.object({
+      input: Joi.boolean().default(false),
+      output: Joi.boolean().default(false),
+      errors: Joi.boolean().default(false),
+    }).default(),
+
+    steps: Joi.array().items(stepSchema).max(64).default([]),
+  })
+
+  const {error, value} = schema.validate(config, {
+    abortEarly: false,
+    allowUnknown: true,
+    stripUnknown: true,
+  })
+
+  if (error) {
+    throw new Error(`workflow config validation error: ${error.message}`)
+  }
+
+  const steps = value.steps.map((step: any) => {
+    const mergedData = deepmerge({}, value.data, step.data, step.with)
+
+    return {
+      ...step,
+      name: step.name || step.run || 'no name',
+      description: step.description || 'no description',
+      action: step.run || step.action || null,
+      run: step.action || step.run || null,
+      data: mergedData,
+      env: step.env || null,
+      if: step.if ?? null,
+      options: {
+        timeout: step.options.timeout,
+        retries: step.options.retries,
+        backoff: step.options.backoff,
+        delay: step.options.delay,
+      },
+    }
+  })
+
+  return {
+    ...value,
+    options: {
+      ...value.options,
+      timeout: ms(value.options.timeout),
+    },
+    steps,
+  }
+}
+
 export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): FlexibleWorkflowConfig => {
   const optionsValidators = Joi.object({
     timeout: Joi.string()
@@ -97,6 +204,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
     metadata: Joi.object().optional(),
     data: Joi.object().optional(),
     mode: Joi.string().valid(...validModes),
+    lite: Joi.boolean(),
     config: Joi.object().optional(),
     options: optionsValidators,
     collect: Joi.object({
