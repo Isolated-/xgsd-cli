@@ -55,13 +55,12 @@ export const invoke = async (
 ): Promise<void> => {
   for (const hook of hooks) {
     const method = hook[fn]
+
     if (typeof method !== 'function') continue
 
     try {
       const args = INVOKE_ARGS[fn](context, block, attempt)
       await (method as any).call(hook, ...args)
-    } catch (error) {
-      // handle error
-    }
+    } catch (error) {}
   }
 }

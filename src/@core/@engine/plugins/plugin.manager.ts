@@ -5,7 +5,7 @@ import {invoke, InvokeFn} from './plugin.util'
 import {RetryAttempt} from '../types/retry.types'
 import {BlockEvent, ProjectEvent} from '../types/events.types'
 
-export class PluginManager implements Hooks {
+export class PluginManager {
   constructor(private readonly _hooks: Hooks[]) {}
 
   async emit(event: InvokeFn, ...args: any[]): Promise<void> {
