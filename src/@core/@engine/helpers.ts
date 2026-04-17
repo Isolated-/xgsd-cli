@@ -1,3 +1,7 @@
+// this system needs to be improved
+// in order to bring it up to standards with v0.5
+// it should become a first class citizen of the engine
+
 import {v4} from 'uuid'
 import {deepmerge} from '../util/object.util'
 

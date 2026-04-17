@@ -4,13 +4,13 @@ import {WorkflowContext} from './@engine/context.builder'
 import {BasicOrchestrator} from './@engine/orchestrators/basic.orchestrator'
 import {IsolatedOrchestrator} from './@engine/orchestrators/isolated.orchestrator'
 import {SourceData, FlexibleWorkflowConfig} from './@types/pipeline.types'
-import {userCodeLogCollector} from './log-collector'
 import {createPluginManager} from './@engine/plugins/plugin.util'
 import {LoggerPlugin} from './plugins/logger.plugin'
 import {captureRunnerEvents} from './@engine/plugins/plugin.lifecycle'
 import {ReporterPlugin} from './plugins/reporter.plugin'
 import {UserHooksPlugin} from './plugins/userhooks.plugin'
 import {ProjectContext} from './@engine/types/project.types'
+import {attachProcessLogAdapter} from './@engine/logs'
 
 export const userCodeOrchestrationv2 = async <T extends SourceData = SourceData>(
   data: any,
@@ -28,18 +28,17 @@ export const userCodeOrchestrationv2 = async <T extends SourceData = SourceData>
     ensureDirSync(config.output)
   }
 
-  if (collect?.logs) {
-    userCodeLogCollector(ctx, config.output, ctx.stream)
-  }
+  // process log adapter (added in v0.5)
+  attachProcessLogAdapter(ctx as ProjectContext)
 
   // plugin layer (added in v0.5)
-  const manager = createPluginManager(ctx as ProjectContext, [
+  const pluginManager = createPluginManager(ctx as ProjectContext, [
     ReporterPlugin,
     LoggerPlugin,
     (ctx) => new UserHooksPlugin(ctx),
   ])
 
-  captureRunnerEvents(manager, ctx as ProjectContext)
+  captureRunnerEvents(pluginManager, ctx as ProjectContext)
 
   await orchestrator.orchestrate()
 }
