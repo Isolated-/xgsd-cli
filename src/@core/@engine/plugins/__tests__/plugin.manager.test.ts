@@ -1,3 +1,4 @@
+import {PluginContainer} from '../plugin.container'
 import {PluginManager} from '../plugin.manager'
 
 test('runs hooks in order', async () => {
@@ -105,4 +106,18 @@ test('continues execution if a plugin throws', async () => {
   await expect(manager.projectStart({} as any)).resolves.toBeUndefined()
 
   expect(calls).toEqual(['good'])
+})
+
+test('.use doesnt register undefined plugins', () => {
+  const context = {} as any
+  const container = new PluginContainer(context) as any
+
+  // when no return value is provided with factory style construction
+  // the plugin would still be added to _hooks
+  // this would result in "Cannot read properties of undefined (reading 'projectStart')"
+  container.use((ctx: any) => {})
+
+  // expected behaviour is an empty array of hooks:
+  const hooks = container.createHooks(context)
+  expect(hooks).toHaveLength(0)
 })
