@@ -1,0 +1,67 @@
+import {Hooks} from '../types/hooks.types'
+import {Block} from '../types/block.types'
+import {ProjectContext} from '../types/project.types'
+import {PluginContainer} from './plugin.container'
+import {PluginManager} from './plugin.manager'
+import {PluginInput} from './plugin.types'
+import {RetryAttempt} from '../types/retry.types'
+
+export const loadUserPlugins = (context: ProjectContext, container: PluginContainer) => {
+  const mod = require(context.package)
+
+  if (typeof mod.plugins === 'function') {
+    mod.plugins(container)
+  }
+}
+
+export const createPluginManager = (context: ProjectContext, plugins?: PluginInput[]) => {
+  const container = new PluginContainer(context)
+
+  // register plugins
+  plugins?.forEach((plugin) => container.use(plugin))
+
+  // user plugins
+  loadUserPlugins(context.format!() as any, container)
+
+  const hooks = container.createHooks(context)
+  const manager = new PluginManager(hooks)
+
+  return manager
+}
+
+const ctxOnly = (ctx: ProjectContext) => [ctx]
+const ctxBlock = (ctx: ProjectContext, block?: Block) => [ctx, block]
+
+const INVOKE_ARGS = {
+  projectStart: ctxOnly,
+  projectEnd: ctxOnly,
+
+  blockStart: ctxBlock,
+  blockEnd: ctxBlock,
+  blockWait: ctxBlock,
+  blockSkip: ctxBlock,
+
+  blockRetry: (ctx: ProjectContext, block?: Block, attempt?: RetryAttempt) => [ctx, block, attempt],
+} as const
+
+export type InvokeFn = keyof typeof INVOKE_ARGS
+
+export const invoke = async (
+  hooks: Hooks[],
+  fn: InvokeFn,
+  context: ProjectContext,
+  block?: Block,
+  attempt?: RetryAttempt,
+): Promise<void> => {
+  for (const hook of hooks) {
+    const method = hook[fn]
+    if (typeof method !== 'function') continue
+
+    try {
+      const args = INVOKE_ARGS[fn](context, block, attempt)
+      await (method as any).call(hook, ...args)
+    } catch (error) {
+      // handle error
+    }
+  }
+}

@@ -1,0 +1,123 @@
+import {PluginContainer} from '../plugin.container'
+import {PluginManager} from '../plugin.manager'
+
+test('runs hooks in order', async () => {
+  const calls: string[] = []
+
+  class A {
+    async projectStart() {
+      calls.push('A')
+    }
+  }
+
+  class B {
+    async projectStart() {
+      calls.push('B')
+    }
+  }
+
+  const context = {} as any
+  const manager = new PluginManager([new A(), new B()])
+  await manager.projectStart(context)
+
+  expect(calls).toEqual(['A', 'B'])
+})
+
+test('no error thrown when hook doesnt exist', async () => {
+  class A {}
+
+  const context = {} as any
+  const manager = new PluginManager([new A()])
+
+  await expect(manager.projectStart(context)).resolves.toBeUndefined()
+})
+
+test('calls internal hook/event handlers', async () => {
+  const projectStart = jest.fn()
+  const projectEnd = jest.fn()
+  const blockStart = jest.fn()
+  const blockEnd = jest.fn()
+  const blockRetry = jest.fn()
+  const blockWait = jest.fn()
+  const blockSkip = jest.fn()
+
+  const hook = {
+    projectStart,
+    projectEnd,
+    blockStart,
+    blockEnd,
+    blockRetry,
+    blockWait,
+    blockSkip,
+  }
+
+  const context = {} as any
+  const block = {} as any
+  const attempt = {} as any
+
+  const manager = new PluginManager([hook])
+
+  await manager.projectStart(context)
+  expect(projectStart).toHaveBeenCalledTimes(1)
+  expect(projectStart).toHaveBeenCalledWith(context)
+
+  await manager.projectEnd(context)
+  expect(projectEnd).toHaveBeenCalledTimes(1)
+  expect(projectEnd).toHaveBeenCalledWith(context)
+
+  await manager.blockStart(context, block)
+  expect(blockStart).toHaveBeenCalledTimes(1)
+  expect(blockStart).toHaveBeenCalledWith(context, block)
+
+  await manager.blockEnd(context, block)
+  expect(blockEnd).toHaveBeenCalledTimes(1)
+  expect(blockEnd).toHaveBeenCalledWith(context, block)
+
+  await manager.blockRetry(context, block, attempt)
+  expect(blockRetry).toHaveBeenCalledTimes(1)
+  expect(blockRetry).toHaveBeenCalledWith(context, block, attempt)
+
+  await manager.blockWait(context, block)
+  expect(blockWait).toHaveBeenCalledTimes(1)
+  expect(blockWait).toHaveBeenCalledWith(context, block)
+
+  await manager.blockSkip(context, block)
+  expect(blockSkip).toHaveBeenCalledTimes(1)
+  expect(blockSkip).toHaveBeenCalledWith(context, block)
+})
+
+test('continues execution if a plugin throws', async () => {
+  const calls: string[] = []
+
+  const badPlugin = {
+    projectStart: async () => {
+      throw new Error('fail')
+    },
+  }
+
+  const goodPlugin = {
+    projectStart: async () => {
+      calls.push('good')
+    },
+  }
+
+  const manager = new PluginManager([badPlugin, goodPlugin])
+
+  await expect(manager.projectStart({} as any)).resolves.toBeUndefined()
+
+  expect(calls).toEqual(['good'])
+})
+
+test('.use doesnt register undefined plugins', () => {
+  const context = {} as any
+  const container = new PluginContainer(context) as any
+
+  // when no return value is provided with factory style construction
+  // the plugin would still be added to _hooks
+  // this would result in "Cannot read properties of undefined (reading 'projectStart')"
+  container.use((ctx: any) => {})
+
+  // expected behaviour is an empty array of hooks:
+  const hooks = container.createHooks(context)
+  expect(hooks).toHaveLength(0)
+})

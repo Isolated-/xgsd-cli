@@ -13,7 +13,7 @@ import {BaseCommand} from '../base'
 import {defaultWith} from '../@core/util/misc.util'
 import {normaliseWorkflowName} from '../@core/util/workflow.util'
 import {merge} from '../@core/util/object.util'
-import {userCodeOrchestrationv2} from '../@core/runner/runner.orchestration'
+import {runProject} from '../@core'
 
 export const prettyPrintLogs = (event: EventEmitter2, flags: Record<string, any>, cmd: Run) => {
   if (!flags.watch) {
@@ -66,9 +66,7 @@ export default class Run extends BaseCommand<typeof Command> {
       min: 1,
     }),
 
-    lite: Flags.boolean({
-      description: 'run in lite mode (no isolation, faster for local development)',
-    }),
+    lite: Flags.boolean(),
   }
 
   public async run(): Promise<any> {
@@ -134,7 +132,7 @@ export default class Run extends BaseCommand<typeof Command> {
 
     prettyPrintLogs(event, flags, this)
     try {
-      await userCodeOrchestrationv2(
+      await runProject(
         data,
         {
           ...userConfig,
@@ -144,7 +142,7 @@ export default class Run extends BaseCommand<typeof Command> {
           output: newOutputPath,
         },
         event,
-        flags.lite || false,
+        flags.lite,
       )
     } catch (e: any) {
       if (e.message) {

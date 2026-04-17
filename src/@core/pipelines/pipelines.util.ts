@@ -1,22 +1,12 @@
 import {dirname, extname, join, resolve} from 'path'
-import {RunFn} from '../@shared/types/runnable.types'
+import {RunFn} from '../@engine/types/runnable.types'
 import {FlexibleWorkflowConfig, PipelineConfig, PipelineMode, PipelineState, SourceData} from '../@types/pipeline.types'
-import {IPipeline} from './interfaces/pipeline.interfaces'
-import {Pipeline} from './pipeline.concrete'
 import {ensureDirSync, pathExistsSync, readdirSync, readFileSync, readJsonSync} from 'fs-extra'
 import {load} from 'js-yaml'
-import {Require} from '../@types/require.type'
+import {Require} from '../@engine/types/require.type'
 import * as Joi from 'joi'
 import ms = require('ms')
 import {deepmerge} from '../util/object.util'
-
-export const orchestration = async <T extends SourceData = SourceData, R extends SourceData = SourceData>(
-  input: T,
-  ...fns: RunFn<T, R>[]
-): Promise<PipelineConfig<R>> => {
-  const pipeline = new Pipeline(getDefaultPipelineConfig())
-  return pipeline.orchestrate(input, ...(fns as any)) as Promise<PipelineConfig<R>>
-}
 
 export const getDefaultPipelineConfig = <T extends SourceData = SourceData>(
   opts?: Partial<PipelineConfig<T>>,
@@ -146,7 +136,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
       .items(
         Joi.object({
           enabled: Joi.boolean().default(true),
-          name: Joi.string().required(),
+          name: Joi.string().required().optional(),
           description: Joi.string().optional(),
           data: Joi.object().optional(),
           env: Joi.object().pattern(Joi.string(), Joi.string()).optional(),
@@ -158,7 +148,7 @@ export const validateWorkflowConfig = (config: FlexibleWorkflowConfig): Flexible
           run: Joi.string().optional(),
         }),
       )
-      .min(1)
+      .min(0)
       .max(64),
   })
 
@@ -203,23 +193,25 @@ export const getWorkflowConfigDefaults = (config: Require<FlexibleWorkflowConfig
     },
   }
 
-  const steps = config.steps.map((step) => ({
-    ...step,
-    name: step.name,
-    description: step.description || 'no description',
-    action: step.run || step.action || null,
-    enabled: step.enabled ?? true,
-    data: deepmerge({}, header.data, step.data, step.with),
-    env: step.env || null,
-    options: {
-      timeout: step.options?.timeout || header.options.timeout,
-      retries: step.options?.retries || header.options.retries,
-      backoff: step.options?.backoff || header.options.backoff,
-      delay: step.options?.delay || header.options.delay,
-    },
-    if: step.if ?? null,
-    run: step.action || step.run || null,
-  }))
+  const steps = config.steps
+    ? config.steps.map((step) => ({
+        ...step,
+        name: step.name || step.run || 'no name',
+        description: step.description || 'no description',
+        action: step.run || step.action || null,
+        enabled: step.enabled ?? true,
+        data: deepmerge({}, header.data, step.data, step.with),
+        env: step.env || null,
+        options: {
+          timeout: step.options?.timeout || header.options.timeout,
+          retries: step.options?.retries || header.options.retries,
+          backoff: step.options?.backoff || header.options.backoff,
+          delay: step.options?.delay || header.options.delay,
+        },
+        if: step.if ?? null,
+        run: step.action || step.run || null,
+      }))
+    : []
 
   return {
     ...header,
