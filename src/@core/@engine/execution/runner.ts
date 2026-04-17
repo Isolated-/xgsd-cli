@@ -1,13 +1,13 @@
-import {debug} from '../util/debug.util'
-import {RunFn} from './types/runnable.types'
+import {debug} from '../../util/debug.util'
+import {RunFn} from '../types/runnable.types'
 
 /**
  *  Runner API exports
  */
-import {execute} from './execution/execute'
+import {execute} from './execute'
 export {execute}
-import {retry} from './execution/retry'
-import {RetryAttempt} from './types/retry.types'
+import {retry} from './retry'
+import {RetryAttempt} from '../types/retry.types'
 export {retry}
 
 export type RunnerOpts = {

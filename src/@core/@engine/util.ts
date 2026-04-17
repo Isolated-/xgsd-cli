@@ -4,7 +4,7 @@ import {HelperFn, helpers} from './helpers'
 import {Block} from './types/block.types'
 import {ProjectContext} from './types/project.types'
 
-export function prepareStepDataV1(block: Block, context: ProjectContext) {
+export function prepareStepData(block: Block, context: ProjectContext) {
   const {after, ...stepData} = block
   const data = deepmerge2(deepmerge2(context.config.data, block.data), block.input)
   const resolved = resolveStepData(block, {
@@ -20,7 +20,7 @@ export function prepareStepDataV1(block: Block, context: ProjectContext) {
   return resolved
 }
 
-export function finaliseStepDataV1(block: Block, context: ProjectContext) {
+export function finaliseStepData(block: Block, context: ProjectContext) {
   if (isEmptyObject(block.after)) {
     return block
   }
@@ -40,7 +40,7 @@ export function finaliseStepDataV1(block: Block, context: ProjectContext) {
   return block
 }
 
-export async function importUserModuleV1(block: Block, context: ProjectContext) {
+export async function importUserModule(block: Block, context: ProjectContext) {
   try {
     const action = block.run!
     const fn = await import(context.package)

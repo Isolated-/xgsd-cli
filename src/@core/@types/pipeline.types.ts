@@ -1,5 +1,5 @@
 import {IRunnable} from '../@engine/types/interfaces/runnable.interface'
-import {RunnerResult, WrappedError} from '../@engine/runner'
+import {RunnerResult, WrappedError} from '../@engine/execution/runner'
 import {RunFn} from '../@engine/types/runnable.types'
 import {Require} from '../@engine/types/require.type'
 

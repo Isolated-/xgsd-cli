@@ -1,4 +1,4 @@
-import {execute, WrappedError, timeout as withTimeout} from '../runner'
+import {execute, WrappedError, timeout as withTimeout} from './runner'
 import {RetryAttempt} from '../types/retry.types'
 import {RunFn} from '../types/runnable.types'
 

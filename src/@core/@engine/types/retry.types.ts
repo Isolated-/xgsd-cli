@@ -1,4 +1,4 @@
-import {WrappedError} from '../runner'
+import {WrappedError} from '../execution/runner'
 
 export type RetryAttempt = {
   attempt: number

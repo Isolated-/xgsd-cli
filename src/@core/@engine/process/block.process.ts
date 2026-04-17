@@ -1,15 +1,15 @@
-import {PipelineState, PipelineStep} from '../@types/pipeline.types'
-import {retry, WrappedError} from './runner'
-import {finaliseStepDataV1, importUserModuleV1, prepareStepDataV1} from './util'
-import {WorkflowContext} from './context.builder'
-import {merge} from '../util/object.util'
-import {WorkflowError, WorkflowErrorCode} from './error'
-import {getBackoffStrategy} from './backoff'
-import {defaultWith, delayFor} from '../util/misc.util'
-import ms = require('ms')
-import {getDurationNumber} from '../pipelines/pipelines.util'
-import {BlockEvent} from './types/events.types'
-import {RetryAttempt} from './types/retry.types'
+import {PipelineStep, PipelineState} from '../../@types/pipeline.types'
+import {getDurationNumber} from '../../pipelines/pipelines.util'
+import {delayFor, defaultWith} from '../../util/misc.util'
+import {merge} from '../../util/object.util'
+import {WorkflowContext} from '../context.builder'
+import {WorkflowError, WorkflowErrorCode} from '../error'
+import {getBackoffStrategy} from '../execution/backoff'
+import {retry} from '../execution/retry'
+import {WrappedError} from '../execution/runner'
+import {BlockEvent} from '../types/events.types'
+import {RetryAttempt} from '../types/retry.types'
+import {prepareStepData, finaliseStepData, importUserModule} from '../util'
 
 export const DATA_SIZE_LIMIT_KB = 2048 // 2048 KB
 
@@ -70,7 +70,7 @@ export async function processStep(
   attempt?: (attempt: RetryAttempt) => Promise<any>,
   event?: (name: string, payload: any) => void,
 ) {
-  const prepared = prepareStepDataV1(step, context)
+  const prepared = prepareStepData(step, context)
   prepared.startedAt = new Date().toISOString()
 
   // by this point if/enabled are booleans
@@ -127,7 +127,7 @@ export async function processStep(
   prepared.endedAt = new Date().toISOString()
   prepared.duration = Date.parse(prepared.endedAt) - Date.parse(prepared.startedAt)
 
-  return finaliseStepDataV1(prepared, context)
+  return finaliseStepData(prepared, context)
 }
 
 export function shouldRun(step: PipelineStep): boolean {
@@ -171,7 +171,7 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
 
   rejectionHandler(step)
 
-  const fn = await importUserModuleV1(step, context)
+  const fn = await importUserModule(step, context)
 
   const method = defaultWith('exponential', step.options?.backoff, context.config.options?.backoff)!
   const delay = getBackoffStrategy(method)

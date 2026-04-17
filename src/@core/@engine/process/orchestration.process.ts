@@ -30,7 +30,7 @@ export async function runStep(idx: number, step: PipelineStep<any>, context: Wor
   })
 
   step.env = envResolved as Record<string, string>
-  const path = join(__dirname, '..', 'block.process.js')
+  const path = join(__dirname, 'block.process.js')
   const manager = new ProcessManager({...step, startedAt}, context, path, timeoutMs)
   manager.fork()
 
