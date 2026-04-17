@@ -65,6 +65,8 @@ export default class Run extends BaseCommand<typeof Command> {
       max: 32,
       min: 1,
     }),
+
+    lite: Flags.boolean(),
   }
 
   public async run(): Promise<any> {
@@ -140,7 +142,7 @@ export default class Run extends BaseCommand<typeof Command> {
           output: newOutputPath,
         },
         event,
-        false,
+        flags.lite,
       )
     } catch (e: any) {
       if (e.message) {

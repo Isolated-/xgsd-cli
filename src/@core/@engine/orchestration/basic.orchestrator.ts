@@ -8,6 +8,7 @@ import {processStep} from '../block.process'
 import {deepmerge2, merge} from '../../util/object.util'
 import {BlockEvent, ProjectEvent} from '../../runner/runner.lifecycle'
 import {ProjectContext} from '../../runner/runner.types'
+import {executeStepsV1} from '../process/orchestration.process'
 
 export class BasicOrchestrator<T extends SourceData = SourceData> implements Orchestrator<T> {
   constructor(public context: WorkflowContext<T>) {}
@@ -17,12 +18,6 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
   }
 
   event(name: ProjectEvent | BlockEvent, payload: any): void {
-    // leave this here for now (may break logging)
-    //this.context.stream.emit('event', {
-    //  event: name,
-    //  payload,
-    //})
-
     this.context.stream.emit(name, {event: name, payload})
   }
 
@@ -36,18 +31,6 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
     const ctx = this.context
     const {config} = ctx
 
-    // instead of resolving step data per step
-    // resolve it here
-    let steps: PipelineStep<T>[] = config.steps || []
-    steps = steps.map((step) => ({
-      ...resolveStepData(step, {
-        config,
-        data: config.data,
-      }),
-      after: step.after,
-      options: merge(config.options, step.options),
-    }))
-
     process.setMaxListeners(config.steps.length + 10)
 
     // import user module here too
@@ -58,53 +41,29 @@ export class BasicOrchestrator<T extends SourceData = SourceData> implements Orc
     }
 
     let input = deepmerge2({}, config.data) as Record<string, any>
-    let results: PipelineStep<T>[] = []
 
-    if (ctx.mode === 'batched') {
-      const batchSize = concurrency
+    await executeStepsV1(
+      config.steps,
+      input,
+      ctx,
+      {
+        mode: config.mode,
+        ...config.options,
+      },
+      async (step, input) => {
+        // drop "action" before v0.5 release
+        step.fn = userModule[step.run ?? step.action!]
 
-      for (let i = 0; i < steps.length; i += batchSize) {
-        const batch = steps.slice(i, i + batchSize)
-        console.log(input)
-
-        const batchResults: PipelineStep[] = []
-        await runWithConcurrency(batch, batch.length, async (step, idx) => {
-          step.fn = userModule[step.run ?? step.action!]
-          step.data = input
-          const result = await this.run(step)
-          batchResults.push(result)
-          return result
+        const result = await this.run({
+          ...step,
+          input,
         })
 
-        // merge batch outputs for next batch input
-        const reduced = batchResults.reduce((acc, step) => {
-          acc = deepmerge2(acc, step.output) as any
-          return acc
-        }, {})
+        this.event(BlockEvent.Ended, {step, context: ctx})
 
-        input = deepmerge2(input, reduced) as any
-        console.log(input)
-        results.push(...batchResults)
-      }
-
-      results = []
-      return
-    }
-
-    // execute
-    await runWithConcurrency(steps, concurrency!, async (step, idx) => {
-      step.fn = userModule[step.run ?? step.action!]
-      step.input = input as T // don't need to assign to `data` each time
-
-      const result = await this.run(step)
-
-      // merge chained ouputs for next step input
-      if (ctx.mode === 'chained') {
-        input = deepmerge2(input, result.output) as any
-      }
-
-      results.push(result)
-    })
+        return result
+      },
+    )
 
     await this.after()
   }

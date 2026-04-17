@@ -7,8 +7,6 @@ export class IsolatedOrchestrator<T extends SourceData = SourceData> extends Bas
   async run(step: PipelineStep<T>): Promise<PipelineStep<T>> {
     const result = await runStep(0, step, this.context as any)
 
-    this.event(BlockEvent.Ended, {step: result.step, context: this.context})
-
     return result.step
   }
 }
