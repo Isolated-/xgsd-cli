@@ -2,7 +2,7 @@ import {WorkflowContext} from './context.builder'
 import {WorkflowError, WorkflowErrorCode} from './error'
 import {SetupContainer} from './setup'
 import {Block} from './types/block.types'
-import {ExecutorInput, FactoryInput, PluginInput} from './types/factory.types'
+import {ExecutorInput, Factory, FactoryInput, PluginInput} from './types/factory.types'
 import {ProjectContext} from './types/project.types'
 
 export type UserSetupFn = (ctx: WorkflowContext, setup: SetupContainer) => Promise<void>
@@ -32,6 +32,21 @@ export const resolveFactory = (input: FactoryInput<unknown>) => {
   }
 
   return () => input
+}
+
+export const buildFactories = <T = unknown>(factories: Factory<T>[], ctx: ProjectContext) => {
+  // this fixes user errors like:
+  // xgsd.use((ctx) => {}) (no returns)
+  // by dropping the plugin before its registered
+  return factories
+    .map((f) => {
+      try {
+        return f(ctx)
+      } catch {
+        return undefined
+      }
+    })
+    .filter((factory): factory is T => !!factory)
 }
 
 export const loadUserSetup = async (context: ProjectContext, setup: SetupContainer) => {
