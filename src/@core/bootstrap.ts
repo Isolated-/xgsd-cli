@@ -11,6 +11,7 @@ import {attachProcessLogAdapter} from './@engine/logs'
 import {deepmerge2} from './util/object.util'
 import {Orchestrator} from './@engine/orchestrator'
 import {createRuntime} from './@engine/extension/util'
+import {DebugLogger} from './loggers/debug.logger'
 
 /**
  *  @param {any} data
@@ -41,6 +42,7 @@ export const runProject = async <T extends SourceData = SourceData>(
   // these are registered as a plugin
   const {pluginManager, loggerManager, executor} = await createRuntime({
     context: ctx as WorkflowContext,
+    loggers: [DebugLogger],
     plugins: [(ctx) => new UserHooksPlugin(ctx)],
   })
 
