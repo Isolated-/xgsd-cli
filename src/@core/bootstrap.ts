@@ -10,7 +10,7 @@ import {ProjectContext} from './@engine/types/project.types'
 import {attachProcessLogAdapter} from './@engine/logs'
 import {deepmerge2} from './util/object.util'
 import {Orchestrator} from './@engine/orchestrator'
-import {createRuntime} from './@engine/setup'
+import {createRuntime} from './@engine/util'
 
 /**
  *  @param {any} data
