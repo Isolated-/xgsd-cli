@@ -7,11 +7,12 @@ import {attachManagerLifecycleListeners} from './@engine/extension/lifecycle'
 import {ReporterPlugin} from './plugins/reporter.plugin'
 import {UserHooksPlugin} from './plugins/userhooks.plugin'
 import {ProjectContext} from './@engine/types/project.types'
-import {attachProcessLogAdapter} from './@engine/logs'
+import {attachProcessLogAdapter} from './@engine/extension/lifecycle'
 import {deepmerge2} from './util/object.util'
 import {Orchestrator} from './@engine/orchestrator'
 import {createRuntime} from './@engine/extension/util'
 import {DebugLogger} from './loggers/debug.logger'
+import {LogAdapterPlugin} from './plugins/log-adapter.plugin'
 
 /**
  *  @param {any} data
@@ -43,7 +44,7 @@ export const runProject = async <T extends SourceData = SourceData>(
   const {pluginManager, loggerManager, executor} = await createRuntime({
     context: ctx as WorkflowContext,
     loggers: [DebugLogger],
-    plugins: [(ctx) => new UserHooksPlugin(ctx)],
+    plugins: [LogAdapterPlugin, (ctx) => new UserHooksPlugin(ctx)],
   })
 
   const orchestrator = new Orchestrator<T>(ctx, executor as any)
@@ -52,7 +53,8 @@ export const runProject = async <T extends SourceData = SourceData>(
   attachManagerLifecycleListeners(pluginManager, ctx as ProjectContext)
 
   // process log adapter (added in v0.5)
-  attachProcessLogAdapter(ctx as ProjectContext)
+  // instead of this, attach directly to loggers
+  await attachProcessLogAdapter(ctx as ProjectContext, loggerManager)
 
   const input = deepmerge2(config.data, data) as T
 
