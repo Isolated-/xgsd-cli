@@ -22,7 +22,7 @@ export async function importUserModule(block: Block, context: ProjectContext) {
   }
 }
 
-export const resolveFactory = (input: FactoryInput<unknown>) => {
+export const resolveFactory = <T = unknown>(input: FactoryInput<T>) => {
   if (typeof input === 'function') {
     return (ctx: ProjectContext) => {
       try {
