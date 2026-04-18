@@ -1,6 +1,7 @@
+import {PluginInput} from '../../types/factory.types'
 import {BaseManager} from '../../types/generics/manager.interface'
 import {Hooks} from '../../types/hooks.types'
-import {invoke, InvokeFn} from '../util'
+import {invoke, InvokeFn, resolveFactory} from '../util'
 
 export class PluginManager {
   constructor(private plugins: Hooks[]) {}

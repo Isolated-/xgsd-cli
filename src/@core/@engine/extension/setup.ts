@@ -1,7 +1,7 @@
 import {WorkflowContext} from '../context.builder'
 import {InProcessExecutor} from '../executors/in-process.executor'
 import {ProcessExecutor} from '../executors/process.executor'
-import {PluginRegistry} from './plugins/plugin.container'
+import {PluginRegistry} from './plugins/plugin.registry'
 import {PluginManager} from './plugins/plugin.manager'
 import {ExecutorInput, LoggerInput, PluginInput, ReporterInput} from '../types/factory.types'
 import {Executor} from '../types/generics/executor.interface'
@@ -13,9 +13,10 @@ import {ReporterRegistry} from './reporters/reporter.registry'
 import {ReporterManager} from './reporters/reporter.manager'
 
 export type SetupOpts = {
-  plugins?: PluginInput[]
-  loggers?: LoggerInput[]
-  executor?: ExecutorInput
+  // di
+  pluginRegistry?: PluginRegistry
+  loggerRegistry?: LoggerRegistry
+  reporterRegistry?: ReporterRegistry
 }
 
 export class SetupContainer {
@@ -25,10 +26,10 @@ export class SetupContainer {
 
   private executorFactory?: (ctx: ProjectContext) => Executor
 
-  constructor() {
-    this.pluginContainer = new PluginRegistry()
-    this.loggerRegistry = new LoggerRegistry()
-    this.reporterRegistry = new ReporterRegistry()
+  constructor(opts?: SetupOpts) {
+    this.pluginContainer = opts?.pluginRegistry || new PluginRegistry()
+    this.loggerRegistry = opts?.loggerRegistry || new LoggerRegistry()
+    this.reporterRegistry = opts?.reporterRegistry || new ReporterRegistry()
   }
 
   use(plugin: PluginInput) {
