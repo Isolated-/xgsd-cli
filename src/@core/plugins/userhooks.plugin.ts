@@ -3,6 +3,7 @@ import {ProjectContext} from '../@engine/types/project.types'
 import {Hooks} from '../@engine/types/hooks.types'
 import {Block} from '../@engine/types/block.types'
 import {RetryAttempt} from '../@engine/types/retry.types'
+import {Plugin} from '../@engine/types/interfaces/plugin.interface'
 
 let cachedModule: any = null
 
@@ -33,7 +34,7 @@ function loadUserModule(context: ProjectContext) {
   }
 }
 
-export class UserHooksPlugin implements Hooks {
+export class UserHooksPlugin implements Plugin {
   private module: any
   constructor(private readonly context: ProjectContext) {
     this.module = loadUserModule(context)

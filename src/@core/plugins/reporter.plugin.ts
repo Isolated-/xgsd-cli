@@ -1,10 +1,10 @@
 import {join} from 'path'
 import {ensureDirSync, pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
 import {ProjectContext} from '../@engine/types/project.types'
-import {Hooks} from '../@engine/types/hooks.types'
 import {Block} from '../@engine/types/block.types'
+import {Plugin} from '../@engine/types/interfaces/plugin.interface'
 
-export class ReporterPlugin implements Hooks {
+export class ReporterPlugin implements Plugin {
   async projectStart(context: ProjectContext): Promise<void> {
     const path = join(context.output, 'runs')
 

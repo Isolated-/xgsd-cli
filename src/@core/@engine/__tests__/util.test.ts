@@ -2,7 +2,7 @@ import {PipelineStep} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
 import {createRuntime, resolveFactory} from '../util'
 import {Hooks} from '../types/hooks.types'
-import {Executor} from '../types/interfaces/executor.interface'
+import {Executor} from '../types/generics/executor.interface'
 
 class CorePlugin implements Hooks {}
 

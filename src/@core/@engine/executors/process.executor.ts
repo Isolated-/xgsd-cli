@@ -3,7 +3,7 @@ import {join} from 'path'
 import {PipelineStep, SourceData} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
 import {ProcessManager} from '../process/manager.process'
-import {Executor} from '../types/interfaces/executor.interface'
+import {Executor} from '../types/generics/executor.interface'
 import {resolveStepData} from '../helpers/helpers.util'
 
 export class ProcessExecutor<T = SourceData> implements Executor<T> {

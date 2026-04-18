@@ -2,11 +2,11 @@ import chalk from 'chalk'
 import {getDurationString} from '../pipelines/pipelines.util'
 import {PipelineState} from '../@types/pipeline.types'
 import {ProjectContext} from '../@engine/types/project.types'
-import {Hooks} from '../@engine/types/hooks.types'
 import {Block} from '../@engine/types/block.types'
 import {RetryAttempt} from '../@engine/types/retry.types'
+import {Plugin} from '../@engine/types/interfaces/plugin.interface'
 
-export class LoggerPlugin implements Hooks {
+export class LoggerPlugin implements Plugin {
   constructor(private readonly context: ProjectContext) {}
 
   protected async log(message: string, level: string, context?: ProjectContext, block?: Block): Promise<void> {

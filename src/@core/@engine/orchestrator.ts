@@ -3,7 +3,7 @@ import {deepmerge2} from '../util/object.util'
 import {WorkflowContext} from './context.builder'
 import {executeSteps} from './process/orchestration.process'
 import {ProjectEvent, BlockEvent} from './types/events.types'
-import {Executor} from './types/interfaces/executor.interface'
+import {Executor} from './types/generics/executor.interface'
 
 export class Orchestrator<T extends SourceData = SourceData> {
   constructor(

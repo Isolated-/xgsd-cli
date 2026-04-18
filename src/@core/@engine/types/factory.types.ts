@@ -1,5 +1,5 @@
 import {Hooks} from './hooks.types'
-import {Executor} from './interfaces/executor.interface'
+import {Executor} from './generics/executor.interface'
 import {Logger} from './interfaces/logger.interface'
 import {Plugin} from './interfaces/plugin.interface'
 import {ProjectContext} from './project.types'
