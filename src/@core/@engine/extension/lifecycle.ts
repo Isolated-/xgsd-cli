@@ -1,5 +1,6 @@
 import {ProjectEvent, BlockEvent} from '../types/events.types'
 import {Manager} from '../types/generics/manager.interface'
+import {LoggerEvent} from '../types/interfaces/logger.interface'
 import {ProjectContext} from '../types/project.types'
 import {LoggerManager} from './loggers/logger.manager'
 import {InvokeFn} from './util'
@@ -33,6 +34,24 @@ export const attachManagerLifecycleListeners = (manager: Manager, context: Proje
 }
 
 export const attachProcessLogAdapter = async (context: ProjectContext, manager: LoggerManager): Promise<void> => {
-  context.stream.on('message', async (e) => await manager.log(e.log))
+  context.stream.on('message', async (e) => {
+    // transform process logs into LoggerEvents
+    if (e.log.isEvent) {
+      await manager.log(e.log)
+      return
+    }
+
+    // move this to a mapper
+    const event = {
+      level: e.log.level ?? 'info',
+      message: e.log.message,
+      data: {
+        context: e.log.context,
+      },
+      isEvent: false,
+    }
+
+    await manager.log(event)
+  })
   //context.stream.on('error', (e) => adapter.error(e))
 }
