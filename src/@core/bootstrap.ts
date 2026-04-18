@@ -41,7 +41,7 @@ export const runProject = async <T extends SourceData = SourceData>(
   // these are registered as a plugin
   const {pluginManager, executor} = await createRuntime({
     context: ctx as WorkflowContext,
-    plugins: [LoggerPlugin, (ctx) => new UserHooksPlugin(ctx)],
+    plugins: [LoggerPlugin as any, (ctx) => new UserHooksPlugin(ctx)],
   })
 
   const orchestrator = new Orchestrator<T>(ctx, executor as any)

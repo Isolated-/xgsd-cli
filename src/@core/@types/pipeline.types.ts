@@ -1,4 +1,3 @@
-import {IRunnable} from '../@engine/types/interfaces/runnable.interface'
 import {WrappedError} from '../@engine/execution/error'
 import {RunFn} from '../@engine/types/runnable.types'
 import {Require} from '../@engine/types/require.type'
