@@ -1,8 +1,6 @@
 import {ProjectContext} from './project.types'
 import {Block} from './block.types'
 import {RetryAttempt} from './retry.types'
-import {BlockEvent, ProjectEvent} from './events.types'
-import {InvokeFn} from '../plugins/plugin.util'
 
 export type HookType = ProjectContext | Block | RetryAttempt
 
