@@ -5,7 +5,7 @@ import {Registry} from '../types/interfaces/registry.interface'
 import {ProjectConfig, ProjectContext} from '../types/project.types'
 import {buildFactories, resolveFactory} from '../util'
 
-export class PluginContainer implements Registry<PluginInput, Hooks[]> {
+export class PluginRegistry implements Registry<PluginInput, Hooks[]> {
   public readonly config: ProjectConfig
 
   constructor(context: ProjectContext) {

@@ -1,5 +1,5 @@
 import {ProjectEvent} from '../../types/events.types'
-import {PluginContainer} from '../plugin.container'
+import {PluginRegistry} from '../plugin.container'
 import {PluginManager} from '../plugin.manager'
 
 test('runs hooks in order', async () => {

@@ -1,13 +1,13 @@
 import {Hooks} from '../types/hooks.types'
 import {Block} from '../types/block.types'
 import {ProjectContext} from '../types/project.types'
-import {PluginContainer} from './plugin.container'
+import {PluginRegistry} from './plugin.container'
 import {PluginManager} from './plugin.manager'
 import {RetryAttempt} from '../types/retry.types'
 import {SetupContainer} from '../setup'
 import {PluginInput} from '../types/factory.types'
 
-export const loadUserPlugins = (context: ProjectContext, container: PluginContainer) => {
+export const loadUserPlugins = (context: ProjectContext, container: PluginRegistry) => {
   const mod = require(context.package)
 
   if (typeof mod.plugins === 'function') {
@@ -36,7 +36,7 @@ export const createRuntime = async (context: ProjectContext, plugins?: PluginInp
 }
 
 export const createPluginManager = (context: ProjectContext, plugins?: PluginInput[]) => {
-  const container = new PluginContainer(context)
+  const container = new PluginRegistry(context)
 
   // register plugins
   plugins?.forEach((plugin) => container.use(plugin))
