@@ -10,16 +10,10 @@ export class LoggerManager implements Manager {
     await invoke(this.loggers, event, args[0], args[1], args[2])
   }
 
-  // logs console.log/errors from user code
-  // to Logger instances
   async log(message: any): Promise<void> {
     for (const logger of this.loggers) {
       if (!logger) continue
       await logger.log(message)
     }
-  }
-
-  async error(message: any): Promise<void> {
-    // call error here
   }
 }

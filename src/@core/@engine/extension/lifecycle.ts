@@ -54,8 +54,4 @@ export const attachProcessLogAdapter = async (context: ProjectContext, manager: 
 
     await manager.log(event)
   })
-
-  context.stream.on('error', (err) => {
-    console.log(err)
-  })
 }
