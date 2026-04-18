@@ -1,7 +1,6 @@
+import {WorkflowContext} from './context.builder'
 import {InProcessExecutor} from './executors/in-process.executor'
 import {ProcessExecutor} from './executors/process.executor'
-import {builtinHelpers} from './helpers/helpers.builtin'
-import {HelpersRegistry} from './helpers/helpers.registry'
 import {PluginContainer, PluginManager} from './plugins'
 import {PluginInput} from './plugins/plugin.types'
 import {Executor} from './types/interfaces/executor.interface'
@@ -21,13 +20,56 @@ export const resolveExecutor = (input: ExecutorInput) => {
   return () => input
 }
 
+export const loadUserSetup = async (context: ProjectContext, setup: SetupContainer) => {
+  const userModule = await import(context.package)
+
+  if (typeof userModule.setup === 'function') {
+    await userModule.setup(setup)
+  }
+}
+
+export type UserSetupFn = (ctx: WorkflowContext, setup: SetupContainer) => Promise<void>
+
+/**
+ *
+ *  @param {WorkflowContext} opts.context
+ *  @param {PluginInput[]} opts.plugins
+ *  @param {ExecutorInput} opts.executor
+ *  @param {SetupContainer} opts.setupContainer
+ *  @param {UserSetupFn} opts.userCodeFn
+ *  @returns
+ */
+export const createRuntime = async (opts: {
+  context: WorkflowContext
+  plugins?: PluginInput[]
+  executor?: ExecutorInput
+  setupContainer?: SetupContainer
+  userCodeFn?: UserSetupFn
+}) => {
+  const {plugins, executor, context} = opts
+  const setup = opts.setupContainer ?? new SetupContainer(context)
+  const userCodeFn = opts.userCodeFn ?? loadUserSetup
+
+  plugins?.forEach((plugin) => setup.use(plugin))
+
+  if (executor) {
+    setup.executor(executor)
+  }
+
+  await userCodeFn(context, setup)
+
+  return setup.build(context)
+}
+
+export type Factory<T> = (ctx: ProjectContext) => T
+export type FactoryInput<T> = T | Factory<T> | (new (ctx: ProjectContext) => T)
+
 export type ExecutorFactory = (ctx: ProjectContext) => Executor
 export type ExecutorInput = Executor | ExecutorFactory | (new (ctx: ProjectContext) => Executor)
 
 export class SetupContainer {
   private pluginContainer: PluginContainer
   private executorFactory?: (ctx: ProjectContext) => Executor
-  private helpersFactory?: (registry: HelpersRegistry) => HelpersRegistry
 
   constructor(context: ProjectContext) {
     this.pluginContainer = new PluginContainer(context)
@@ -39,14 +81,6 @@ export class SetupContainer {
 
   executor(input: ExecutorInput) {
     this.executorFactory = resolveExecutor(input)
-  }
-
-  helpers(input: HelpersRegistry | ((registry: HelpersRegistry) => HelpersRegistry)) {
-    if (typeof input === 'function') {
-      this.helpersFactory = input
-    } else {
-      this.helpersFactory = () => input
-    }
   }
 
   build(context: ProjectContext) {
