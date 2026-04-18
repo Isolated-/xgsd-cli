@@ -8,10 +8,10 @@ export type Factory<T> = (ctx: ProjectContext) => T
 export type FactoryInput<T> = T | Factory<T> | (new (ctx: ProjectContext) => T)
 
 export type ExecutorFactory = Factory<Executor>
-export type ExecutorInput = ExecutorFactory
+export type ExecutorInput = FactoryInput<Executor>
 
-export type PluginFactory = Factory<Hooks>
-export type PluginInput = FactoryInput<Hooks>
+export type PluginFactory = Factory<Plugin>
+export type PluginInput = FactoryInput<Plugin>
 
 export type LoggerFactory = Factory<Logger>
 export type LoggerInput = FactoryInput<Logger>

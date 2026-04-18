@@ -1,4 +1,4 @@
-import {ProjectEvent} from '../../types/events.types'
+import {ProjectEvent} from '../../../types/events.types'
 import {PluginRegistry} from '../plugin.container'
 import {PluginManager} from '../plugin.manager'
 

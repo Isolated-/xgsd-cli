@@ -1,4 +1,4 @@
-import {Hooks} from '../../types/hooks.types'
+import {Hooks} from '../../../types/hooks.types'
 import {PluginRegistry} from '../plugin.container'
 
 class MockPlugin implements Hooks {}
