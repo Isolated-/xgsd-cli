@@ -1,22 +1,9 @@
 import {Block} from '../@engine/types/block.types'
 import {BlockEvent, ProjectEvent} from '../@engine/types/events.types'
-import {LoggerLevel} from '../@engine/types/interfaces/logger.interface'
+import {LoggerEvent, LoggerLevel} from '../@engine/types/interfaces/logger.interface'
 import {Plugin} from '../@engine/types/interfaces/plugin.interface'
 import {ProjectContext} from '../@engine/types/project.types'
 import {RetryAttempt} from '../@engine/types/retry.types'
-import {SourceData} from '../@types/pipeline.types'
-
-export type LogEvent<T extends SourceData = unknown> = {
-  level: LoggerLevel
-  event: ProjectEvent | BlockEvent
-  payload: T
-  timestamp: string
-  meta: {
-    node: string
-    engine: string
-  }
-  isEvent: boolean
-}
 
 // improve this to stream all events from orchestration/execution
 // to loggers registered at runtime
@@ -24,7 +11,7 @@ export type LogEvent<T extends SourceData = unknown> = {
 export class LogAdapterPlugin implements Plugin {
   constructor(private context: ProjectContext) {}
 
-  async _event(e: Partial<LogEvent>) {
+  async _event(e: Partial<LoggerEvent>) {
     this.context.stream.emit('message', {
       log: {
         level: e.level ?? LoggerLevel.Info,
