@@ -3,11 +3,11 @@
 // it should become a first class citizen of the engine
 
 import {v4} from 'uuid'
-import {deepmerge} from '../util/object.util'
+import {deepmerge} from '../../util/object.util'
 
 export type HelperFn = (input: any, ...args: any[]) => any
 
-export const helpers: Record<string, HelperFn> = {
+export const builtinHelpers: Record<string, HelperFn> = {
   before: (input: any, date: string) => {
     if (typeof input !== 'string') return false
     const moment = require('moment')

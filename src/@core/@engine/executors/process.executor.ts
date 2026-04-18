@@ -4,7 +4,7 @@ import {PipelineStep, SourceData} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
 import {ProcessManager} from '../process/manager.process'
 import {Executor} from '../types/interfaces/executor.interface'
-import {resolveStepData} from '../util'
+import {resolveStepData} from '../helpers/helpers.util'
 
 export class ProcessExecutor<T = SourceData> implements Executor<T> {
   async run(block: PipelineStep<T>, context: WorkflowContext<T>): Promise<PipelineStep<T>> {

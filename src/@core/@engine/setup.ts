@@ -1,5 +1,7 @@
 import {InProcessExecutor} from './executors/in-process.executor'
 import {ProcessExecutor} from './executors/process.executor'
+import {builtinHelpers} from './helpers/helpers.builtin'
+import {HelpersRegistry} from './helpers/helpers.registry'
 import {PluginContainer, PluginManager} from './plugins'
 import {PluginInput} from './plugins/plugin.types'
 import {Executor} from './types/interfaces/executor.interface'
@@ -25,6 +27,7 @@ export type ExecutorInput = Executor | ExecutorFactory | (new (ctx: ProjectConte
 export class SetupContainer {
   private pluginContainer: PluginContainer
   private executorFactory?: (ctx: ProjectContext) => Executor
+  private helpersFactory?: (registry: HelpersRegistry) => HelpersRegistry
 
   constructor(context: ProjectContext) {
     this.pluginContainer = new PluginContainer(context)
@@ -38,8 +41,17 @@ export class SetupContainer {
     this.executorFactory = resolveExecutor(input)
   }
 
+  helpers(input: HelpersRegistry | ((registry: HelpersRegistry) => HelpersRegistry)) {
+    if (typeof input === 'function') {
+      this.helpersFactory = input
+    } else {
+      this.helpersFactory = () => input
+    }
+  }
+
   build(context: ProjectContext) {
     const defaultExecutor = context.config.lite ? new InProcessExecutor() : new ProcessExecutor()
+
     return {
       pluginManager: new PluginManager(this.pluginContainer.createHooks(context)),
       executor: this.executorFactory ? this.executorFactory(context) : defaultExecutor,

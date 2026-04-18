@@ -9,7 +9,9 @@ import {retry} from '../execution/retry'
 import {WrappedError} from '../execution/error'
 import {BlockEvent} from '../types/events.types'
 import {RetryAttempt} from '../types/retry.types'
-import {prepareStepData, finaliseStepData, importUserModule} from '../util'
+import {importUserModule} from '../util'
+import {finaliseStepData, prepareStepData} from '../helpers/helpers.util'
+import {HelpersRegistry} from '../helpers/helpers.registry'
 
 export const DATA_SIZE_LIMIT_KB = 2048 // 2048 KB
 
@@ -186,6 +188,9 @@ process.on('message', async (msg: {type: string; step: PipelineStep; context: Wo
 
   const fn = await importUserModule(step, context)
   step.fn = fn
+
+  // may need to load helpers here
+  // so they're in the same context
 
   const result = await processStep(step, context, {event})
 

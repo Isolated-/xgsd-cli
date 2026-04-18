@@ -124,7 +124,11 @@ export class ProcessManager {
       })
 
       // send start command
-      this.process.send({type: 'START', step: this.step, context: this.context})
+      this.process.send({
+        type: 'START',
+        step: this.step,
+        context: this.context,
+      })
     })
   }
 }

@@ -4,6 +4,10 @@ import {EventEmitter2} from 'eventemitter2'
 import {createHash} from 'crypto'
 import {pathExistsSync} from 'fs-extra'
 import {join} from 'path'
+import {HelpersRegistry} from './helpers/helpers.registry'
+
+// this should ideally be broken down and moved
+// outside of the engine
 
 export class WorkflowContext<T extends SourceData = SourceData> {
   id: string
