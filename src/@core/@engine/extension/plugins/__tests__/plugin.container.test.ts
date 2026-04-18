@@ -6,7 +6,7 @@ class MockPlugin implements Hooks {}
 test('returns hooks correctly', () => {
   const context = {} as any
 
-  const container = new PluginRegistry(context)
+  const container = new PluginRegistry()
 
   // class
   container.use(MockPlugin)
@@ -33,7 +33,7 @@ test('returns hooks correctly', () => {
 
 test('.use doesnt register undefined plugins', () => {
   const context = {} as any
-  const container = new PluginRegistry(context) as any
+  const container = new PluginRegistry() as any
 
   // when no return value is provided with factory style construction
   // the plugin would still be added to _hooks

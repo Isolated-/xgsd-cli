@@ -1,6 +1,6 @@
 import {WorkflowContext} from './context.builder'
 import {WorkflowError, WorkflowErrorCode} from './error'
-import {SetupContainer} from './setup'
+import {SetupContainer} from './extension/setup'
 import {Block} from './types/block.types'
 import {ExecutorInput, Factory, FactoryInput, PluginInput} from './types/factory.types'
 import {Hooks} from './types/hooks.types'

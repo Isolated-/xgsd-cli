@@ -6,12 +6,6 @@ import {ProjectConfig, ProjectContext} from '../../types/project.types'
 import {buildFactories, resolveFactory} from '../../util'
 
 export class PluginRegistry implements Registry<PluginInput, Hooks[]> {
-  public readonly config: ProjectConfig
-
-  constructor(context: ProjectContext) {
-    this.config = context.config
-  }
-
   private factories: PluginFactory[] = []
 
   use(input: PluginInput) {
