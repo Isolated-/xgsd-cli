@@ -115,6 +115,7 @@ export async function processStep(
       prepared.state = PipelineState.Retrying
       prepared.attempt = a.attempt + 1
       prepared.errors.push(a.error) // this can be removed in v0.4+ (streaming to logs is implemented)
+      event?.(BlockEvent.Retrying, {step: prepared, attempt: a})
     },
   })
 

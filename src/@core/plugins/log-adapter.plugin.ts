@@ -17,6 +17,7 @@ export class LogAdapterPlugin implements Plugin {
         level: e.level ?? LoggerLevel.Info,
         message: e.event,
         data: e.payload,
+        error: e.error,
         timestamp: new Date().toISOString(),
         meta: {
           node: process.version,
@@ -78,6 +79,8 @@ export class LogAdapterPlugin implements Plugin {
   async blockRetry(context: ProjectContext, block: Block, attempt: RetryAttempt): Promise<void> {
     this._event({
       event: BlockEvent.Retrying,
+      level: LoggerLevel.Error,
+      error: attempt.error,
       payload: {
         context,
         block,
