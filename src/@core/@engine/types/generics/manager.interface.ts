@@ -1,4 +1,4 @@
-import {invoke, InvokeFn} from '../../util'
+import {invoke, InvokeFn} from '../../extension/util'
 import {Hooks} from '../hooks.types'
 
 export interface Manager {

@@ -1,7 +1,7 @@
 import {ProjectEvent, BlockEvent} from '../types/events.types'
 import {Manager} from '../types/generics/manager.interface'
 import {ProjectContext} from '../types/project.types'
-import {InvokeFn} from '../util'
+import {InvokeFn} from './util'
 
 const EVENT_MAP = {
   [ProjectEvent.Started]: 'projectStart',
@@ -19,7 +19,7 @@ const EVENT_MAP = {
  *  @param {Manager} manager
  *  @param {ProjectContext} context
  */
-export const attachPluginEventListeners = (manager: Manager, context: ProjectContext) => {
+export const attachManagerLifecycleListeners = (manager: Manager, context: ProjectContext) => {
   const formattedContext = context.format!()
 
   for (const [event, handler] of Object.entries(EVENT_MAP)) {

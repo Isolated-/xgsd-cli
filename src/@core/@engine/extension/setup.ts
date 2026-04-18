@@ -6,16 +6,22 @@ import {PluginManager} from './plugins/plugin.manager'
 import {ExecutorInput, LoggerInput, PluginInput} from '../types/factory.types'
 import {Executor} from '../types/generics/executor.interface'
 import {ProjectContext} from '../types/project.types'
-import {loadUserSetup, resolveFactory, UserSetupFn} from '../util'
+import {loadUserSetup, resolveFactory, UserSetupFn} from './util'
 import {LoggerRegistry} from './loggers/logger.registry'
 import {LoggerManager} from './loggers/logger.manager'
+
+export type SetupOpts = {
+  plugins?: PluginInput[]
+  loggers?: LoggerInput[]
+  executor?: ExecutorInput
+}
 
 export class SetupContainer {
   private pluginContainer: PluginRegistry
   private loggerRegistry: LoggerRegistry
   private executorFactory?: (ctx: ProjectContext) => Executor
 
-  constructor(context: ProjectContext) {
+  constructor() {
     this.pluginContainer = new PluginRegistry()
     this.loggerRegistry = new LoggerRegistry()
   }

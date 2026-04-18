@@ -1,6 +1,6 @@
 import {PipelineStep} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
-import {createRuntime, resolveFactory} from '../util'
+import {createRuntime, resolveFactory} from '../extension/util'
 import {Hooks} from '../types/hooks.types'
 import {Executor} from '../types/generics/executor.interface'
 

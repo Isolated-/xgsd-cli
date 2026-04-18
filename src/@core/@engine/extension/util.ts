@@ -1,11 +1,11 @@
-import {WorkflowContext} from './context.builder'
-import {WorkflowError, WorkflowErrorCode} from './error'
-import {SetupContainer} from './extension/setup'
-import {Block} from './types/block.types'
-import {ExecutorInput, Factory, FactoryInput, PluginInput} from './types/factory.types'
-import {Hooks} from './types/hooks.types'
-import {ProjectContext} from './types/project.types'
-import {RetryAttempt} from './types/retry.types'
+import {WorkflowContext} from '../context.builder'
+import {WorkflowError, WorkflowErrorCode} from '../error'
+import {SetupContainer} from './setup'
+import {Block} from '../types/block.types'
+import {ExecutorInput, Factory, FactoryInput, LoggerInput, PluginInput} from '../types/factory.types'
+import {Hooks} from '../types/hooks.types'
+import {ProjectContext} from '../types/project.types'
+import {RetryAttempt} from '../types/retry.types'
 
 export type UserSetupFn = (ctx: WorkflowContext, setup: SetupContainer) => Promise<void>
 
@@ -71,14 +71,16 @@ export const loadUserSetup = async (context: ProjectContext, setup: SetupContain
 export const createRuntime = async (opts: {
   context: WorkflowContext
   plugins?: PluginInput[]
+  loggers?: LoggerInput[]
   executor?: ExecutorInput
   setupContainer?: SetupContainer
   userCodeFn?: UserSetupFn
 }) => {
-  const {plugins, executor, context} = opts
-  const setup = opts.setupContainer ?? new SetupContainer(context)
+  const {plugins, loggers, executor, context} = opts
+  const setup = opts.setupContainer ?? new SetupContainer()
   const userCodeFn = opts.userCodeFn ?? loadUserSetup
 
+  loggers?.forEach((logger) => setup.logger(logger))
   plugins?.forEach((plugin) => setup.use(plugin))
 
   if (executor) {

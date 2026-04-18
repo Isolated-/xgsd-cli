@@ -3,7 +3,7 @@ import {Logger} from '../../types/interfaces/logger.interface'
 import {Plugin} from '../../types/interfaces/plugin.interface'
 import {ProjectContext} from '../../types/project.types'
 import {RetryAttempt} from '../../types/retry.types'
-import {createRuntime} from '../../util'
+import {createRuntime} from '../util'
 
 class MockPlugin implements Plugin {}
 class MockLogger implements Logger {
@@ -25,10 +25,10 @@ test('createRuntime()', async () => {
   const userCodeFn = jest.fn()
   const ctx = {} as any
 
-  const {pluginManager, executor} = await createRuntime({
+  const {pluginManager, loggerManager, executor} = await createRuntime({
     context: ctx,
     plugins: [MockPlugin],
-    //loggers: [MockLogger],
+    loggers: [MockLogger],
     setupContainer: {
       use,
       logger,
@@ -49,6 +49,6 @@ test('createRuntime()', async () => {
   expect(userCodeFn).toHaveBeenCalledTimes(1)
 
   expect(pluginManager).toEqual({})
-  //expect(loggerManager).toEqual({})
+  expect(loggerManager).toEqual({})
   expect(executor).toEqual({})
 })

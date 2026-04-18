@@ -9,7 +9,7 @@ import {retry} from '../execution/retry'
 import {WrappedError} from '../execution/error'
 import {BlockEvent} from '../types/events.types'
 import {RetryAttempt} from '../types/retry.types'
-import {importUserModule} from '../util'
+import {importUserModule} from '../extension/util'
 import {finaliseStepData, prepareStepData} from '../helpers/helpers.util'
 import {HelpersRegistry} from '../helpers/helpers.registry'
 

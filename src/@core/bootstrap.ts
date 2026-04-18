@@ -3,14 +3,14 @@ import {ensureDirSync} from 'fs-extra'
 import {WorkflowContext} from './@engine/context.builder'
 import {SourceData, FlexibleWorkflowConfig} from './@types/pipeline.types'
 import {LoggerPlugin} from './plugins/logger.plugin'
-import {attachPluginEventListeners} from './@engine/extension/lifecycle'
+import {attachManagerLifecycleListeners} from './@engine/extension/lifecycle'
 import {ReporterPlugin} from './plugins/reporter.plugin'
 import {UserHooksPlugin} from './plugins/userhooks.plugin'
 import {ProjectContext} from './@engine/types/project.types'
 import {attachProcessLogAdapter} from './@engine/logs'
 import {deepmerge2} from './util/object.util'
 import {Orchestrator} from './@engine/orchestrator'
-import {createRuntime} from './@engine/util'
+import {createRuntime} from './@engine/extension/util'
 
 /**
  *  @param {any} data
@@ -39,14 +39,15 @@ export const runProject = async <T extends SourceData = SourceData>(
   // blocks are processed (in process/isolation/remote/etc)
   // hooks provide a simple way of reacting to events
   // these are registered as a plugin
-  const {pluginManager, executor} = await createRuntime({
+  const {pluginManager, loggerManager, executor} = await createRuntime({
     context: ctx as WorkflowContext,
-    plugins: [LoggerPlugin as any, (ctx) => new UserHooksPlugin(ctx)],
+    plugins: [(ctx) => new UserHooksPlugin(ctx)],
   })
 
   const orchestrator = new Orchestrator<T>(ctx, executor as any)
 
-  attachPluginEventListeners(pluginManager, ctx as ProjectContext)
+  attachManagerLifecycleListeners(loggerManager, ctx as ProjectContext)
+  attachManagerLifecycleListeners(pluginManager, ctx as ProjectContext)
 
   // process log adapter (added in v0.5)
   attachProcessLogAdapter(ctx as ProjectContext)

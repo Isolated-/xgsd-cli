@@ -1,6 +1,6 @@
 import {Manager} from '../../types/generics/manager.interface'
 import {Logger} from '../../types/interfaces/logger.interface'
-import {invoke, InvokeFn} from '../../util'
+import {invoke, InvokeFn} from '../util'
 
 export class LoggerManager implements Manager {
   constructor(private loggers: Logger[]) {}
