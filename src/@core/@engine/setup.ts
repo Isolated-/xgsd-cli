@@ -27,7 +27,7 @@ export class SetupContainer {
     const defaultExecutor = context.config.lite ? new InProcessExecutor() : new ProcessExecutor()
 
     return {
-      pluginManager: new PluginManager(this.pluginContainer.createHooks(context)),
+      pluginManager: new PluginManager(this.pluginContainer.build(context)),
       executor: this.executorFactory ? this.executorFactory(context) : defaultExecutor,
     }
   }

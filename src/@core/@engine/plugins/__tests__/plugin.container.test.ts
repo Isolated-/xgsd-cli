@@ -24,7 +24,7 @@ test('returns hooks correctly', () => {
   const instance = new MockPlugin()
   container.use(instance)
 
-  const hooks = container.createHooks(context)
+  const hooks = container.build(context)
   expect(hooks).toHaveLength(4)
 
   // preserves order
@@ -41,6 +41,6 @@ test('.use doesnt register undefined plugins', () => {
   container.use((ctx: any) => {})
 
   // expected behaviour is an empty array of hooks:
-  const hooks = container.createHooks(context)
+  const hooks = container.build(context)
   expect(hooks).toHaveLength(0)
 })
