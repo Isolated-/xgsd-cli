@@ -1,5 +1,5 @@
 import {Hooks} from '../types/hooks.types'
-import {invoke, InvokeFn} from './plugin.util'
+import {invoke, InvokeFn} from '../util'
 
 export class PluginManager {
   constructor(private readonly _hooks: Hooks[]) {}

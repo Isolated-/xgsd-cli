@@ -1,7 +1,7 @@
 import {ProjectEvent, BlockEvent} from '../types/events.types'
 import {ProjectContext} from '../types/project.types'
+import {InvokeFn} from '../util'
 import {PluginManager} from './plugin.manager'
-import {InvokeFn} from './plugin.util'
 
 const EVENT_MAP = {
   [ProjectEvent.Started]: 'projectStart',
