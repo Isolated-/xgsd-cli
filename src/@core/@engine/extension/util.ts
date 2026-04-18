@@ -55,7 +55,8 @@ export const loadUserSetup = async (context: ProjectContext, setup: SetupContain
   const userModule = await import(context.package)
 
   if (typeof userModule.setup === 'function') {
-    await userModule.setup(setup)
+    const opts = await userModule.setup(setup)
+    return opts
   }
 }
 
@@ -80,14 +81,17 @@ export const createRuntime = async (opts: {
   const setup = opts.setupContainer ?? new SetupContainer()
   const userCodeFn = opts.userCodeFn ?? loadUserSetup
 
-  loggers?.forEach((logger) => setup.logger(logger))
+  const settings = await userCodeFn(context, setup)
+
   plugins?.forEach((plugin) => setup.use(plugin))
+
+  if (!settings?.disableCoreLoggers) {
+    loggers?.forEach((logger) => setup.logger(logger))
+  }
 
   if (executor) {
     setup.executor(executor)
   }
-
-  await userCodeFn(context, setup)
 
   return setup.build(context)
 }
