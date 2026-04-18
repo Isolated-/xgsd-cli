@@ -1,8 +1,6 @@
-import {ProcessExecutor} from '../executors/process.executor'
+import {PluginFactory, PluginInput} from '../types/factory.types'
 import {Hooks} from '../types/hooks.types'
-import {Executor} from '../types/interfaces/executor.interface'
 import {ProjectConfig, ProjectContext} from '../types/project.types'
-import {PluginInput, PluginFactory} from './plugin.types'
 
 export class PluginContainer {
   public readonly config: ProjectConfig

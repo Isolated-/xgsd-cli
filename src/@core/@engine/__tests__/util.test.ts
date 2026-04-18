@@ -1,6 +1,8 @@
+import {PipelineStep} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
-import {createRuntime} from '../setup'
+import {createRuntime, resolveFactory} from '../util'
 import {Hooks} from '../types/hooks.types'
+import {Executor} from '../types/interfaces/executor.interface'
 
 class CorePlugin implements Hooks {}
 
@@ -36,4 +38,21 @@ test('createRuntime()', async () => {
   expect(pluginManager).toEqual({})
   //expect(loggerManager).toEqual({})
   expect(executor).toEqual({})
+})
+
+test('resolveFactory()', () => {
+  class MyExecutor implements Executor {
+    async run(block: PipelineStep<unknown>, context: WorkflowContext<unknown>): Promise<PipelineStep<unknown>> {
+      return block
+    }
+  }
+
+  let result = resolveFactory(MyExecutor)
+  expect(result).toEqual(expect.any(Function))
+
+  result = resolveFactory(new MyExecutor())
+  expect(result).toEqual(expect.any(Function))
+
+  result = resolveFactory((_: any) => new MyExecutor())
+  expect(result).toEqual(expect.any(Function))
 })
