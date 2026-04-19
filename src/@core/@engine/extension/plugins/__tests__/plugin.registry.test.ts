@@ -1,5 +1,5 @@
-import {Plugin} from '../../types/interfaces/plugin.interface'
-import {PluginRegistry} from '../plugins/plugin.registry'
+import {Plugin} from '../../../types/interfaces/plugin.interface'
+import {PluginRegistry} from '../plugin.registry'
 
 class A implements Plugin {}
 class B implements Plugin {}
