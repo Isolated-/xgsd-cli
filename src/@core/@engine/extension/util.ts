@@ -2,7 +2,7 @@ import {WorkflowContext} from '../context.builder'
 import {WorkflowError, WorkflowErrorCode} from '../error'
 import {SetupContainer} from './setup'
 import {Block} from '../types/block.types'
-import {ExecutorInput, Factory, FactoryInput, LoggerInput, PluginInput} from '../types/factory.types'
+import {ExecutorInput, Factory, FactoryInput, LoggerInput, PluginInput, ReporterInput} from '../types/factory.types'
 import {Hooks} from '../types/hooks.types'
 import {ProjectContext} from '../types/project.types'
 import {RetryAttempt} from '../types/retry.types'
@@ -73,11 +73,12 @@ export const createRuntime = async (opts: {
   context: WorkflowContext
   plugins?: PluginInput[]
   loggers?: LoggerInput[]
+  reporters?: ReporterInput[]
   executor?: ExecutorInput
   setupContainer?: SetupContainer
   userCodeFn?: UserSetupFn
 }) => {
-  const {plugins, loggers, executor, context} = opts
+  const {plugins, loggers, reporters, executor, context} = opts
   const setup = opts.setupContainer ?? new SetupContainer()
   const userCodeFn = opts.userCodeFn ?? loadUserSetup
 
@@ -87,6 +88,10 @@ export const createRuntime = async (opts: {
 
   if (!settings?.disableCoreLoggers) {
     loggers?.forEach((logger) => setup.logger(logger))
+  }
+
+  if (!settings?.disableCoreReporters) {
+    reporters?.forEach((reporter) => setup.reporter(reporter))
   }
 
   if (executor) {

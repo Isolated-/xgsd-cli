@@ -38,16 +38,18 @@ export const runProject = async <T extends SourceData = SourceData>(
   // blocks are processed (in process/isolation/remote/etc)
   // hooks provide a simple way of reacting to events
   // these are registered as a plugin
-  const {pluginManager, loggerManager, executor} = await createRuntime({
+  const {pluginManager, loggerManager, reporterManager, executor} = await createRuntime({
     context: ctx as WorkflowContext,
     loggers: [DebugLogger],
     plugins: [LogAdapterPlugin, (ctx) => new UserHooksPlugin(ctx)],
+    reporters: [],
   })
 
   const orchestrator = new Orchestrator<T>(ctx, executor as any)
 
   attachManagerLifecycleListeners(loggerManager, ctx as ProjectContext)
   attachManagerLifecycleListeners(pluginManager, ctx as ProjectContext)
+  attachManagerLifecycleListeners(reporterManager, ctx as ProjectContext)
 
   // process log adapter (added in v0.5)
   // instead of this, attach directly to loggers
