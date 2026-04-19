@@ -2,7 +2,7 @@ import {EventEmitter2} from 'eventemitter2'
 import {ensureDirSync} from 'fs-extra'
 import {WorkflowContext} from './@engine/context.builder'
 import {SourceData, FlexibleWorkflowConfig} from './@types/pipeline.types'
-import {attachManagerLifecycleListeners, attachProcessLogAdapter} from './@engine/extension/lifecycle'
+import {attachManagerLifecycleListeners, attachProcessLogAdapter, EventBus} from './@engine/extension/lifecycle'
 import {UserHooksPlugin} from './plugins/userhooks.plugin'
 import {ProjectContext} from './@engine/types/project.types'
 import {deepmerge2} from './util/object.util'
@@ -41,15 +41,18 @@ export const runProject = async <T extends SourceData = SourceData>(
   const {pluginManager, loggerManager, reporterManager, executor} = await createRuntime({
     context: ctx as WorkflowContext,
     loggers: [DebugLogger],
-    plugins: [LogAdapterPlugin, (ctx) => new UserHooksPlugin(ctx)],
-    reporters: [],
+    //plugins: [(ctx) => new UserHooksPlugin(ctx)],
+    //reporters: [],
   })
 
+  const bus = new EventBus(handler)
   const orchestrator = new Orchestrator<T>(ctx, executor as any)
 
-  attachManagerLifecycleListeners(loggerManager, ctx as ProjectContext)
-  attachManagerLifecycleListeners(pluginManager, ctx as ProjectContext)
-  attachManagerLifecycleListeners(reporterManager, ctx as ProjectContext)
+  // wrap this in a helper
+  // attachListeners({logger, plugin, reporter, ctx})
+  attachManagerLifecycleListeners(loggerManager, bus, ctx as ProjectContext)
+  //attachManagerLifecycleListeners(pluginManager, ctx.bus, ctx as ProjectContext)
+  //attachManagerLifecycleListeners(reporterManager, ctx.bus, ctx as ProjectContext)
 
   // process log adapter (added in v0.5)
   // instead of this, attach directly to loggers
@@ -58,4 +61,9 @@ export const runProject = async <T extends SourceData = SourceData>(
   const input = deepmerge2(config.data, data) as T
 
   await orchestrator.orchestrate(input)
+
+  // clean this up
+  await pluginManager.exit(ctx as ProjectContext)
+  await loggerManager.exit(ctx as ProjectContext)
+  await reporterManager.exit(ctx as ProjectContext)
 }

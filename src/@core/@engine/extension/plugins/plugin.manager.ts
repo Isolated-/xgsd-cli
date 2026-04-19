@@ -1,12 +1,22 @@
+import {ProjectEvent} from '../../types/events.types'
 import {PluginInput} from '../../types/factory.types'
-import {BaseManager} from '../../types/generics/manager.interface'
+import {Manager} from '../../types/generics/manager.interface'
 import {Hooks} from '../../types/hooks.types'
-import {invoke, InvokeFn, resolveFactory} from '../util'
+import {ProjectContext} from '../../types/project.types'
+import {emit, resolveFactory, runExit, runInit} from '../util'
 
-export class PluginManager {
+export class PluginManager implements Manager {
   constructor(private plugins: Hooks[]) {}
 
-  async emit(event: InvokeFn, ...args: any[]): Promise<void> {
-    await invoke(this.plugins, event, args[0], args[1], args[2])
+  async emit(event: string, payload: any): Promise<void> {
+    await emit(this.plugins, event, payload)
+  }
+
+  async init(ctx: ProjectContext): Promise<void> {
+    return runInit(this.plugins, ctx)
+  }
+
+  async exit(ctx: ProjectContext): Promise<void> {
+    return runExit(this.plugins, ctx)
   }
 }

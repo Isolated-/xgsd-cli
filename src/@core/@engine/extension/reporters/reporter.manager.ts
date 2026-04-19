@@ -1,11 +1,20 @@
 import {Manager} from '../../types/generics/manager.interface'
 import {Reporter} from '../../types/interfaces/reporter.interface'
-import {invoke, InvokeFn} from '../util'
+import {ProjectContext} from '../../types/project.types'
+import {emit, runExit, runInit} from '../util'
 
 export class ReporterManager implements Manager {
   constructor(private reporters: Reporter[]) {}
 
-  async emit(event: InvokeFn, ...args: any[]): Promise<void> {
-    await invoke(this.reporters, event, args[0], args[1], args[2])
+  async emit(event: string, payload: any): Promise<void> {
+    await emit(this.reporters, event, payload)
+  }
+
+  async init(ctx: ProjectContext): Promise<void> {
+    return runInit(this.reporters, ctx)
+  }
+
+  async exit(ctx: ProjectContext): Promise<void> {
+    return runExit(this.reporters, ctx)
   }
 }

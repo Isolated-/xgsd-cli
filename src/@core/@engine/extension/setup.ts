@@ -11,12 +11,15 @@ import {LoggerRegistry} from './loggers/logger.registry'
 import {LoggerManager} from './loggers/logger.manager'
 import {ReporterRegistry} from './reporters/reporter.registry'
 import {ReporterManager} from './reporters/reporter.manager'
+import {EventBus} from './lifecycle'
 
 export type SetupOpts = {
   // di
   pluginRegistry?: PluginRegistry
   loggerRegistry?: LoggerRegistry
   reporterRegistry?: ReporterRegistry
+
+  bus?: EventBus
 }
 
 export class SetupContainer {
@@ -48,19 +51,28 @@ export class SetupContainer {
     this.executorFactory = resolveFactory(input)
   }
 
-  build(context: ProjectContext): {
+  async build(context: ProjectContext): Promise<{
     pluginManager: PluginManager
     loggerManager: LoggerManager
     reporterManager: ReporterManager
     executor: Executor
-  } {
+  }> {
     const defaultExecutor = context.config.lite ? new InProcessExecutor() : new ProcessExecutor()
 
+    const pluginManager = new PluginManager(this.pluginContainer.build(context))
+    const loggerManager = new LoggerManager(this.loggerRegistry.build(context))
+    const reporterManager = new ReporterManager(this.reporterRegistry.build(context))
+    const executor = this.executorFactory ? this.executorFactory(context) : defaultExecutor
+
+    await loggerManager.init(context)
+    await pluginManager.init(context)
+    await reporterManager.init(context)
+
     return {
-      pluginManager: new PluginManager(this.pluginContainer.build(context)),
-      loggerManager: new LoggerManager(this.loggerRegistry.build(context)),
-      reporterManager: new ReporterManager(this.reporterRegistry.build(context)),
-      executor: this.executorFactory ? this.executorFactory(context) : defaultExecutor,
+      pluginManager,
+      loggerManager,
+      reporterManager,
+      executor,
     }
   }
 }

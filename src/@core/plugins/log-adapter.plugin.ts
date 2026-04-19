@@ -1,3 +1,4 @@
+import {WorkflowContext} from '../@engine/context.builder'
 import {Block} from '../@engine/types/block.types'
 import {BlockEvent, ProjectEvent} from '../@engine/types/events.types'
 import {LoggerEvent, LoggerLevel} from '../@engine/types/interfaces/logger.interface'
@@ -12,7 +13,7 @@ export class LogAdapterPlugin implements Plugin {
   constructor(private context: ProjectContext) {}
 
   async _event(e: Partial<LoggerEvent>) {
-    this.context.stream.emit('message', {
+    /*await this.context.bus.emit('message', {
       log: {
         level: e.level ?? LoggerLevel.Info,
         message: e.event,
@@ -25,7 +26,11 @@ export class LogAdapterPlugin implements Plugin {
         },
         isEvent: true,
       },
-    })
+    })*/
+  }
+
+  async on<T = unknown>(event: string, payload: T): Promise<void> {
+    console.log(event, payload)
   }
 
   async projectStart(context: ProjectContext): Promise<void> {

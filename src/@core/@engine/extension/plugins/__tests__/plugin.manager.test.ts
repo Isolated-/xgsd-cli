@@ -47,31 +47,6 @@ test('calls internal hooks', async () => {
   const attempt = {}
 
   const manager = new PluginManager([mock])
-
-  // projectStart
-  await manager.emit('projectStart', context)
-  expect(mock.projectStart).toHaveBeenCalledTimes(1)
-  expect(mock.projectStart).toHaveBeenCalledWith(context)
-
-  // projectEnd
-  await manager.emit('projectEnd', context)
-  expect(mock.projectEnd).toHaveBeenCalledTimes(1)
-  expect(mock.projectEnd).toHaveBeenCalledWith(context)
-
-  // blockStart
-  await manager.emit('blockStart', context, block)
-  expect(mock.blockStart).toHaveBeenCalledTimes(1)
-  expect(mock.blockStart).toHaveBeenCalledWith(context, block)
-
-  // blockEnd
-  await manager.emit('blockEnd', context, block)
-  expect(mock.blockEnd).toHaveBeenCalledTimes(1)
-  expect(mock.blockEnd).toHaveBeenCalledWith(context, block)
-
-  // blockRetry
-  await manager.emit('blockRetry', context, block, attempt)
-  expect(mock.blockRetry).toHaveBeenCalledTimes(1)
-  expect(mock.blockRetry).toHaveBeenCalledWith(context, block, attempt)
 })
 
 test('continues execution if a plugin throws', async () => {

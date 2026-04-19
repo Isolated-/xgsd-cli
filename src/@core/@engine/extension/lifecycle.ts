@@ -1,19 +1,70 @@
+import {EventEmitter2} from 'eventemitter2'
 import {ProjectEvent, BlockEvent} from '../types/events.types'
 import {Manager} from '../types/generics/manager.interface'
-import {LoggerEvent} from '../types/interfaces/logger.interface'
 import {ProjectContext} from '../types/project.types'
 import {LoggerManager} from './loggers/logger.manager'
-import {InvokeFn} from './util'
 
 const EVENT_MAP = {
-  [ProjectEvent.Started]: 'projectStart',
-  [ProjectEvent.Ended]: 'projectEnd',
-  [BlockEvent.Started]: 'blockStart',
-  [BlockEvent.Ended]: 'blockEnd',
-  [BlockEvent.Retrying]: 'blockRetry',
-  [BlockEvent.Skipped]: 'blockSkip',
-  [BlockEvent.Waiting]: 'blockWait',
+  [ProjectEvent.Started]: ProjectEvent.Started,
+  [ProjectEvent.Ended]: ProjectEvent.Ended,
+  [BlockEvent.Started]: BlockEvent.Started,
+  [BlockEvent.Ended]: BlockEvent.Ended,
+  [BlockEvent.Retrying]: BlockEvent.Retrying,
+  [BlockEvent.Skipped]: BlockEvent.Skipped,
+  [BlockEvent.Waiting]: BlockEvent.Waiting,
+
+  // add system events
 } as const
+
+export type EventHandler<T = unknown> = (payload: T) => void | Promise<void>
+
+export class EventBus<Events extends Record<string, any> = Record<string, any>> {
+  private stream: EventEmitter2
+
+  constructor(stream?: EventEmitter2) {
+    this.stream =
+      stream ??
+      // unhard-code these when extracting to @xgsd/engine
+      new EventEmitter2({
+        wildcard: true,
+        delimiter: '.',
+        maxListeners: 50,
+      })
+  }
+
+  // subscribers
+  on<K extends keyof Events>(event: K, handler: EventHandler<Events[K]>) {
+    this.stream.on(event as string, handler)
+    return () => this.off(event, handler)
+  }
+
+  off<K extends keyof Events>(event: K, handler: EventHandler<Events[K]>) {
+    this.stream.off(event as string, handler)
+  }
+
+  // publishers
+  async emit<K extends keyof Events>(event: K, payload: Events[K]): Promise<void> {
+    const listeners = this.stream.listeners(event as string)
+
+    console.debug(`[EventBus] ${event as string}`)
+
+    for (const listener of listeners) {
+      await listener({
+        event,
+        payload,
+      })
+    }
+  }
+
+  // utils
+  listenerCount(event: keyof Events) {
+    return this.stream.listenerCount(event as string)
+  }
+
+  removeAll() {
+    this.stream.removeAllListeners()
+  }
+}
 
 /**
  *  Attaches listeners for incoming events used by Extensions
@@ -21,15 +72,27 @@ const EVENT_MAP = {
  *  @param {Manager} manager
  *  @param {ProjectContext} context
  */
-export const attachManagerLifecycleListeners = (manager: Manager, context: ProjectContext) => {
-  const formattedContext = context.format!()
+export const attachManagerLifecycleListeners = (manager: Manager, bus: EventBus, context: ProjectContext) => {
+  const formattedContext = context.format?.()
+
+  const disposers: Array<() => void> = []
 
   for (const [event, handler] of Object.entries(EVENT_MAP)) {
-    context.stream.on(event, async (e: any) => {
-      const payload = e.payload || {}
+    const off = bus.on(event as any, async (e: any) => {
+      const payload = e?.payload ?? {}
 
-      await manager.emit(handler as InvokeFn, formattedContext, payload.step, payload.attempt)
+      await manager.emit(handler, {
+        context: formattedContext,
+        ...payload,
+      })
     })
+
+    disposers.push(off)
+  }
+
+  // return cleanup so lifecycle can be detached
+  return () => {
+    for (const off of disposers) off()
   }
 }
 

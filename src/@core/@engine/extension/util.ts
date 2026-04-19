@@ -6,6 +6,7 @@ import {ExecutorInput, Factory, FactoryInput, LoggerInput, PluginInput, Reporter
 import {Hooks} from '../types/hooks.types'
 import {ProjectContext} from '../types/project.types'
 import {RetryAttempt} from '../types/retry.types'
+import {EventBus, EventHandler} from './lifecycle'
 
 export type UserSetupFn = (ctx: WorkflowContext, setup: SetupContainer) => Promise<void>
 
@@ -22,18 +23,67 @@ export async function importUserModule(block: Block, context: ProjectContext) {
   }
 }
 
-export const resolveFactory = <T = unknown>(input: FactoryInput<T>) => {
-  if (typeof input === 'function') {
-    return (ctx: ProjectContext) => {
-      try {
-        return new (input as any)(ctx)
-      } catch {
-        return (input as any)(ctx)
-      }
+export type Lifecycle = {
+  name?: string
+  init?: (ctx: any) => Promise<void> | void
+  exit?: (ctx: any) => Promise<void> | void
+}
+
+type Context = {}
+
+type Extension = {
+  name?: string
+  core?: boolean
+  type?: 'plugin' | 'logger' | 'reporter'
+  init?: (ctx: any) => Promise<void> | void
+  exit?: (ctx: any) => Promise<void> | void
+  on?: (e: string, handler: EventHandler) => void
+}
+
+export const runInit = async <T extends Extension>(items: T[], ctx: Context) => {
+  for (const item of items) {
+    if (item.init) {
+      await item.init(ctx)
     }
   }
+}
 
-  return () => input
+export const runExit = async <T extends Extension>(items: T[], ctx: Context) => {
+  for (const item of items) {
+    console.debug(`[${item.name}] unloaded`)
+
+    if (!item.exit) continue
+
+    console.debug(`[${item.name}] calling exit()`)
+    await item.exit(ctx)
+  }
+}
+
+export const resolveFactory = <T = unknown>(input: FactoryInput<T>) => {
+  return (ctx: ProjectContext) => {
+    const instance =
+      typeof input === 'function'
+        ? (() => {
+            try {
+              return new (input as any)(ctx)
+            } catch {
+              return (input as any)(ctx)
+            }
+          })()
+        : input
+
+    const name =
+      instance?.name || // user-defined name wins
+      instance?.constructor?.name || // class name (works for new MockPlugin())
+      (typeof input === 'function' ? input.name : undefined) || // fallback for class input
+      'anonymous' // if all else fails go with "anonymous"
+
+    if (instance && typeof instance === 'object') {
+      instance.name = name
+    }
+
+    return instance
+  }
 }
 
 export const buildFactories = <T = unknown>(factories: Factory<T>[], ctx: ProjectContext) => {
@@ -101,38 +151,10 @@ export const createRuntime = async (opts: {
   return setup.build(context)
 }
 
-const ctxOnly = (ctx: ProjectContext) => [ctx]
-const ctxBlock = (ctx: ProjectContext, block?: Block) => [ctx, block]
-
-const INVOKE_ARGS = {
-  projectStart: ctxOnly,
-  projectEnd: ctxOnly,
-
-  blockStart: ctxBlock,
-  blockEnd: ctxBlock,
-  blockWait: ctxBlock,
-  blockSkip: ctxBlock,
-
-  blockRetry: (ctx: ProjectContext, block?: Block, attempt?: RetryAttempt) => [ctx, block, attempt],
-} as const
-
-export type InvokeFn = keyof typeof INVOKE_ARGS
-
-export const invoke = async (
-  hooks: Hooks[],
-  fn: InvokeFn,
-  context: ProjectContext,
-  block?: Block,
-  attempt?: RetryAttempt,
-): Promise<void> => {
+export const emit = async <T = unknown>(hooks: Hooks[], event: string, payload: T) => {
   for (const hook of hooks) {
-    const method = hook[fn]
+    if (!hook.on || typeof hook.on !== 'function') continue
 
-    if (typeof method !== 'function') continue
-
-    try {
-      const args = INVOKE_ARGS[fn](context, block, attempt)
-      await (method as any).call(hook, ...args)
-    } catch (error) {}
+    await hook.on(event, payload)
   }
 }

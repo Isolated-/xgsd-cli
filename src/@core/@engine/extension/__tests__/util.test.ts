@@ -3,7 +3,7 @@ import {Logger} from '../../types/interfaces/logger.interface'
 import {Plugin} from '../../types/interfaces/plugin.interface'
 import {ProjectContext} from '../../types/project.types'
 import {RetryAttempt} from '../../types/retry.types'
-import {createRuntime} from '../util'
+import {createRuntime, resolveFactory} from '../util'
 
 class MockPlugin implements Plugin {}
 class MockLogger implements Logger {
@@ -11,6 +11,22 @@ class MockLogger implements Logger {
     throw new Error('Method not implemented.')
   }
 }
+
+test('resolveFactory() auto-names correctly', async () => {
+  const input = MockPlugin
+  const factory1 = resolveFactory(input)
+  let plugin = factory1({} as any)
+
+  expect(plugin.name).toBe('MockPlugin')
+
+  const factory2 = resolveFactory(new MockPlugin())
+  plugin = factory2({} as any)
+  expect(plugin.name).toBe('MockPlugin')
+
+  const factory3 = resolveFactory((ctx) => new MockPlugin())
+  plugin = factory3({} as any)
+  expect(plugin.name).toBe('MockPlugin')
+})
 
 test('createRuntime()', async () => {
   const use = jest.fn()

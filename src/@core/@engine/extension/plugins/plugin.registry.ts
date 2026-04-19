@@ -2,7 +2,6 @@ import {WorkflowContext} from '../../context.builder'
 import {PluginFactory, PluginInput} from '../../types/factory.types'
 import {Hooks} from '../../types/hooks.types'
 import {Registry} from '../../types/generics/registry.interface'
-import {ProjectConfig, ProjectContext} from '../../types/project.types'
 import {buildFactories, resolveFactory} from '../util'
 
 export class PluginRegistry implements Registry<PluginInput, Hooks[]> {
