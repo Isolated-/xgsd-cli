@@ -24,10 +24,6 @@ export interface Hooks {
   // called when extension is unloaded
   exit?(context: ProjectContext): Promise<void> | void
 
-  // plugin
-  pluginLoad?(context: ProjectContext): Promise<void> | void
-  pluginUnload?(context: ProjectContext): Promise<void> | void
-
   // project
   projectStart?(context: ProjectContext): Promise<void>
   projectEnd?(context: ProjectContext): Promise<void>

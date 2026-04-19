@@ -41,7 +41,7 @@ export const runProject = async <T extends SourceData = SourceData>(
   const {pluginManager, loggerManager, reporterManager, executor} = await createRuntime({
     context: ctx as WorkflowContext,
     loggers: [DebugLogger],
-    //plugins: [(ctx) => new UserHooksPlugin(ctx)],
+    plugins: [LogAdapterPlugin, (ctx) => new UserHooksPlugin(ctx)],
     //reporters: [],
   })
 
@@ -51,8 +51,8 @@ export const runProject = async <T extends SourceData = SourceData>(
   // wrap this in a helper
   // attachListeners({logger, plugin, reporter, ctx})
   attachManagerLifecycleListeners(loggerManager, bus, ctx as ProjectContext)
-  //attachManagerLifecycleListeners(pluginManager, ctx.bus, ctx as ProjectContext)
-  //attachManagerLifecycleListeners(reporterManager, ctx.bus, ctx as ProjectContext)
+  attachManagerLifecycleListeners(pluginManager, bus, ctx as ProjectContext)
+  attachManagerLifecycleListeners(reporterManager, bus, ctx as ProjectContext)
 
   // process log adapter (added in v0.5)
   // instead of this, attach directly to loggers

@@ -103,9 +103,10 @@ export const attachManagerLifecycleListeners = (manager: Manager, bus: EventBus,
 
 export const attachProcessLogAdapter = async (context: ProjectContext, manager: LoggerManager): Promise<void> => {
   context.stream.on('message', async (e) => {
+    const {log} = e.payload
     // transform process logs into LoggerEvents
-    if (e.log.isEvent) {
-      await manager.log(e.log)
+    if (log.isEvent) {
+      await manager.log(log)
       return
     }
 

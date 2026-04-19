@@ -1,4 +1,5 @@
 import {WorkflowContext} from '../@engine/context.builder'
+import {EventBus} from '../@engine/extension/lifecycle'
 import {Block} from '../@engine/types/block.types'
 import {BlockEvent, ProjectEvent} from '../@engine/types/events.types'
 import {LoggerEvent, LoggerLevel} from '../@engine/types/interfaces/logger.interface'
@@ -10,10 +11,14 @@ import {RetryAttempt} from '../@engine/types/retry.types'
 // to loggers registered at runtime
 // also ensure structure is formalised to prevent misuse
 export class LogAdapterPlugin implements Plugin {
-  constructor(private context: ProjectContext) {}
+  private bus!: EventBus
+
+  constructor(context: ProjectContext) {
+    this.bus = new EventBus(context.stream)
+  }
 
   async _event(e: Partial<LoggerEvent>) {
-    /*await this.context.bus.emit('message', {
+    await this.bus.emit('message', {
       log: {
         level: e.level ?? LoggerLevel.Info,
         message: e.event,
@@ -26,81 +31,14 @@ export class LogAdapterPlugin implements Plugin {
         },
         isEvent: true,
       },
-    })*/
+    })
   }
 
   async on<T = unknown>(event: string, payload: T): Promise<void> {
-    console.log(event, payload)
-  }
-
-  async projectStart(context: ProjectContext): Promise<void> {
     this._event({
-      event: ProjectEvent.Started,
-      payload: {
-        context,
-      },
-    })
-  }
-
-  async projectEnd(context: ProjectContext): Promise<void> {
-    this._event({
-      event: ProjectEvent.Ended,
-      payload: {
-        context,
-      },
-    })
-  }
-
-  async blockStart(context: ProjectContext, block: Block): Promise<void> {
-    this._event({
-      event: BlockEvent.Started,
-      payload: {
-        context,
-        block,
-      },
-    })
-  }
-
-  async blockEnd(context: ProjectContext, block: Block): Promise<void> {
-    this._event({
-      event: BlockEvent.Ended,
-      payload: {
-        context,
-        block,
-      },
-    })
-  }
-
-  async blockWait(context: ProjectContext, block: Block): Promise<void> {
-    this._event({
-      event: BlockEvent.Waiting,
-      payload: {
-        context,
-        block,
-      },
-    })
-  }
-
-  async blockRetry(context: ProjectContext, block: Block, attempt: RetryAttempt): Promise<void> {
-    this._event({
-      event: BlockEvent.Retrying,
-      level: LoggerLevel.Error,
-      error: attempt.error,
-      payload: {
-        context,
-        block,
-        attempt,
-      },
-    })
-  }
-
-  async blockSkip(context: ProjectContext, block: Block): Promise<void> {
-    this._event({
-      event: BlockEvent.Skipped,
-      payload: {
-        context,
-        block,
-      },
+      event: event as any,
+      payload,
+      isEvent: true,
     })
   }
 }
