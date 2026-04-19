@@ -12,3 +12,8 @@ export enum BlockEvent {
   Waiting = 'block.waiting',
   Error = 'block.error',
 }
+
+export enum SystemEvent {
+  ExtensionLoaded = 'extension.loaded',
+  ExtensionUnloaded = 'extension.unloaded',
+}

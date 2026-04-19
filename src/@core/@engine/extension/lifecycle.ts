@@ -1,19 +1,24 @@
 import {EventEmitter2} from 'eventemitter2'
-import {ProjectEvent, BlockEvent} from '../types/events.types'
+import {ProjectEvent, BlockEvent, SystemEvent} from '../types/events.types'
 import {Manager} from '../types/generics/manager.interface'
 import {ProjectContext} from '../types/project.types'
 import {LoggerManager} from './loggers/logger.manager'
 
 const EVENT_MAP = {
+  // project events
   [ProjectEvent.Started]: ProjectEvent.Started,
   [ProjectEvent.Ended]: ProjectEvent.Ended,
+
+  // block events
   [BlockEvent.Started]: BlockEvent.Started,
   [BlockEvent.Ended]: BlockEvent.Ended,
   [BlockEvent.Retrying]: BlockEvent.Retrying,
   [BlockEvent.Skipped]: BlockEvent.Skipped,
   [BlockEvent.Waiting]: BlockEvent.Waiting,
 
-  // add system events
+  // system events
+  [SystemEvent.ExtensionLoaded]: SystemEvent.ExtensionLoaded,
+  [SystemEvent.ExtensionUnloaded]: SystemEvent.ExtensionUnloaded,
 } as const
 
 export type EventHandler<T = unknown> = (payload: T) => void | Promise<void>
