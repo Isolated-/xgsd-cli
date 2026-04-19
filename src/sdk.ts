@@ -11,6 +11,21 @@ export type RetryOpts = {
   backoff?: 'linear' | 'exponential' | 'squaring' | 'manual'
 }
 
+/**
+ *  retry() is usually called for your blocks inside a child process.
+ *
+ *  Use this method when creating new Plugins, Loggers, or Reporters
+ *  to ensure retry logic is built in to your extension.
+ *
+ *  Note: do not call retry() from within your blocks.
+ *  This is unneeded and will lead to unexpected results.
+ *
+ *  @param run
+ *  @param data
+ *  @param opts
+ *  @param attempt
+ *  @returns
+ */
 export async function retry(run: RunFn<any, any>, data?: any, opts?: RetryOpts, attempt?: (a: RetryAttempt) => void) {
   return coreRetry(data, run, opts?.retries || 1, {
     timeout: opts?.timeout || 1000,

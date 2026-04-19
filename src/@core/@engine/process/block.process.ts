@@ -4,14 +4,10 @@ import {delayFor, defaultWith} from '../../util/misc.util'
 import {merge} from '../../util/object.util'
 import {WorkflowContext} from '../context.builder'
 import {WorkflowError, WorkflowErrorCode} from '../error'
-import {getBackoffStrategy} from '../execution/backoff'
-import {retry} from '../execution/retry'
-import {WrappedError} from '../execution/error'
 import {BlockEvent} from '../types/events.types'
-import {RetryAttempt} from '../types/retry.types'
 import {importUserModule} from '../extension/util'
 import {finaliseStepData, prepareStepData} from '../helpers/helpers.util'
-import {HelpersRegistry} from '../helpers/helpers.registry'
+import {retry, WrappedError, RetryAttempt, getBackoffStrategy} from '@xgsd/engine'
 
 export const DATA_SIZE_LIMIT_KB = 2048 // 2048 KB
 
@@ -108,8 +104,8 @@ export async function processStep(
   // NOTE: this is where the work is actually happening
   // retry() is used here
   const result = await retry(prepared.data, step.fn!, retries, {
-    timeout,
-    delay: delayFn,
+    timeout: getDurationNumber(timeout),
+    backoff: delayFn,
     onAttempt: async (a) => {
       attempt?.(a)
       prepared.state = PipelineState.Retrying
