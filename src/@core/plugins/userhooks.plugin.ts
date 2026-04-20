@@ -1,23 +1,26 @@
 import {WorkflowError, WorkflowErrorCode} from '../@engine/error'
 import {ProjectContext} from '../@engine/types/project.types'
-import {Hooks} from '../@engine/types/hooks.types'
-import {Block} from '../@engine/types/block.types'
-import {RetryAttempt} from '../@engine/types/retry.types'
 import {Plugin} from '../@engine/types/interfaces/plugin.interface'
+import {ProjectEvent, BlockEvent, SystemEvent} from '../@engine/types/events.types'
 
 let cachedModule: any = null
 
-const hookMap = {
-  // lifecycle
-  onMessage: 'onMessage',
-  // project/block
-  projectStart: 'onProjectStart',
-  projectEnd: 'onProjectEnd',
-  blockStart: 'onBlockStart',
-  blockEnd: 'onBlockEnd',
-  blockRetry: 'onBlockRetry',
-  blockWait: 'onBlockWait',
-  blockSkip: 'onBlockSkipped',
+const eventToHookMap = {
+  // project events
+  [ProjectEvent.Started]: 'onProjectStart',
+  [ProjectEvent.Ended]: 'onProjectEnd',
+
+  // block events
+  [BlockEvent.Started]: 'onBlockStart',
+  [BlockEvent.Ended]: 'onBlockEnd',
+  [BlockEvent.Retrying]: 'onBlockRetry',
+  [BlockEvent.Skipped]: 'onBlockSkip',
+  [BlockEvent.Waiting]: 'onBlockWait',
+  [BlockEvent.Failed]: 'onBlockFail',
+
+  // system events
+  [SystemEvent.ExtensionLoaded]: 'onExtensionLoad',
+  [SystemEvent.ExtensionUnloaded]: 'onExtensionUnload',
 } as const
 
 function loadUserModule(context: ProjectContext) {
@@ -40,8 +43,8 @@ export class UserHooksPlugin implements Plugin {
     this.module = loadUserModule(context)
   }
 
-  private async callHook(name: keyof typeof hookMap, ...args: any[]) {
-    const fnName = hookMap[name]
+  private async callHook(name: keyof typeof eventToHookMap, ...args: any[]) {
+    const fnName = eventToHookMap[name]
     const fn = this.module?.[fnName]
 
     if (typeof fn !== 'function') return
@@ -54,35 +57,7 @@ export class UserHooksPlugin implements Plugin {
     }
   }
 
-  async onMessage(event: any, context: ProjectContext): Promise<void> {
-    this.callHook('onMessage', event, context)
-  }
-
-  async projectStart(context: ProjectContext) {
-    await this.callHook('projectStart', context)
-  }
-
-  async projectEnd(context: ProjectContext) {
-    await this.callHook('projectEnd', context)
-  }
-
-  async blockStart(context: ProjectContext, block: Block) {
-    await this.callHook('blockStart', context, block)
-  }
-
-  async blockEnd(context: ProjectContext, block: Block) {
-    await this.callHook('blockEnd', context, block)
-  }
-
-  async blockWait(context: ProjectContext, block: Block): Promise<void> {
-    await this.callHook('blockWait', context, block)
-  }
-
-  async blockRetry(context: ProjectContext, block: Block, attempt: RetryAttempt): Promise<void> {
-    await this.callHook('blockRetry', context, block, attempt)
-  }
-
-  async blockSkip(context: ProjectContext, block: Block): Promise<void> {
-    await this.callHook('blockSkip', context, block)
+  async on<T = unknown>(event: any): Promise<void> {
+    await this.callHook(event.event, event.payload)
   }
 }

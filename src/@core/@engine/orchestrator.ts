@@ -62,7 +62,21 @@ export class Orchestrator<T extends SourceData = SourceData> {
 
         // handle error/hard failures:
         if (result.error && result.error instanceof WorkflowError) {
-          await this.event(BlockEvent.Failed, result.error)
+          await this.event(BlockEvent.Failed, {
+            name: result.name || result.run,
+            data: result.input,
+            error: result.error,
+          })
+
+          return result
+        }
+
+        if (result.state === PipelineState.Failed) {
+          await this.event(BlockEvent.Failed, {
+            name: result.name || result.run,
+            data: result.input,
+            error: result.error,
+          })
         }
 
         return result
