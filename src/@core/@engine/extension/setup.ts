@@ -11,6 +11,10 @@ import {LoggerRegistry} from './loggers/logger.registry'
 import {LoggerManager} from './loggers/logger.manager'
 import {EventBus} from '@xgsd/engine'
 import EventEmitter2 from 'eventemitter2'
+import {Context} from '../../config'
+import {Hooks} from '../types/hooks.types'
+import {Logger} from '../types/interfaces/logger.interface'
+import {Plugin} from '../types/interfaces/plugin.interface'
 
 export type SetupOpts = {
   // di
@@ -21,20 +25,20 @@ export type SetupOpts = {
 }
 
 export class SetupContainer {
-  private pluginContainer: PluginRegistry
+  private pluginRegistry: PluginRegistry
   private loggerRegistry: LoggerRegistry
   private bus: EventBus<EventEmitter2>
 
   private executorFactory?: (ctx: ProjectContext) => Executor
 
   constructor(opts?: SetupOpts) {
-    this.pluginContainer = opts?.pluginRegistry || new PluginRegistry()
+    this.pluginRegistry = opts?.pluginRegistry || new PluginRegistry()
     this.loggerRegistry = opts?.loggerRegistry || new LoggerRegistry()
     this.bus = opts?.bus!
   }
 
   use(plugin: PluginInput) {
-    this.pluginContainer.use(plugin)
+    this.pluginRegistry.use(plugin)
   }
 
   logger(logger: LoggerInput) {
@@ -42,19 +46,24 @@ export class SetupContainer {
   }
 
   executor(input: ExecutorInput) {
-    this.executorFactory = resolveFactory(input, {type: 'executor'})
+    //this.executorFactory = resolveFactory(input, {type: 'executor'})
   }
 
-  async build(context: ProjectContext): Promise<{
+  async build(context: Context): Promise<{
     pluginManager: PluginManager
     loggerManager: LoggerManager
     executor: Executor
   }> {
-    const defaultExecutor = context.config.lite ? new InProcessExecutor() : new ProcessExecutor()
+    const defaultExecutor = new ProcessExecutor()
 
-    const pluginManager = new PluginManager(this.pluginContainer.build(context))
-    const loggerManager = new LoggerManager(this.loggerRegistry.build(context))
-    const executor = this.executorFactory ? this.executorFactory(context) : defaultExecutor
+    const plugins: Hooks[] = this.pluginRegistry.build(context)
+    const loggers: Logger[] = this.loggerRegistry.build(context)
+    const executor = defaultExecutor
+
+    const pluginManager = new PluginManager(plugins, this.bus)
+    const loggerManager = new LoggerManager(loggers, this.bus)
+
+    //const executor = this.executorFactory ? this.executorFactory(context) : defaultExecutor
 
     return {
       pluginManager,

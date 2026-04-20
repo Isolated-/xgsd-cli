@@ -58,27 +58,29 @@ export const runProject = async <T extends SourceData = SourceData>(
   // blocks are processed (in process/isolation/remote/etc)
   // hooks provide a simple way of reacting to events
   // these are registered as a plugin
-  /*const {pluginManager, loggerManager, executor} = await createRuntime({
-    context: ctx,
-    //loggers: [DebugLogger],
-    //plugins: [DebugPlugin, (ctx) => new UserHooksPlugin(ctx)],
+  const {pluginManager, loggerManager, executor} = await createRuntime({
+    ctx,
+    loggers: [DebugLogger],
+    plugins: [DebugPlugin],
     bus,
-  })*/
+  })
 
-  /*const orchestrator = new Orchestrator<T>(ctx, executor as any, bus)
+  /*const orchestrator = new Orchestrator<T>(ctx, executor as any, bus)*/
 
   bindEventBusToLoggerManager(bus, loggerManager)
   attachManagerLifecycleListeners(pluginManager, bus)
 
-  await executor.init?.(ctx as ProjectContext)
-  await loggerManager.init(ctx as ProjectContext, bus)
-  await pluginManager.init(ctx as ProjectContext, bus)
+  //  await executor.init?.(ctx as ProjectContext)
+  await loggerManager.init(ctx)
+  await pluginManager.init(ctx)
 
   const input = deepmerge2(config.data, data) as T
 
   //await orchestrator.orchestrate(input)
 
   // clean this up
-  await pluginManager.exit(ctx as ProjectContext, bus)
-  await loggerManager.exit(ctx as ProjectContext, bus)*/
+  await pluginManager.exit(ctx)
+  await loggerManager.exit(ctx)
 }
+
+export class ManagerFacade {}

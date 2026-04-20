@@ -2,6 +2,7 @@ import {ProjectContext} from './project.types'
 import {Block} from './block.types'
 import {RetryAttempt} from './retry.types'
 import {EventHandler} from '../extension/lifecycle'
+import {Context} from '../../config'
 
 export type HookType = ProjectContext | Block | RetryAttempt
 
@@ -18,11 +19,11 @@ export interface Hooks {
 
   // init()
   // called when extension is first loaded
-  init?(context: ProjectContext): Promise<void> | void
+  init?(context: Context): Promise<void> | void
 
   // exit()
   // called when extension is unloaded
-  exit?(context: ProjectContext): Promise<void> | void
+  exit?(context: Context): Promise<void> | void
 
   // project
   projectStart?(context: ProjectContext): Promise<void>

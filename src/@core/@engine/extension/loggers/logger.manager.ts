@@ -4,9 +4,13 @@ import {Logger, LogMessage} from '../../types/interfaces/logger.interface'
 import {ProjectContext} from '../../types/project.types'
 import {emit, runExit, runInit} from '../util'
 import {EventBus} from '@xgsd/engine'
+import {Context} from '../../../config'
 
 export class LoggerManager implements Manager {
-  constructor(private loggers: Logger[]) {}
+  constructor(
+    private loggers: Logger[],
+    private bus: EventBus<EventEmitter2>,
+  ) {}
 
   // this is plugin focused
   async emit(event: string, payload: any): Promise<void> {
@@ -29,11 +33,11 @@ export class LoggerManager implements Manager {
     }
   }
 
-  async init(ctx: ProjectContext, bus?: EventBus<EventEmitter2>): Promise<void> {
+  async init(ctx: Context, bus?: EventBus<EventEmitter2>): Promise<void> {
     return runInit(this.loggers, ctx, bus)
   }
 
-  async exit(ctx: ProjectContext, bus?: EventBus<EventEmitter2>): Promise<void> {
+  async exit(ctx: Context, bus?: EventBus<EventEmitter2>): Promise<void> {
     return runExit(this.loggers, ctx, bus)
   }
 }

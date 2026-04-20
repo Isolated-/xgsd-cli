@@ -12,8 +12,9 @@ import {EventBus} from '@xgsd/engine'
 import {EventEmitter2} from 'eventemitter2'
 import {PluginRegistry} from './plugins/plugin.registry'
 import {LoggerRegistry} from './loggers/logger.registry'
+import {Context} from '../../config'
 
-export type UserSetupFn = (ctx: WorkflowContext, setup: SetupContainer) => Promise<void>
+export type UserSetupFn = (ctx: Context, setup: SetupContainer) => Promise<void>
 
 export async function importUserModule(block: Block, context: ProjectContext) {
   try {
@@ -33,8 +34,6 @@ export type Lifecycle = {
   init?: (ctx: any) => Promise<void> | void
   exit?: (ctx: any) => Promise<void> | void
 }
-
-type Context = {}
 
 type Extension = {
   name?: string
@@ -84,7 +83,7 @@ export const resolveFactory = <T = unknown>(
     core?: boolean
   },
 ) => {
-  return (ctx: ProjectContext) => {
+  return (ctx: Context) => {
     const instance =
       typeof input === 'function'
         ? (() => {
@@ -113,7 +112,7 @@ export const resolveFactory = <T = unknown>(
   }
 }
 
-export const buildFactories = <T = unknown>(factories: Factory<T>[], ctx: ProjectContext) => {
+export const buildFactories = <T = unknown>(factories: Factory<T>[], ctx: Context) => {
   // this fixes user errors like:
   // xgsd.use((ctx) => {}) (no returns)
   // by dropping the plugin before its registered
@@ -128,8 +127,8 @@ export const buildFactories = <T = unknown>(factories: Factory<T>[], ctx: Projec
     .filter((factory): factory is T => !!factory)
 }
 
-export const loadUserSetup = async (context: ProjectContext, setup: SetupContainer) => {
-  const userModule = await import(context.package)
+export const loadUserSetup = async (context: Context, setup: SetupContainer) => {
+  const userModule = await import(context.packagePath)
 
   if (typeof userModule.setup === 'function') {
     const opts = await userModule.setup(setup)
@@ -148,7 +147,7 @@ export const loadUserSetup = async (context: ProjectContext, setup: SetupContain
  */
 export const createRuntime = async (opts: {
   bus?: EventBus<EventEmitter2>
-  context: WorkflowContext
+  ctx: Context
   plugins?: PluginInput[]
   loggers?: LoggerInput[]
   reporters?: ReporterInput[]
@@ -159,7 +158,7 @@ export const createRuntime = async (opts: {
   const pluginRegistry = new PluginRegistry()
   const loggerRegistry = new LoggerRegistry()
 
-  const {plugins, loggers, executor, context} = opts
+  const {plugins, loggers, executor, ctx} = opts
 
   plugins?.forEach((plugin) => pluginRegistry.use(plugin, true))
   loggers?.forEach((logger) => loggerRegistry.use(logger, true))
@@ -171,23 +170,24 @@ export const createRuntime = async (opts: {
       pluginRegistry,
       loggerRegistry,
     })
+
   const userCodeFn = opts.userCodeFn ?? loadUserSetup
 
-  const settings = await userCodeFn(context, setup)
+  const settings = await userCodeFn(ctx, setup)
 
-  if (settings?.disableCoreLoggers) {
+  /*if (settings?.disableCoreLoggers) {
     // remove
   }
 
   if (settings?.disableCorePlugins) {
     // remove
-  }
+  }*/
 
   if (executor) {
     setup.executor(executor)
   }
 
-  return setup.build(context)
+  return setup.build(ctx)
 }
 
 export const emit = async <T = unknown>(hooks: Hooks[], _: string, payload: T) => {

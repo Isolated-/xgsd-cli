@@ -4,9 +4,10 @@ import {Logger} from './interfaces/logger.interface'
 import {Plugin} from './interfaces/plugin.interface'
 import {ProjectContext} from './project.types'
 import {Reporter} from './interfaces/reporter.interface'
+import {Context} from '../../config'
 
-export type Factory<T> = (ctx: ProjectContext) => T
-export type FactoryInput<T> = T | Factory<T> | (new (ctx: ProjectContext) => T)
+export type Factory<T> = (ctx: Context) => T
+export type FactoryInput<T> = T | Factory<T> | (new (ctx: Context) => T)
 
 export type ExecutorFactory = Factory<Executor>
 export type ExecutorInput = FactoryInput<Executor>
