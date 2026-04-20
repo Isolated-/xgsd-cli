@@ -1,4 +1,4 @@
-import {SourceData, PipelineStep, PipelineState} from '../@types/pipeline.types'
+import {PipelineStep, PipelineState} from '../@types/pipeline.types'
 import {deepmerge2} from '../util/object.util'
 import {WorkflowContext} from './context.builder'
 import {executeBlocks, ExecutionMode, Runnable} from './process/orchestration.process'
@@ -8,11 +8,12 @@ import EventEmitter2 from 'eventemitter2'
 import {WorkflowError} from './error'
 import {Block, Context} from '../config'
 import {EventBus} from './event'
+import {SourceData} from '@xgsd/engine'
 
-export class Orchestrator<T extends SourceData = SourceData> {
+export class Orchestrator {
   constructor(
     public context: Context,
-    private executor: Executor<T>,
+    private executor: Executor,
     private bus: EventBus<EventEmitter2>,
   ) {}
 
@@ -24,7 +25,7 @@ export class Orchestrator<T extends SourceData = SourceData> {
     await this.bus.emit(name, payload)
   }
 
-  async orchestrate(data: T): Promise<void> {
+  async orchestrate(data: SourceData): Promise<void> {
     // fire start event
     await this.before()
 
@@ -53,18 +54,41 @@ export class Orchestrator<T extends SourceData = SourceData> {
         concurrency: 1,
       },
       async (block: Block, input: any) => {
-        return block
+        block.fn = userModule[block.run]
+
+        const result = (await this.run(block as Block)) as Block
+
+        // handle error/hard failures:
+        if (result.error && result.error instanceof WorkflowError) {
+          await this.event(BlockEvent.Failed, {
+            name: result.name || result.run,
+            data: result.input,
+            error: result.error,
+          })
+
+          return result
+        }
+
+        if (result.state === PipelineState.Failed) {
+          await this.event(BlockEvent.Failed, {
+            name: result.name || result.run,
+            data: result.input,
+            error: result.error,
+          })
+        }
+
+        return result
       },
     )
 
-    await this.after([])
+    await this.after(results)
   }
 
-  async run(step: PipelineStep<T>): Promise<PipelineStep<T>> {
-    return step
+  async run(block: Block) {
+    return this.executor.run(block, this.context as Context)
   }
 
-  async after(results: PipelineStep<T>[]): Promise<void> {
+  async after(results: Block[]): Promise<void> {
     // finalise context?
 
     const ctx = this.context

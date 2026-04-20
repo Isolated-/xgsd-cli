@@ -1,8 +1,8 @@
 import {PipelineStep} from '../../../@types/pipeline.types'
+import {Block, Context} from '../../../config'
 import {WorkflowContext} from '../../context.builder'
 import {InProcessExecutor} from '../../executors/in-process.executor'
 import {ProcessExecutor} from '../../executors/process.executor'
-import {Block} from '../../types/block.types'
 import {Executor} from '../../types/generics/executor.interface'
 import {Logger, LogMessage} from '../../types/interfaces/logger.interface'
 import {Plugin} from '../../types/interfaces/plugin.interface'
@@ -19,7 +19,7 @@ class MockLogger implements Logger {
   }
 }
 class MockExecutor implements Executor {
-  run(block: PipelineStep<unknown>, context: WorkflowContext<unknown>): Promise<PipelineStep<unknown>> {
+  run(block: Block<any>, context: Context<any>): Promise<Block<any>> {
     throw new Error('Method not implemented.')
   }
 }

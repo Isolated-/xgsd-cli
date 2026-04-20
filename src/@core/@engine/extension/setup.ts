@@ -46,7 +46,7 @@ export class SetupContainer {
   }
 
   executor(input: ExecutorInput) {
-    //this.executorFactory = resolveFactory(input, {type: 'executor'})
+    this.executorFactory = resolveFactory(input, {type: 'executor'})
   }
 
   async build(context: Context): Promise<{
@@ -55,7 +55,7 @@ export class SetupContainer {
     executor: Executor
   }> {
     // todo: re-add InProcessExecutor()
-    const defaultExecutor = new ProcessExecutor()
+    const defaultExecutor = new InProcessExecutor()
 
     const plugins: Hooks[] = this.pluginRegistry.build(context)
     const loggers: Logger[] = this.loggerRegistry.build(context)

@@ -7,8 +7,9 @@ import {WorkflowError, WorkflowErrorCode} from '../error'
 import {BlockEvent} from '../types/events.types'
 import {importUserModule} from '../extension/util'
 import {finaliseStepData, prepareStepData} from '../helpers/helpers.util'
-import {retry, WrappedError, RetryAttempt} from '@xgsd/engine'
+import {retry, WrappedError, RetryAttempt, SourceData} from '@xgsd/engine'
 import {getBackoffStrategy} from '../backoff'
+import {Block, Context} from '../../config'
 
 export const DATA_SIZE_LIMIT_KB = 2048 // 2048 KB
 
@@ -55,6 +56,70 @@ export const event = (
     event: name,
     payload: context,
   })
+}
+
+export async function processBlock(opts: {
+  block: Block<SourceData>
+  ctx: Context<SourceData>
+  event?: (name: string, payload: unknown) => void
+  attempt?: (attempt: RetryAttempt) => Promise<void>
+}) {
+  const {event, attempt, block, ctx} = opts
+
+  block.start = new Date().toISOString()
+
+  if (!block.enabled) {
+    // handle skip
+    block.state = PipelineState.Skipped
+    event?.(BlockEvent.Skipped, {block})
+    event?.(BlockEvent.Ended, {block})
+    return block
+  }
+
+  event?.(BlockEvent.Started, {block})
+
+  if (block.options?.delay && block.options.delay !== '0s' && block.options.delay !== 0) {
+    const delayMs = getDurationNumber(block.options.delay as string) || 0
+    event?.(BlockEvent.Waiting, {block, delayMs})
+    await delayFor(delayMs || 0)
+  }
+
+  const method = defaultWith('exponential', block.options?.backoff)
+  const delayFn = getBackoffStrategy(method as string)
+  const options = block.options
+  block.state = PipelineState.Running
+
+  // TODO: remove hardcoded defaults
+  const retries = (options.retries as number) ?? 5
+  const timeout = getDurationNumber((options.timeout as string) || 5000)
+
+  let errors: WrappedError[] = []
+  const result = await retry(block.input, block.fn!, retries, {
+    timeout: getDurationNumber(timeout),
+    backoff: delayFn,
+    onAttempt: async (a) => {
+      attempt?.(a)
+      block.state = PipelineState.Retrying
+      block.attempt = a.attempt + 1
+      errors.push(a.error) // this can be removed in v0.4+ (streaming to logs is implemented)
+      event?.(BlockEvent.Retrying, {block, attempt: a})
+    },
+  })
+
+  if (errors.length > 0) {
+    block.errors = errors
+  }
+
+  block.output = result.data as SourceData
+  block.error = result.error
+  block.options = {retries, timeout}
+  block.state = result.error ? PipelineState.Failed : PipelineState.Completed
+  block.end = new Date().toISOString()
+  block.duration = Date.parse(block.end) - Date.parse(block.start)
+
+  event?.(BlockEvent.Ended, block)
+
+  return block
 }
 
 /**
@@ -120,6 +185,7 @@ export async function processStep(
 
   let output = result.data
 
+  // unneeded now data is normalised
   if (
     typeof output === 'number' ||
     typeof output === 'string' ||
@@ -137,6 +203,7 @@ export async function processStep(
   prepared.endedAt = new Date().toISOString()
   prepared.duration = Date.parse(prepared.endedAt) - Date.parse(prepared.startedAt)
 
+  // unneeded now helpers are removed
   const finalisedData = finaliseStepData(prepared, context)
   event?.(BlockEvent.Ended, {
     step: finalisedData,

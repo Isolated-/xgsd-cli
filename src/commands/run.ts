@@ -67,7 +67,9 @@ export default class Run extends BaseCommand<typeof Command> {
       min: 1,
     }),
 
-    lite: Flags.boolean(),
+    lite: Flags.boolean({
+      default: undefined,
+    }),
   }
 
   public async run(): Promise<any> {

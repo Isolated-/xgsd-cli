@@ -1,7 +1,6 @@
-import {PipelineStep, SourceData} from '../../../@types/pipeline.types'
-import {WorkflowContext} from '../../context.builder'
+import {SourceData} from '@xgsd/engine'
+import {BlockContext, Context, Block} from '../../../config'
 
-export interface Executor<T = SourceData> {
-  init?(ctx: WorkflowContext<T>): Promise<void> | void
-  run(block: PipelineStep<T>, context: WorkflowContext<T>): Promise<PipelineStep<T>>
+export interface Executor<T extends SourceData = SourceData> {
+  run(block: Block<T>, context: Context<T>): Promise<BlockContext<T>>
 }

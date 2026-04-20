@@ -9,6 +9,7 @@ import {v4} from 'uuid'
 import {createHash} from 'crypto'
 import {PipelineState} from './@types/pipeline.types'
 import {Runnable} from './@engine/process/orchestration.process'
+import {SourceData} from '@xgsd/engine'
 
 export function getPackageVersion(input: string): string {
   try {
@@ -57,13 +58,14 @@ export type ParseError = {
   details?: unknown
 }
 
-export type Context<T extends Record<string, unknown> = Record<string, unknown>> = {
+export type Context<T extends SourceData = SourceData> = {
   id: string
   hash: string
   name: string
   version: string
   packagePath: string
   mode: string
+  lite: boolean
   input: Record<string, unknown>
   output: Record<string, unknown>
   blocks: T[]
@@ -169,6 +171,11 @@ export class ContextFinalStage<T extends Record<string, unknown>> {
     return this
   }
 
+  lite(lite?: boolean) {
+    this.ctx.lite = !!lite
+    return this
+  }
+
   blocks(): this {
     // already done
     if (this.ctx.blocks) {
@@ -208,12 +215,13 @@ type ProjectConfig<T extends ConfigType = ConfigType> = {
 
 type BlockConfig<T extends ConfigType = ConfigType> = {}
 
-export type BlockContext<T extends Record<string, unknown> = Record<string, unknown>> = {
+export type BlockContext<T extends SourceData = SourceData> = {
   name: string
   enabled: boolean
   run: string
   options: Record<string, unknown>
   env: Record<string, unknown>
+  attempt?: number
   input: T
   output: T
   error: any | null
@@ -224,9 +232,9 @@ export type BlockContext<T extends Record<string, unknown> = Record<string, unkn
   duration: number | null
 }
 
-export type Block<T extends Record<string, unknown> = Record<string, unknown>> = BlockContext<T> & Runnable
+export type Block<T extends SourceData = SourceData> = BlockContext<T> & Runnable
 
-export const createBlockContext = (block: Partial<Block>): BlockContext<Record<string, unknown>> => {
+export const createBlockContext = (block: Partial<Block>): BlockContext<SourceData> => {
   return new BlockContextBuilderRunStage()
     .run(block.run!)
     .input(block.input ?? {})

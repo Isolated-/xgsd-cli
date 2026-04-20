@@ -3,12 +3,13 @@ import {WorkflowContext} from '../context.builder'
 import {createRuntime, resolveFactory} from '../extension/util'
 import {Hooks} from '../types/hooks.types'
 import {Executor} from '../types/generics/executor.interface'
+import {Block, Context} from '../../config'
 
 class CorePlugin implements Hooks {}
 
 test('resolveFactory()', () => {
   class MyExecutor implements Executor {
-    async run(block: PipelineStep<unknown>, context: WorkflowContext<unknown>): Promise<PipelineStep<unknown>> {
+    async run(block: Block<any>, context: Context<any>): Promise<Block<any>> {
       return block
     }
   }

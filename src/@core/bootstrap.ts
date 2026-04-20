@@ -1,14 +1,31 @@
 import {EventEmitter2} from 'eventemitter2'
-import {SourceData, FlexibleWorkflowConfig} from './@types/pipeline.types'
+import {FlexibleWorkflowConfig} from './@types/pipeline.types'
 import {attachManagerLifecycleListeners, bindEventBusToLoggerManager} from './@engine/extension/lifecycle'
 import {deepmerge2} from './util/object.util'
 import {createRuntime} from './@engine/extension/util'
 import {DebugLogger} from './loggers/debug.logger'
 import {DebugPlugin} from './plugins/debug.plugin'
-import {ConfigParser, createContext} from './config'
+import {ConfigParser, ConfigType, Context, createContext} from './config'
 import * as Joi from 'joi'
 import {join} from 'path'
 import {EventBus} from './@engine/event'
+import {Orchestrator} from './@engine/orchestrator'
+import {SourceData} from '@xgsd/engine'
+import {ProjectConfig} from './@engine/types/project.types'
+import {Manager} from './@engine/types/generics/manager.interface'
+
+export const dispatchToManagers = async (opts: {
+  managers: Manager[]
+  type: 'init' | 'exit'
+  ctx: Context<SourceData>
+}) => {
+  const {managers, type, ctx} = opts
+
+  for (const manager of managers) {
+    await manager[type](ctx)
+  }
+}
+
 /**
  *  @param {any} data
  *  @param {FlexibleWorkflowConfig} config
@@ -16,12 +33,7 @@ import {EventBus} from './@engine/event'
  *  @param {boolean} lite
  *
  */
-export const runProject = async <T extends SourceData = SourceData>(
-  data: any,
-  config: FlexibleWorkflowConfig<T>,
-  event?: EventEmitter2,
-  lite: boolean = false,
-) => {
+export const runProject = async (data: any, config: ProjectConfig, event?: EventEmitter2, lite: boolean = false) => {
   const handler = event ?? new EventEmitter2()
 
   const bus = new EventBus(handler)
@@ -40,12 +52,9 @@ export const runProject = async <T extends SourceData = SourceData>(
     .validate((input) => schema.validate(input).value)
     .build() as {project: any; blocks: any[]}
 
-  const ctx = createContext(config.package!).config(conf).bus(bus).meta().data(data).blocks().build()
+  const liteMode = lite || !!conf.project.lite
+  const ctx = createContext(config.package!).config(conf).bus(bus).meta().data(data).blocks().lite(liteMode).build()
 
-  // otherwise use it
-  /*
-  const ctx = new WorkflowContext(config, handler, 'v1')
-*/
   // plugins + executor added in v0.5
   // executor allows users to override how
   // blocks are processed (in process/isolation/remote/etc)
@@ -53,27 +62,31 @@ export const runProject = async <T extends SourceData = SourceData>(
   // these are registered as a plugin
   const {pluginManager, loggerManager, executor} = await createRuntime({
     ctx,
+    bus,
     loggers: [DebugLogger],
     plugins: [DebugPlugin],
-    bus,
   })
 
-  /*const orchestrator = new Orchestrator<T>(ctx, executor as any, bus)*/
+  const orchestrator = new Orchestrator(ctx, executor as any, bus)
 
   bindEventBusToLoggerManager(bus, loggerManager)
   attachManagerLifecycleListeners(pluginManager, bus)
 
   //  await executor.init?.(ctx as ProjectContext)
-  await loggerManager.init(ctx)
-  await pluginManager.init(ctx)
+  await dispatchToManagers({
+    ctx,
+    managers: [loggerManager, pluginManager],
+    type: 'init',
+  })
 
-  const input = deepmerge2(config.data, data) as T
+  const input = deepmerge2(config.data, data)
 
-  //await orchestrator.orchestrate(input)
+  await orchestrator.orchestrate(input as SourceData)
 
   // clean this up
-  await pluginManager.exit(ctx)
-  await loggerManager.exit(ctx)
+  await dispatchToManagers({
+    ctx,
+    managers: [loggerManager, pluginManager],
+    type: 'exit',
+  })
 }
-
-export class ManagerFacade {}
