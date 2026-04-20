@@ -1,41 +1,10 @@
 import {Args, Command, Flags} from '@oclif/core'
-import {basename, extname, join, resolve} from 'path'
-import {mkdtempSync, pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
+import {resolve} from 'path'
+import {readJsonSync} from 'fs-extra'
 import {EventEmitter2} from 'eventemitter2'
-import chalk from 'chalk'
-import {
-  findUserWorkflowConfigPath,
-  loadUserWorkflowConfig,
-  validateAndPrepareWorkflowConfig,
-  validateWorkflowConfig,
-} from '../@core/pipelines/pipelines.util'
 import {userLogThemes} from '../constants'
 import {BaseCommand} from '../base'
-import {defaultWith} from '../@core/util/misc.util'
-import {normaliseWorkflowName} from '../@core/util/workflow.util'
-import {merge} from '../@core/util/object.util'
 import {runProject} from '../@core'
-
-export const prettyPrintLogs = (event: EventEmitter2, flags: Record<string, any>, cmd: Run) => {
-  if (!flags.watch) {
-    return
-  }
-
-  event.on('message', (msg) => {
-    let message = `${msg.log.message}`
-    if (!flags.level || !flags.level.includes(msg.log.level)) {
-      return
-    }
-
-    if ((flags.level && flags.plain) || !userLogThemes[msg.log.level]) {
-      cmd.log(`(${msg.log.level}) ${msg.log.message}`)
-      return
-    }
-
-    message = userLogThemes[msg.log.level](message)
-    cmd.log(message)
-  })
-}
 
 export default class Run extends BaseCommand<typeof Command> {
   static override args = {
@@ -79,73 +48,15 @@ export default class Run extends BaseCommand<typeof Command> {
     const path = resolve(args.function)
     const userModulePath = path
 
-    // this will eventually be refactored
-    const packageJsonPath = join(path, 'package.json')
-    if (!pathExistsSync(packageJsonPath)) {
-      this.error(`package.json not found at ${packageJsonPath}, you'll need an NPM package before continuing.`)
-    }
-
-    const userCodePackageJson = readJsonSync(packageJsonPath)
-    const foundPath = findUserWorkflowConfigPath(userModulePath, flags.workflow)
-    if (!foundPath) {
-      this.error(
-        `unable to find a configuration file at ${userModulePath}, please create a new "config.yaml" in your package folder.`,
-      )
-    }
-
-    let userConfig
-    try {
-      userConfig = validateAndPrepareWorkflowConfig(loadUserWorkflowConfig(userModulePath))
-      userConfig.options = merge(userConfig.options || {}, {
-        concurrency: flags.concurrency || userConfig.options?.concurrency,
-      })
-    } catch (error: any) {
-      this.error(error.message)
-    }
-
     const data = flags.data as any
 
-    if (!userConfig.enabled) {
-      this.log(
-        chalk.bold.red(
-          `${userConfig.name} is currently disabled - if this is a mistake, re-enable it in the config file by marking \`enabled: true\`.`,
-        ),
-      )
-      this.exit(1)
-    }
-
-    const start = performance.now()
-    const event = new EventEmitter2({maxListeners: 32, wildcard: true})
-    event.on('event', (data) => {
-      const end = performance.now()
-      if (process.env.DETAIL) {
-        console.log(`(event) ${data.payload.step?.name} ${data.event} ${(end - start).toFixed(2)}ms`)
-      }
-    })
-
-    // this will be moved somewhere else
-    const getWorkflowName = (path: string, configName?: string, packageName?: string) => {
-      const base = basename(path)
-      const configFileName = base.split('.').shift()
-      return normaliseWorkflowName(defaultWith('no name', configName, configFileName, packageName)!)
-    }
-
-    const workflowName = getWorkflowName(foundPath, userConfig.name, userCodePackageJson.name)
-    const newOutputPath = userConfig.logs?.path || join(this.config.home, '.xgsd')
-
     try {
-      await runProject(
+      await runProject({
         data,
-        {
-          ...userConfig,
-          name: workflowName,
-          version: userConfig.version || userCodePackageJson.version,
+        config: {
           package: userModulePath,
-          output: newOutputPath,
         },
-        event,
-        flags.lite,
-      )
+      })
     } catch (e: any) {
       if (e.message) {
         this.error(e.message)
