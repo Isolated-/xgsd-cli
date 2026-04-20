@@ -7,10 +7,9 @@ export const deepmerge = (...objects: any[]): object | undefined => {
   return tsmerge({}, ...filtered)
 }
 
-export const deepmerge2 = (a: any, b: any): object | undefined => {
+export const deepmerge2 = (a: any = {}, b: any = {}): object | undefined => {
   if (!a && !b) return undefined
-  if (!a) return b
-  if (!b) return a
+
   return deepmergeLib(a, b)
 }
 

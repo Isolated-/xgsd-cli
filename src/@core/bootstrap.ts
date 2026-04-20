@@ -13,7 +13,7 @@ import {DebugPlugin} from './plugins/debug.plugin'
 import {EventBus} from '@xgsd/engine'
 import {SystemEvent} from './@engine/types/events.types'
 import {byteSize} from './util/misc.util'
-import {ConfigParser} from './config'
+import {ConfigParser, createContext} from './config'
 import * as Joi from 'joi'
 import {join} from 'path'
 /**
@@ -41,26 +41,31 @@ export const runProject = async <T extends SourceData = SourceData>(
   const conf = parser
     .load()
     .parse()
+    .default({
+      // defaults
+    })
     .validate((input) => schema.validate(input).value)
-    .build()
+    .build() as {project: any; blocks: any[]}
+
+  const ctx = createContext(config.package!).config(conf).bus(bus).meta().data(data).blocks().build()
 
   // otherwise use it
-
+  /*
   const ctx = new WorkflowContext(config, handler, 'v1')
-
+*/
   // plugins + executor added in v0.5
   // executor allows users to override how
   // blocks are processed (in process/isolation/remote/etc)
   // hooks provide a simple way of reacting to events
   // these are registered as a plugin
-  const {pluginManager, loggerManager, executor} = await createRuntime({
-    context: ctx as WorkflowContext,
-    loggers: [DebugLogger],
-    plugins: [DebugPlugin, (ctx) => new UserHooksPlugin(ctx)],
+  /*const {pluginManager, loggerManager, executor} = await createRuntime({
+    context: ctx,
+    //loggers: [DebugLogger],
+    //plugins: [DebugPlugin, (ctx) => new UserHooksPlugin(ctx)],
     bus,
-  })
+  })*/
 
-  const orchestrator = new Orchestrator<T>(ctx, executor as any, bus)
+  /*const orchestrator = new Orchestrator<T>(ctx, executor as any, bus)
 
   bindEventBusToLoggerManager(bus, loggerManager)
   attachManagerLifecycleListeners(pluginManager, bus)
@@ -75,5 +80,5 @@ export const runProject = async <T extends SourceData = SourceData>(
 
   // clean this up
   await pluginManager.exit(ctx as ProjectContext, bus)
-  await loggerManager.exit(ctx as ProjectContext, bus)
+  await loggerManager.exit(ctx as ProjectContext, bus)*/
 }

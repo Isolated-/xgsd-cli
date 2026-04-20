@@ -14,7 +14,7 @@ export interface ExecutionOptions {
 }
 
 export type Runnable = {
-  fn: RunFn<any, any>
+  fn: RunFn<any, any> | null
   data?: Record<string, unknown> | null
   output?: Record<string, unknown> | null
 }

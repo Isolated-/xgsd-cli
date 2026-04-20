@@ -2,11 +2,12 @@ import {EventBus} from '@xgsd/engine'
 import {SourceData, PipelineStep, PipelineState} from '../@types/pipeline.types'
 import {deepmerge2} from '../util/object.util'
 import {WorkflowContext} from './context.builder'
-import {executeSteps} from './process/orchestration.process'
+import {executeSteps, Runnable} from './process/orchestration.process'
 import {ProjectEvent, BlockEvent} from './types/events.types'
 import {Executor} from './types/generics/executor.interface'
 import EventEmitter2 from 'eventemitter2'
 import {WorkflowError} from './error'
+import {Context} from '../config'
 
 export class Orchestrator<T extends SourceData = SourceData> {
   constructor(
@@ -43,7 +44,7 @@ export class Orchestrator<T extends SourceData = SourceData> {
 
     // this was refactored to reduce duplication
     // and to fix issues caused by slightly different implementations
-    await executeSteps(
+    const results = await executeSteps(
       config.steps,
       input,
       ctx,
@@ -83,14 +84,14 @@ export class Orchestrator<T extends SourceData = SourceData> {
       },
     )
 
-    await this.after()
+    await this.after(results)
   }
 
   async run(step: PipelineStep<T>): Promise<PipelineStep<T>> {
     return this.executor.run(step, this.context)
   }
 
-  async after(): Promise<void> {
+  async after(results: PipelineStep<T>[]): Promise<void> {
     // finalise context?
 
     const ctx = this.context
@@ -100,6 +101,7 @@ export class Orchestrator<T extends SourceData = SourceData> {
 
     await this.event(ProjectEvent.Ended, {
       context: ctx,
+      output: results,
     })
   }
 }
