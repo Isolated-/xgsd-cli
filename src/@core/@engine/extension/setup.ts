@@ -9,12 +9,12 @@ import {ProjectContext} from '../types/project.types'
 import {loadUserSetup, resolveFactory, UserSetupFn} from './util'
 import {LoggerRegistry} from './loggers/logger.registry'
 import {LoggerManager} from './loggers/logger.manager'
-import {EventBus} from '@xgsd/engine'
 import EventEmitter2 from 'eventemitter2'
 import {Context} from '../../config'
 import {Hooks} from '../types/hooks.types'
 import {Logger} from '../types/interfaces/logger.interface'
 import {Plugin} from '../types/interfaces/plugin.interface'
+import {EventBus} from '../event'
 
 export type SetupOpts = {
   // di

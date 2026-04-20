@@ -3,7 +3,7 @@ import * as path from 'path'
 import {join} from 'path'
 import * as yaml from 'yaml'
 import {deepmerge2} from './util/object.util'
-import {EventBus} from '@xgsd/engine'
+import {EventBus} from './@engine/event'
 import {createRequire} from 'module'
 import {v4} from 'uuid'
 import {createHash} from 'crypto'
@@ -229,7 +229,7 @@ export type Block<T extends Record<string, unknown> = Record<string, unknown>> =
 export const createBlockContext = (block: Partial<Block>): BlockContext<Record<string, unknown>> => {
   return new BlockContextBuilderRunStage()
     .run(block.run!)
-    .input(block.data ?? {})
+    .input(block.input ?? {})
     .disable(!block.enabled)
     .state(PipelineState.Pending)
     .name(block.name)
@@ -301,11 +301,8 @@ export class BlockContextBuilderFinalStage {
     return this
   }
 
-  build(): Block {
-    return {
-      ...this.ctx,
-      fn: null,
-    } as Block
+  build(): BlockContext {
+    return this.ctx as BlockContext
   }
 }
 

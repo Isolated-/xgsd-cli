@@ -7,7 +7,8 @@ import {WorkflowError, WorkflowErrorCode} from '../error'
 import {BlockEvent} from '../types/events.types'
 import {importUserModule} from '../extension/util'
 import {finaliseStepData, prepareStepData} from '../helpers/helpers.util'
-import {retry, WrappedError, RetryAttempt, getBackoffStrategy} from '@xgsd/engine'
+import {retry, WrappedError, RetryAttempt} from '@xgsd/engine'
+import {getBackoffStrategy} from '../backoff'
 
 export const DATA_SIZE_LIMIT_KB = 2048 // 2048 KB
 

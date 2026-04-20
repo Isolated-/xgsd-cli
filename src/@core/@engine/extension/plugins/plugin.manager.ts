@@ -1,4 +1,3 @@
-import {EventBus} from '@xgsd/engine'
 import {ProjectEvent} from '../../types/events.types'
 import {PluginInput} from '../../types/factory.types'
 import {Manager} from '../../types/generics/manager.interface'
@@ -7,6 +6,7 @@ import {ProjectContext} from '../../types/project.types'
 import {emit, resolveFactory, runExit, runInit} from '../util'
 import EventEmitter2 from 'eventemitter2'
 import {Context} from '../../../config'
+import {EventBus} from '../../event'
 
 export class PluginManager implements Manager {
   constructor(

@@ -1,25 +1,19 @@
-import ms = require('ms')
-import {PipelineStep} from '../../@types/pipeline.types'
-import {WorkflowContext} from '../context.builder'
+import {RunFn, runWithConcurrency, SourceData} from '@xgsd/engine'
 import {deepmerge2} from '../../util/object.util'
-import {runWithConcurrency} from '../execution/concurrency'
-import {RunFn} from '@xgsd/engine'
-import {Require} from '../types/require.type'
+import {Block, Context} from '../../config'
 
-export type ExecutionMode = 'async' | 'chained' | 'fanout' | 'batched'
+export type ExecutionMode = 'async' | 'chain' | 'fanout' | 'batched'
 
 export interface ExecutionOptions {
   mode: ExecutionMode
   concurrency?: number // only applies to async
 }
 
-export type Runnable = {
-  fn: RunFn<any, any> | null
-  data?: Record<string, unknown> | null
+export type Runnable<T extends SourceData = SourceData> = {
+  fn: RunFn<T>
+  input?: Record<string, unknown> | null
   output?: Record<string, unknown> | null
 }
-
-export type Context = {}
 
 /**
  *  provides a generic execution interface
@@ -28,17 +22,17 @@ export type Context = {}
  *  this is typically called in Orchestrator
  *  so there's no need to call it manually
  */
-export async function executeRunnables<T extends Runnable, C extends Context>(args: {
+export async function executeRunnables<T extends Runnable<SourceData>, C extends Context>(args: {
   runnables: T[]
   input: Record<string, unknown>
   ctx: C
   options: ExecutionOptions
-  run: (runnable: T, input: Record<string, unknown>) => Promise<T>
+  run: (runnable: T, input: SourceData) => Promise<T>
 }): Promise<T[]> {
   const {runnables, input, ctx, options, run} = args
 
   let concurrency = options.concurrency || 1
-  if (options.mode === 'chained' || options.mode === 'fanout') {
+  if (options.mode === 'chain' || options.mode === 'fanout') {
     concurrency = 1
   }
 
@@ -53,7 +47,7 @@ export async function executeRunnables<T extends Runnable, C extends Context>(ar
 
       const batchResults: T[] = []
       await runWithConcurrency(batch, batch.length, async (step, idx) => {
-        step.data = data
+        step.input = data
         const result = await run(step, {...ctx, steps: results})
         batchResults.push(result)
         return result
@@ -69,21 +63,20 @@ export async function executeRunnables<T extends Runnable, C extends Context>(ar
       results.push(...batchResults)
     }
 
-    results = []
-    return []
+    return results
   }
 
   await runWithConcurrency(runnables, concurrency!, async (step, idx) => {
-    step.data = data // don't need to assign to `data` each time
+    step.input = data // don't need to assign to `data` each time
 
     const result = await run(step, {
       ...ctx,
       // empty array is sent to async/fanout as v0.4.2
-      steps: options.mode === 'chained' ? results : [],
+      steps: options.mode === 'chain' ? results : [],
     })
 
     // merge chained ouputs for next step input
-    if (options.mode === 'chained') {
+    if (options.mode === 'chain') {
       data = deepmerge2(input, result.output) as any
     }
 
@@ -93,17 +86,17 @@ export async function executeRunnables<T extends Runnable, C extends Context>(ar
   return results
 }
 
-export async function executeSteps(
-  steps: PipelineStep[],
-  input: Record<string, any>,
-  context: WorkflowContext<any>,
+export async function executeBlocks<T extends SourceData = SourceData>(
+  input: T,
+  blocks: Block[],
+  ctx: Context,
   options: ExecutionOptions,
-  run: (step: PipelineStep, input: any) => Promise<PipelineStep>,
-): Promise<PipelineStep[]> {
-  return executeRunnables<PipelineStep, WorkflowContext>({
-    runnables: steps,
+  run: (block: Block, input: unknown) => Promise<Block>,
+): Promise<Block[]> {
+  return executeRunnables({
     input,
-    ctx: context,
+    runnables: blocks,
+    ctx,
     options,
     run,
   })

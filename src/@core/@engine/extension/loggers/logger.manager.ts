@@ -3,8 +3,8 @@ import {Manager} from '../../types/generics/manager.interface'
 import {Logger, LogMessage} from '../../types/interfaces/logger.interface'
 import {ProjectContext} from '../../types/project.types'
 import {emit, runExit, runInit} from '../util'
-import {EventBus} from '@xgsd/engine'
 import {Context} from '../../../config'
+import {EventBus} from '../../event'
 
 export class LoggerManager implements Manager {
   constructor(
@@ -33,11 +33,11 @@ export class LoggerManager implements Manager {
     }
   }
 
-  async init(ctx: Context, bus?: EventBus<EventEmitter2>): Promise<void> {
-    return runInit(this.loggers, ctx, bus)
+  async init(ctx: Context): Promise<void> {
+    return runInit(this.loggers, ctx, this.bus)
   }
 
-  async exit(ctx: Context, bus?: EventBus<EventEmitter2>): Promise<void> {
-    return runExit(this.loggers, ctx, bus)
+  async exit(ctx: Context): Promise<void> {
+    return runExit(this.loggers, ctx, this.bus)
   }
 }

@@ -1,17 +1,17 @@
-import {EventBus} from '@xgsd/engine'
 import {SourceData, PipelineStep, PipelineState} from '../@types/pipeline.types'
 import {deepmerge2} from '../util/object.util'
 import {WorkflowContext} from './context.builder'
-import {executeSteps, Runnable} from './process/orchestration.process'
+import {executeBlocks, ExecutionMode, Runnable} from './process/orchestration.process'
 import {ProjectEvent, BlockEvent} from './types/events.types'
 import {Executor} from './types/generics/executor.interface'
 import EventEmitter2 from 'eventemitter2'
 import {WorkflowError} from './error'
-import {Context} from '../config'
+import {Block, Context} from '../config'
+import {EventBus} from './event'
 
 export class Orchestrator<T extends SourceData = SourceData> {
   constructor(
-    public context: WorkflowContext<T>,
+    public context: Context,
     private executor: Executor<T>,
     private bus: EventBus<EventEmitter2>,
   ) {}
@@ -31,11 +31,11 @@ export class Orchestrator<T extends SourceData = SourceData> {
     const ctx = this.context
     const {config} = ctx
 
-    process.setMaxListeners(config.steps.length + 10)
+    process.setMaxListeners(config.blocks.length + 10)
 
     // import user module here too
-    const userModule = await import(this.context.package)
-    let concurrency = config.options.concurrency || 4
+    const userModule = await import(this.context.packagePath)
+    let concurrency = config.project?.concurrency || 4
     if (ctx.mode === 'chained' || ctx.mode === 'fanout') {
       concurrency = 1
     }
@@ -44,51 +44,24 @@ export class Orchestrator<T extends SourceData = SourceData> {
 
     // this was refactored to reduce duplication
     // and to fix issues caused by slightly different implementations
-    const results = await executeSteps(
-      config.steps,
-      input,
+    const results = await executeBlocks<Block>(
+      input as any,
+      config.blocks as any,
       ctx,
       {
-        mode: config.mode,
-        ...config.options,
+        mode: config.project.mode as ExecutionMode,
+        concurrency: 1,
       },
-      async (step, context) => {
-        // drop "action" before v0.5 release
-        step.fn = userModule[step.run ?? step.action!]
-
-        const result = await this.run({
-          ...step,
-          input: context.input,
-        })
-
-        // handle error/hard failures:
-        if (result.error && result.error instanceof WorkflowError) {
-          await this.event(BlockEvent.Failed, {
-            name: result.name || result.run,
-            data: result.input,
-            error: result.error,
-          })
-
-          return result
-        }
-
-        if (result.state === PipelineState.Failed) {
-          await this.event(BlockEvent.Failed, {
-            name: result.name || result.run,
-            data: result.input,
-            error: result.error,
-          })
-        }
-
-        return result
+      async (block: Block, input: any) => {
+        return block
       },
     )
 
-    await this.after(results)
+    await this.after([])
   }
 
   async run(step: PipelineStep<T>): Promise<PipelineStep<T>> {
-    return this.executor.run(step, this.context)
+    return step
   }
 
   async after(results: PipelineStep<T>[]): Promise<void> {

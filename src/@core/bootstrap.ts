@@ -10,12 +10,12 @@ import {Orchestrator} from './@engine/orchestrator'
 import {createRuntime} from './@engine/extension/util'
 import {DebugLogger} from './loggers/debug.logger'
 import {DebugPlugin} from './plugins/debug.plugin'
-import {EventBus} from '@xgsd/engine'
 import {SystemEvent} from './@engine/types/events.types'
 import {byteSize} from './util/misc.util'
 import {ConfigParser, createContext} from './config'
 import * as Joi from 'joi'
 import {join} from 'path'
+import {EventBus} from './@engine/event'
 /**
  *  @param {any} data
  *  @param {FlexibleWorkflowConfig} config

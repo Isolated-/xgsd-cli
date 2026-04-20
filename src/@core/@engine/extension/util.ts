@@ -8,11 +8,11 @@ import {ProjectContext} from '../types/project.types'
 import {RetryAttempt} from '../types/retry.types'
 import {EventHandler} from './lifecycle'
 import {SystemEvent} from '../types/events.types'
-import {EventBus} from '@xgsd/engine'
 import {EventEmitter2} from 'eventemitter2'
 import {PluginRegistry} from './plugins/plugin.registry'
 import {LoggerRegistry} from './loggers/logger.registry'
 import {Context} from '../../config'
+import {EventBus} from '../event'
 
 export type UserSetupFn = (ctx: Context, setup: SetupContainer) => Promise<void>
 

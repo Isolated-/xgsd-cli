@@ -3,7 +3,7 @@ import {ProjectEvent, BlockEvent, SystemEvent} from '../types/events.types'
 import {Manager} from '../types/generics/manager.interface'
 import {ProjectContext} from '../types/project.types'
 import {LoggerManager} from './loggers/logger.manager'
-import {EventBus} from '@xgsd/engine'
+import {EventBus} from '../event'
 
 const EVENT_MAP = {
   // project events
