@@ -53,6 +53,7 @@ export const runProject = async <T extends SourceData = SourceData>(
   bindEventBusToLoggerManager(bus, loggerManager)
   attachManagerLifecycleListeners(pluginManager, bus)
 
+  await executor.init?.(ctx as ProjectContext)
   await loggerManager.init(ctx as ProjectContext, bus)
   await pluginManager.init(ctx as ProjectContext, bus)
 
