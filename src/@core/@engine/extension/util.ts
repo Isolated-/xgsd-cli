@@ -173,11 +173,11 @@ export const createRuntime = async (opts: {
 
   const settings = await userCodeFn(context, setup)
 
-  if (settings.disableCoreLoggers) {
+  if (settings?.disableCoreLoggers) {
     // remove
   }
 
-  if (settings.disableCorePlugins) {
+  if (settings?.disableCorePlugins) {
     // remove
   }
 
