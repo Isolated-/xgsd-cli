@@ -12,6 +12,7 @@ import {DebugLogger} from './loggers/debug.logger'
 import {DebugPlugin} from './plugins/debug.plugin'
 import {EventBus} from '@xgsd/engine'
 import {SystemEvent} from './@engine/types/events.types'
+import {byteSize} from './util/misc.util'
 /**
  *  @param {any} data
  *  @param {FlexibleWorkflowConfig} config

@@ -9,7 +9,7 @@ import {RetryAttempt} from '../types/retry.types'
 import {EventHandler} from './lifecycle'
 import {SystemEvent} from '../types/events.types'
 import {EventBus} from '@xgsd/engine'
-import EventEmitter2 from 'eventemitter2'
+import {EventEmitter2} from 'eventemitter2'
 
 export type UserSetupFn = (ctx: WorkflowContext, setup: SetupContainer) => Promise<void>
 
@@ -166,10 +166,10 @@ export const createRuntime = async (opts: {
   return setup.build(context)
 }
 
-export const emit = async <T = unknown>(hooks: Hooks[], event: string, payload: T) => {
+export const emit = async <T = unknown>(hooks: Hooks[], _: string, payload: T) => {
   for (const hook of hooks) {
     if (!hook.on || typeof hook.on !== 'function') continue
 
-    await hook.on(event, payload)
+    await hook.on(payload)
   }
 }
