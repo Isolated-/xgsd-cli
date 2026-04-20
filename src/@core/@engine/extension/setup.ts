@@ -42,7 +42,7 @@ export class SetupContainer {
   }
 
   executor(input: ExecutorInput) {
-    this.executorFactory = resolveFactory(input)
+    this.executorFactory = resolveFactory(input, {type: 'executor'})
   }
 
   async build(context: ProjectContext): Promise<{

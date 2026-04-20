@@ -10,6 +10,8 @@ import {EventHandler} from './lifecycle'
 import {SystemEvent} from '../types/events.types'
 import {EventBus} from '@xgsd/engine'
 import {EventEmitter2} from 'eventemitter2'
+import {PluginRegistry} from './plugins/plugin.registry'
+import {LoggerRegistry} from './loggers/logger.registry'
 
 export type UserSetupFn = (ctx: WorkflowContext, setup: SetupContainer) => Promise<void>
 
@@ -75,7 +77,7 @@ export const runExit = async <T extends Extension>(items: T[], ctx: Context, bus
 
 export const resolveFactory = <T = unknown>(
   input: FactoryInput<T>,
-  opts: {
+  opts?: {
     type: 'logger' | 'plugin' | 'executor'
     core?: boolean
   },
@@ -101,9 +103,8 @@ export const resolveFactory = <T = unknown>(
     if (instance && typeof instance === 'object') {
       instance.name = name
 
-      // 👇 attach metadata here, not in user class
-      instance.type = opts.type
-      instance.core = opts.core ?? false
+      instance.type = opts?.type
+      instance.core = opts?.core ?? false
     }
 
     return instance
@@ -153,20 +154,31 @@ export const createRuntime = async (opts: {
   setupContainer?: SetupContainer
   userCodeFn?: UserSetupFn
 }) => {
-  const {plugins, loggers, reporters, executor, context} = opts
+  const pluginRegistry = new PluginRegistry()
+  const loggerRegistry = new LoggerRegistry()
+
+  const {plugins, loggers, executor, context} = opts
+
+  plugins?.forEach((plugin) => pluginRegistry.use(plugin, true))
+  loggers?.forEach((logger) => loggerRegistry.use(logger, true))
+
   const setup =
     opts.setupContainer ??
     new SetupContainer({
       bus: opts.bus,
+      pluginRegistry,
+      loggerRegistry,
     })
   const userCodeFn = opts.userCodeFn ?? loadUserSetup
 
   const settings = await userCodeFn(context, setup)
 
-  plugins?.forEach((plugin) => setup.use(plugin))
+  if (settings.disableCoreLoggers) {
+    // remove
+  }
 
-  if (!settings?.disableCoreLoggers) {
-    loggers?.forEach((logger) => setup.logger(logger))
+  if (settings.disableCorePlugins) {
+    // remove
   }
 
   if (executor) {

@@ -7,8 +7,8 @@ import {buildFactories, resolveFactory} from '../util'
 export class LoggerRegistry implements Registry<LoggerInput, Logger[]> {
   private factories: LoggerFactory[] = []
 
-  use(input: FactoryInput<LoggerInput>): void {
-    this.factories.push(resolveFactory(input))
+  use(input: FactoryInput<LoggerInput>, core?: boolean): void {
+    this.factories.push(resolveFactory(input, {type: 'logger', core}))
   }
 
   build(ctx: WorkflowContext): Logger[] {

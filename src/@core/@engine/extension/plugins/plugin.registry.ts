@@ -7,8 +7,8 @@ import {buildFactories, resolveFactory} from '../util'
 export class PluginRegistry implements Registry<PluginInput, Hooks[]> {
   private factories: PluginFactory[] = []
 
-  use(input: PluginInput) {
-    this.factories.push(resolveFactory(input))
+  use(input: PluginInput, core?: boolean) {
+    this.factories.push(resolveFactory(input, {type: 'plugin', core}))
   }
 
   build(ctx: WorkflowContext<unknown>): Hooks[] {
