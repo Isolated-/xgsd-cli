@@ -1,9 +1,0 @@
-{
-  "name": "My First Workflow",
-  "steps": [
-    {
-      "name": "My First Step",
-      "action": "myAction"
-    }
-  ]
-}

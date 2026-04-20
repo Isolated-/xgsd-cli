@@ -1,9 +1,6 @@
 // this will eventually become its own library (@xgsd/sdk)
-import {getBackoffStrategy} from './@core/@engine/execution/backoff'
-import {retry as coreRetry} from './@core/@engine/execution/retry'
-import {execute as coreExecute} from './@core/@engine/execution/execute'
-import {RetryAttempt} from './@core/@engine/types/retry.types'
-import {RunFn} from './@core/@engine/types/runnable.types'
+import {retry as coreRetry, execute as coreExecute, RunFn, SourceData, RetryAttempt} from '@xgsd/engine'
+import {getBackoffStrategy} from './@runtime/backoff'
 
 export type RetryOpts = {
   retries?: number
@@ -26,10 +23,15 @@ export type RetryOpts = {
  *  @param attempt
  *  @returns
  */
-export async function retry(run: RunFn<any, any>, data?: any, opts?: RetryOpts, attempt?: (a: RetryAttempt) => void) {
-  return coreRetry(data, run, opts?.retries || 1, {
+export async function retry<T extends SourceData = SourceData>(
+  run: RunFn<T>,
+  data?: T,
+  opts?: RetryOpts,
+  attempt?: (a: RetryAttempt) => void,
+) {
+  return coreRetry<T>(data as T, run, opts?.retries || 1, {
     timeout: opts?.timeout || 1000,
-    delay: getBackoffStrategy(opts?.backoff || 'exponential'),
+    backoff: getBackoffStrategy(opts?.backoff || 'exponential'),
     onAttempt: attempt,
   })
 }
@@ -39,10 +41,10 @@ export type ExecuteOpts = {
   transform?: (data: any) => any
 }
 
-export async function execute(run: RunFn<any, any>, data?: any, opts?: ExecuteOpts) {
-  return coreExecute(data, run, opts?.transform, opts?.timeout)
+export async function execute<T extends SourceData = SourceData>(run: RunFn<T>, data?: any, opts?: ExecuteOpts) {
+  return coreExecute(data, run, opts?.timeout)
 }
 
-export {processStep} from './@core/@engine/process/block.process'
-export {ProcessExecutor} from './@core/@engine/executors/process.executor'
-export {InProcessExecutor} from './@core/@engine/executors/in-process.executor'
+export {ProcessExecutor} from './@runtime/executors/process.executor'
+export {InProcessExecutor} from './@runtime/executors/in-process.executor'
+export {processBlock} from './@runtime/process/block.process'

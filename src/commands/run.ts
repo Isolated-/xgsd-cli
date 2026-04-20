@@ -1,10 +1,8 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {resolve} from 'path'
 import {readJsonSync} from 'fs-extra'
-import {EventEmitter2} from 'eventemitter2'
-import {userLogThemes} from '../constants'
 import {BaseCommand} from '../base'
-import {runProject} from '../@core'
+import {runProject} from '../@runtime'
 
 export default class Run extends BaseCommand<typeof Command> {
   static override args = {
