@@ -5,7 +5,7 @@ import {merge} from '../../util/object.util'
 import {WorkflowContext} from '../context.builder'
 import {WorkflowError, WorkflowErrorCode} from '../error'
 import {BlockEvent} from '../types/events.types'
-import {importUserModule} from '../extension/util'
+import {ContextLike, importUserModule} from '../extension/util'
 import {finaliseStepData, prepareStepData} from '../helpers/helpers.util'
 import {retry, WrappedError, RetryAttempt, SourceData} from '@xgsd/engine'
 import {getBackoffStrategy} from '../backoff'
@@ -46,8 +46,8 @@ export const event = (
   context: {
     attempt?: RetryAttempt
     error?: WrappedError
-    step: PipelineStep
-    context?: WorkflowContext
+    block: Block
+    ctx?: Context
     [key: string]: any
   },
 ) => {
@@ -60,15 +60,21 @@ export const event = (
 
 export async function processBlock(opts: {
   block: Block<SourceData>
-  ctx: Context<SourceData>
-  event?: (name: string, payload: unknown) => void
+  event?: (
+    name: string,
+    payload: {
+      block: Block
+      attempt?: RetryAttempt
+      ctx?: Context
+    },
+  ) => void
   attempt?: (attempt: RetryAttempt) => Promise<void>
 }) {
-  const {event, attempt, block, ctx} = opts
+  const {event, attempt, block} = opts
 
   block.start = new Date().toISOString()
 
-  if (!block.enabled) {
+  if (block.enabled === false) {
     // handle skip
     block.state = PipelineState.Skipped
     event?.(BlockEvent.Skipped, {block})
@@ -80,13 +86,14 @@ export async function processBlock(opts: {
 
   if (block.options?.delay && block.options.delay !== '0s' && block.options.delay !== 0) {
     const delayMs = getDurationNumber(block.options.delay as string) || 0
-    event?.(BlockEvent.Waiting, {block, delayMs})
+    //event?.(BlockEvent.Waiting, {block, delayMs})
     await delayFor(delayMs || 0)
   }
 
   const method = defaultWith('exponential', block.options?.backoff)
   const delayFn = getBackoffStrategy(method as string)
   const options = block.options
+
   block.state = PipelineState.Running
 
   // TODO: remove hardcoded defaults
@@ -117,7 +124,7 @@ export async function processBlock(opts: {
   block.end = new Date().toISOString()
   block.duration = Date.parse(block.end) - Date.parse(block.start)
 
-  event?.(BlockEvent.Ended, block)
+  event?.(BlockEvent.Ended, {block})
 
   return block
 }
@@ -220,7 +227,7 @@ export function shouldRun(step: PipelineStep): boolean {
   return false
 }
 
-export const rejectionHandler = (step: PipelineStep) => {
+export const rejectionHandler = (block: Block) => {
   const handler = (errorOrRejection: any) => {
     const error = errorOrRejection instanceof Error ? errorOrRejection : null
     const wrapped = new WorkflowError(
@@ -229,11 +236,11 @@ export const rejectionHandler = (step: PipelineStep) => {
     ) as WrappedError
 
     const result = {
-      step: {
-        ...step,
+      block: {
+        ...block,
         state: PipelineState.Failed,
         error: wrapped,
-        errors: [...(step.errors || []), wrapped],
+        errors: [...(block.errors || []), wrapped],
       },
     }
 
@@ -246,26 +253,28 @@ export const rejectionHandler = (step: PipelineStep) => {
 }
 
 // this method now just deals with logging back up stream
-process.on('message', async (msg: {type: string; step: PipelineStep; context: WorkflowContext}) => {
+process.on('message', async (msg: {type: string; block: Block; ctx: ContextLike}) => {
   if (msg.type !== 'START') return
 
-  const {step, context} = msg
+  const {block, ctx} = msg
 
-  rejectionHandler(step)
+  rejectionHandler(block)
 
-  const fn = await importUserModule(step, context)
-  step.fn = fn
+  const fn = await importUserModule(block, ctx)
+  block.fn = fn
 
-  // may need to load helpers here
-  // so they're in the same context
-
-  const result = await processStep(step, context, {event})
+  const result = await processBlock({
+    block,
+    event,
+  })
 
   // v0.4.0 - allow some time for messages to be sent before exiting
   // also prevents issues with very fast steps
   // placing it here won't affect step timing
-  const nextStepDelayMs = getStepDelay(context.steps.length)
+  // v0.5.0 (note) -> ctx.blocks is no longer sent to child process
+  // instead blockCount() can achieve this function
+  const nextStepDelayMs = getStepDelay(ctx.blockCount)
   await delayFor(nextStepDelayMs)
 
-  dispatchMessage('result', {result: {step: result}})
+  dispatchMessage('result', {result: {block: result}})
 })

@@ -68,6 +68,7 @@ export type Context<T extends SourceData = SourceData> = {
   lite: boolean
   input: Record<string, unknown>
   output: Record<string, unknown>
+  blockCount: number
   blocks: T[]
   state: PipelineState
   start: string
@@ -198,6 +199,14 @@ export class ContextFinalStage<T extends Record<string, unknown>> {
       platform: process.platform,
     }
 
+    return this
+  }
+
+  // not strictly needed
+  // is used to prevent needing the array of blocks
+  // or full context in child processes (see ContextLike)
+  blockCount(): this {
+    this.ctx.blockCount = this.ctx.blocks?.length
     return this
   }
 

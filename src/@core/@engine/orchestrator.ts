@@ -56,6 +56,12 @@ export class Orchestrator {
       async (block: Block, input: any) => {
         block.fn = userModule[block.run]
 
+        block.options = {
+          timeout: 5000,
+          retries: 5,
+          ...block.options,
+        }
+
         const result = (await this.run(block as Block)) as Block
 
         // handle error/hard failures:

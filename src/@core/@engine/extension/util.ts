@@ -1,7 +1,6 @@
 import {WorkflowContext} from '../context.builder'
 import {WorkflowError, WorkflowErrorCode} from '../error'
 import {SetupContainer} from './setup'
-import {Block} from '../types/block.types'
 import {ExecutorInput, Factory, FactoryInput, LoggerInput, PluginInput, ReporterInput} from '../types/factory.types'
 import {Hooks} from '../types/hooks.types'
 import {ProjectContext} from '../types/project.types'
@@ -11,19 +10,24 @@ import {SystemEvent} from '../types/events.types'
 import {EventEmitter2} from 'eventemitter2'
 import {PluginRegistry} from './plugins/plugin.registry'
 import {LoggerRegistry} from './loggers/logger.registry'
-import {Context} from '../../config'
+import {Block, Context} from '../../config'
 import {EventBus} from '../event'
+import {Require} from '../types/require.type'
 
 export type UserSetupFn = (ctx: Context, setup: SetupContainer) => Promise<void>
+export type ContextLike = {
+  packagePath: string
+  blockCount: number
+}
 
-export async function importUserModule(block: Block, context: ProjectContext) {
+export async function importUserModule<T extends ContextLike = ContextLike>(block: Block, context: T) {
   try {
     const action = block.run!
-    const fn = await import(context.package)
+    const fn = await import(context.packagePath)
     return fn[action]
   } catch (error: any) {
     throw new WorkflowError(
-      `${context.package} couldn't be loaded. This could mean it wasn't found, or there's an error preventing its load. Check logs for more information. (${error.message})`,
+      `${context.packagePath} couldn't be loaded. This could mean it wasn't found, or there's an error preventing its load. Check logs for more information. (${error.message})`,
       WorkflowErrorCode.ModuleNotFound,
     )
   }

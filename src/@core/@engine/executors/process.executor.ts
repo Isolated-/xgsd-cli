@@ -10,14 +10,12 @@ import {Block, Context} from '../../config'
 import {SourceData} from '@xgsd/engine'
 
 export class ProcessExecutor<T extends SourceData = SourceData> implements Executor<T> {
-  async run(block: Block<T>, context: Context<T>): Promise<Block<T>> {
+  async run(block: Block, context: Context): Promise<Block<T>> {
     const result = await this.runIsolated(block, context)
-    return result
+    return result.block
   }
 
-  private async runIsolated(block: Block<T>, context: Context<T>) {
-    const startedAt = new Date().toISOString()
-
+  private async runIsolated(block: Block, context: Context) {
     let timeoutMs: number | undefined
     const opts = deepmerge2(context.config.project.options, block.options) as {
       timeout: string | number
@@ -27,10 +25,8 @@ export class ProcessExecutor<T extends SourceData = SourceData> implements Execu
       timeoutMs = typeof opts.timeout === 'string' ? ms(opts.timeout as ms.StringValue) : opts.timeout
     }
 
-    //step.env = resolveStepData(step.env || {}, {context, step}) as Record<string, string>
-    /*
     const path = join(__dirname, '..', 'process', 'block.process.js')
-    const manager = new ProcessManager({...step, startedAt}, context, path, timeoutMs)
+    const manager = new ProcessManager(block, context, path, timeoutMs)
 
     manager.fork()
 
@@ -39,7 +35,5 @@ export class ProcessExecutor<T extends SourceData = SourceData> implements Execu
     })
 
     return manager.run()
-*/
-    return block
   }
 }

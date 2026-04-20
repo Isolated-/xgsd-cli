@@ -15,10 +15,8 @@ export class InProcessExecutor<T extends SourceData = SourceData> implements Exe
       })
     }
 
-    //return processStep(block, context, {event})
     return processBlock({
       block,
-      ctx: context,
       event,
     }) as any
   }

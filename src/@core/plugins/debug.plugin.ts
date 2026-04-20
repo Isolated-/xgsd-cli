@@ -17,7 +17,8 @@ export class DebugPlugin implements Plugin {
     }
 
     if (event === BlockEvent.Failed) {
-      console.warn(chalk.red(`[DebugPlugin] ${payload.name} has failed - reason: ${payload.error.message}`))
+      console.warn(chalk.red(`[DebugPlugin] ${payload.name} has failed - reason: ${payload.error.message} stack:`))
+      console.warn(chalk.red(payload.error.stack))
     }
 
     if (event === BlockEvent.Retrying) {

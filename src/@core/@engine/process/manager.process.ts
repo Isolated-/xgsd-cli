@@ -3,17 +3,13 @@ import {PipelineStep, PipelineState} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
 import {WorkflowError, WorkflowErrorCode} from '../error'
 import {BlockEvent, SystemEvent} from '../types/events.types'
+import {Block, Context} from '../../config'
 
 export const event = (name: string, payload: object) => {
   process.send!({type: 'PARENT:EVENT', event: name, payload})
 }
 
-export const log = (
-  message: string,
-  level: 'info' | 'error' | 'user',
-  context?: WorkflowContext,
-  step?: PipelineStep,
-) => {
+export const log = (message: string, level: 'info' | 'error' | 'user', context?: Context, step?: Block) => {
   process.send!({type: 'PARENT:LOG', log: {level, message, timestamp: new Date().toISOString()}, context, step})
 }
 
@@ -22,8 +18,8 @@ export class ProcessManager {
   startedAt: number
 
   constructor(
-    public step: PipelineStep,
-    public context: WorkflowContext,
+    public block: Block,
+    public context: Context,
     public path: string,
     public timeoutMs?: number,
   ) {
@@ -34,37 +30,37 @@ export class ProcessManager {
     this.process = fork(this.path, {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
       env: {
-        XGSD_WORKFLOW_ID: this.context.id,
-        XGSD_WORKFLOW_HASH: this.context.hash,
-        ...this.step.env,
+        PROJECT_ID: this.context.id ?? 'none',
+        PROJECT_CONFIG_HASH: this.context.hash ?? 'none',
+        ...this.block.env,
       },
       execArgv: ['--max-old-space-size=256', '--stack-size=1024'],
     })
 
-    const log = (message: string, level: 'info' | 'error' | 'user', context?: WorkflowContext, step?: PipelineStep) => {
-      if (context?.stream) {
-        context.stream.emit(SystemEvent.SystemMessage, {
+    const log = async (message: string, level: 'info' | 'error' | 'user', context?: Context, block?: Block) => {
+      if (context?.bus) {
+        await context.bus.emit(SystemEvent.SystemMessage, {
           event: SystemEvent.SystemMessage,
           payload: {level, message},
         })
         return
       }
 
-      process.send!({type: 'PARENT:LOG', log: {level, message, timestamp: new Date().toISOString()}, context, step})
+      process.send!({type: 'PARENT:LOG', log: {level, message, timestamp: new Date().toISOString()}, context, block})
     }
 
     this.process.stdout?.on('data', (chunk: Buffer) => {
       const msg = chunk.toString().trim()
-      if (msg) log(msg, 'user', this.context, this.step)
+      if (msg) log(msg, 'user', this.context, this.block)
     })
 
     this.process.stderr?.on('data', (chunk: Buffer) => {
       const msg = chunk.toString().trim()
-      if (msg) log(msg, 'error', this.context, this.step)
+      if (msg) log(msg, 'error', this.context, this.block)
     })
   }
 
-  run(prefix: string = 'CHILD'): Promise<{step: any; fatal: boolean; errors: any[]}> {
+  run(prefix: string = 'CHILD'): Promise<{block: any; fatal: boolean; errors: any[]}> {
     return new Promise((resolve) => {
       let timer: NodeJS.Timeout | null = null
 
@@ -72,16 +68,16 @@ export class ProcessManager {
         this.process.kill()
         const error = new WorkflowError('hard timeout limit reached', WorkflowErrorCode.HardTimeout)
         const updated = {
-          ...this.step,
-          startedAt: new Date(this.startedAt).toISOString(),
-          endedAt: new Date().toISOString(),
+          ...this.block,
+          start: new Date(this.startedAt).toISOString(),
+          end: new Date().toISOString(),
           duration: Date.now() - this.startedAt,
           state: PipelineState.Failed,
           error,
           errors: [error],
         }
 
-        resolve({step: updated, fatal: true, errors: []})
+        resolve({block: updated, fatal: true, errors: []})
       }
 
       if (this.timeoutMs) {
@@ -102,7 +98,7 @@ export class ProcessManager {
             }
 
             // v0.5 or later
-            this.context.stream.emit(msg.event, {
+            this.context.bus.emit(msg.event, {
               event: msg.event,
               payload: msg.payload,
             })
@@ -111,14 +107,14 @@ export class ProcessManager {
           case `${prefix}:RESULT`:
             this.process.kill()
             if (timer) clearTimeout(timer)
-            resolve({step: msg.result.step, fatal: false, errors: msg.result.step.errors})
+            resolve({block: msg.result.block, fatal: false, errors: msg.result.block.errors})
             break
 
           case `${prefix}:ERROR`:
             this.process.kill()
             if (timer) clearTimeout(timer)
             resolve({
-              step: {...this.step, state: PipelineState.Failed},
+              block: {...this.block, state: PipelineState.Failed},
               fatal: true,
               errors: [msg.error],
             })
@@ -129,8 +125,8 @@ export class ProcessManager {
       // send start command
       this.process.send({
         type: 'START',
-        step: this.step,
-        context: this.context,
+        block: this.block,
+        ctx: this.context,
       })
     })
   }
