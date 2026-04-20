@@ -1,6 +1,6 @@
 import {SourceData} from '../../../@types/pipeline.types'
 import {WrappedError} from '../../execution/error'
-import {BlockEvent, ProjectEvent} from '../events.types'
+import {BlockEvent, ProjectEvent, SystemEvent} from '../events.types'
 import {Hooks} from '../hooks.types'
 
 export enum LoggerLevel {
@@ -9,20 +9,13 @@ export enum LoggerLevel {
   Error = 'error',
 }
 
-export type LoggerEvent<T extends SourceData = unknown> = {
-  level: LoggerLevel
-  event: ProjectEvent | BlockEvent
+export type LogMessage<T extends SourceData = unknown> = {
+  event: ProjectEvent | BlockEvent | SystemEvent
   payload: T
-  error?: WrappedError
-  timestamp: string
-  meta: {
-    node: string
-    engine: string
-  }
-  isEvent: boolean
+  error?: WrappedError | null
 }
 
 export interface Logger<T = unknown> extends Hooks {
-  log(event: LoggerEvent<T>): Promise<void> | void
-  error?(event: LoggerEvent<T>): Promise<void> | void
+  log(event: LogMessage<T>): Promise<void> | void
+  error?(event: LogMessage<T>): Promise<void> | void
 }

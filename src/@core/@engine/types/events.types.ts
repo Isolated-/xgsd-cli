@@ -1,3 +1,4 @@
+import {ProjectContext} from './project.types'
 export enum ProjectEvent {
   Started = 'project.started',
   Ended = 'project.ended',
@@ -16,4 +17,5 @@ export enum BlockEvent {
 export enum SystemEvent {
   ExtensionLoaded = 'extension.loaded',
   ExtensionUnloaded = 'extension.unloaded',
+  SystemMessage = 'system.message',
 }

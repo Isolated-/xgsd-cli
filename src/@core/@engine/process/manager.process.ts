@@ -2,7 +2,7 @@ import {ForkOptions, fork} from 'child_process'
 import {PipelineStep, PipelineState} from '../../@types/pipeline.types'
 import {WorkflowContext} from '../context.builder'
 import {WorkflowError, WorkflowErrorCode} from '../error'
-import {BlockEvent} from '../types/events.types'
+import {BlockEvent, SystemEvent} from '../types/events.types'
 
 export const event = (name: string, payload: object) => {
   process.send!({type: 'PARENT:EVENT', event: name, payload})
@@ -43,7 +43,10 @@ export class ProcessManager {
 
     const log = (message: string, level: 'info' | 'error' | 'user', context?: WorkflowContext, step?: PipelineStep) => {
       if (context?.stream) {
-        context.stream.emit('message', {log: {level, message, timestamp: new Date().toISOString(), context, step}})
+        context.stream.emit(SystemEvent.SystemMessage, {
+          event: SystemEvent.SystemMessage,
+          payload: {level, message},
+        })
         return
       }
 

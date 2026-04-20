@@ -2,15 +2,16 @@ import {EventEmitter2} from 'eventemitter2'
 import {ensureDirSync} from 'fs-extra'
 import {WorkflowContext} from './@engine/context.builder'
 import {SourceData, FlexibleWorkflowConfig} from './@types/pipeline.types'
-import {attachManagerLifecycleListeners, attachProcessLogAdapter, EventBus} from './@engine/extension/lifecycle'
+import {attachManagerLifecycleListeners, bindEventBusToLoggerManager} from './@engine/extension/lifecycle'
 import {UserHooksPlugin} from './plugins/userhooks.plugin'
 import {ProjectContext} from './@engine/types/project.types'
 import {deepmerge2} from './util/object.util'
 import {Orchestrator} from './@engine/orchestrator'
 import {createRuntime} from './@engine/extension/util'
 import {DebugLogger} from './loggers/debug.logger'
-import {LogAdapterPlugin} from './plugins/log-adapter.plugin'
-
+import {DebugPlugin} from './plugins/debug.plugin'
+import {EventBus} from '@xgsd/engine'
+import {SystemEvent} from './@engine/types/events.types'
 /**
  *  @param {any} data
  *  @param {FlexibleWorkflowConfig} config
@@ -27,43 +28,38 @@ export const runProject = async <T extends SourceData = SourceData>(
   const handler = event ?? new EventEmitter2()
   const {collect} = config
 
-  const ctx = new WorkflowContext(config, handler, 'v1')
-
   if (collect) {
     ensureDirSync(config.output)
   }
+
+  const bus = new EventBus(handler)
+  const ctx = new WorkflowContext(config, handler, 'v1')
 
   // plugins + executor added in v0.5
   // executor allows users to override how
   // blocks are processed (in process/isolation/remote/etc)
   // hooks provide a simple way of reacting to events
   // these are registered as a plugin
-  const {pluginManager, loggerManager, reporterManager, executor} = await createRuntime({
+  const {pluginManager, loggerManager, executor} = await createRuntime({
     context: ctx as WorkflowContext,
     loggers: [DebugLogger],
-    plugins: [LogAdapterPlugin, (ctx) => new UserHooksPlugin(ctx)],
-    //reporters: [],
+    plugins: [DebugPlugin, (ctx) => new UserHooksPlugin(ctx)],
+    bus,
   })
 
-  const bus = new EventBus(handler)
   const orchestrator = new Orchestrator<T>(ctx, executor as any)
 
-  // wrap this in a helper
-  // attachListeners({logger, plugin, reporter, ctx})
-  attachManagerLifecycleListeners(loggerManager, bus, ctx as ProjectContext)
-  attachManagerLifecycleListeners(pluginManager, bus, ctx as ProjectContext)
-  attachManagerLifecycleListeners(reporterManager, bus, ctx as ProjectContext)
+  bindEventBusToLoggerManager(bus, loggerManager)
+  attachManagerLifecycleListeners(pluginManager, bus)
 
-  // process log adapter (added in v0.5)
-  // instead of this, attach directly to loggers
-  await attachProcessLogAdapter(ctx as ProjectContext, loggerManager)
+  await loggerManager.init(ctx as ProjectContext, bus)
+  await pluginManager.init(ctx as ProjectContext, bus)
 
   const input = deepmerge2(config.data, data) as T
 
   await orchestrator.orchestrate(input)
 
   // clean this up
-  await pluginManager.exit(ctx as ProjectContext)
-  await loggerManager.exit(ctx as ProjectContext)
-  await reporterManager.exit(ctx as ProjectContext)
+  await pluginManager.exit(ctx as ProjectContext, bus)
+  await loggerManager.exit(ctx as ProjectContext, bus)
 }

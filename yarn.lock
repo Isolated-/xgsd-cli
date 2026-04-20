@@ -3081,10 +3081,12 @@
   resolved "https://registry.npmjs.org/@unrs/resolver-binding-win32-x64-msvc/-/resolver-binding-win32-x64-msvc-1.11.1.tgz#538b1e103bf8d9864e7b85cc96fa8d6fb6c40777"
   integrity sha512-lrW200hZdbfRtztbygyaq/6jP6AKE8qQN2KvPcJ+x7wiD038YtnYtZ82IMNJ69GJibV7bwL3y9FgK+5w/pYt6g==
 
-"@xgsd/engine@0.0.3":
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/@xgsd/engine/-/engine-0.0.3.tgz#8dbcfc8b855da6492eaf61b73833dc17dd73bf7d"
-  integrity sha512-EZ72W3JIWYHamDShjjuX4H1URc8jQU2VOtdiZs2MqgpULHHZ/5LXzJ3Sz/ldvCRsexB1mKgo8+VRHtNFO9y19Q==
+"@xgsd/engine@0.0.9":
+  version "0.0.9"
+  resolved "https://registry.yarnpkg.com/@xgsd/engine/-/engine-0.0.9.tgz#ad10a2bc48c2f2900e52c4c7a2a3fde949d12940"
+  integrity sha512-c173tpED0KXnwnKz3BRZutwdqiYtxN5cHnMc4Py/8BwnV3YX5AoFlORkC2J4hrVpZ+Akhu/J4YygAAL41NnmTQ==
+  dependencies:
+    deepmerge "^4.3.1"
 
 abbrev@^3.0.0, abbrev@^3.0.1:
   version "3.0.1"

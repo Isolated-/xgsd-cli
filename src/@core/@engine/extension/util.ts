@@ -6,7 +6,10 @@ import {ExecutorInput, Factory, FactoryInput, LoggerInput, PluginInput, Reporter
 import {Hooks} from '../types/hooks.types'
 import {ProjectContext} from '../types/project.types'
 import {RetryAttempt} from '../types/retry.types'
-import {EventBus, EventHandler} from './lifecycle'
+import {EventHandler} from './lifecycle'
+import {SystemEvent} from '../types/events.types'
+import {EventBus} from '@xgsd/engine'
+import EventEmitter2 from 'eventemitter2'
 
 export type UserSetupFn = (ctx: WorkflowContext, setup: SetupContainer) => Promise<void>
 
@@ -40,22 +43,33 @@ type Extension = {
   on?: (e: string, handler: EventHandler) => void
 }
 
-export const runInit = async <T extends Extension>(items: T[], ctx: Context) => {
+export const runInit = async <T extends Extension>(items: T[], ctx: Context, bus?: EventBus<EventEmitter2>) => {
   for (const item of items) {
     if (item.init) {
       await item.init(ctx)
     }
+
+    if (bus) {
+      await bus.emit(SystemEvent.ExtensionLoaded, {
+        name: item.name ?? 'anonymous',
+        core: !!item.core,
+      })
+    }
   }
 }
 
-export const runExit = async <T extends Extension>(items: T[], ctx: Context) => {
+export const runExit = async <T extends Extension>(items: T[], ctx: Context, bus?: EventBus<EventEmitter2>) => {
   for (const item of items) {
-    console.debug(`[${item.name}] unloaded`)
+    if (item.exit) {
+      await item.exit(ctx)
+    }
 
-    if (!item.exit) continue
-
-    console.debug(`[${item.name}] calling exit()`)
-    await item.exit(ctx)
+    if (bus) {
+      await bus.emit(SystemEvent.ExtensionUnloaded, {
+        name: item.name ?? 'anonymous',
+        core: !!item.core,
+      })
+    }
   }
 }
 
@@ -120,6 +134,7 @@ export const loadUserSetup = async (context: ProjectContext, setup: SetupContain
  *  @returns
  */
 export const createRuntime = async (opts: {
+  bus?: EventBus<EventEmitter2>
   context: WorkflowContext
   plugins?: PluginInput[]
   loggers?: LoggerInput[]
@@ -129,7 +144,11 @@ export const createRuntime = async (opts: {
   userCodeFn?: UserSetupFn
 }) => {
   const {plugins, loggers, reporters, executor, context} = opts
-  const setup = opts.setupContainer ?? new SetupContainer()
+  const setup =
+    opts.setupContainer ??
+    new SetupContainer({
+      bus: opts.bus,
+    })
   const userCodeFn = opts.userCodeFn ?? loadUserSetup
 
   const settings = await userCodeFn(context, setup)
@@ -138,10 +157,6 @@ export const createRuntime = async (opts: {
 
   if (!settings?.disableCoreLoggers) {
     loggers?.forEach((logger) => setup.logger(logger))
-  }
-
-  if (!settings?.disableCoreReporters) {
-    reporters?.forEach((reporter) => setup.reporter(reporter))
   }
 
   if (executor) {

@@ -4,23 +4,20 @@ import {InProcessExecutor} from '../../executors/in-process.executor'
 import {ProcessExecutor} from '../../executors/process.executor'
 import {Block} from '../../types/block.types'
 import {Executor} from '../../types/generics/executor.interface'
-import {Logger, LoggerEvent} from '../../types/interfaces/logger.interface'
+import {Logger, LogMessage} from '../../types/interfaces/logger.interface'
 import {Plugin} from '../../types/interfaces/plugin.interface'
-import {Reporter} from '../../types/interfaces/reporter.interface'
 import {ProjectContext} from '../../types/project.types'
 import {RetryAttempt} from '../../types/retry.types'
 import {LoggerManager} from '../loggers/logger.manager'
 import {PluginManager} from '../plugins/plugin.manager'
-import {ReporterManager} from '../reporters/reporter.manager'
 import {SetupContainer} from '../setup'
 
 class MockPlugin implements Plugin {}
 class MockLogger implements Logger {
-  log(event: LoggerEvent<unknown>): Promise<void> | void {
+  log(event: LogMessage<unknown>): Promise<void> | void {
     throw new Error('Method not implemented.')
   }
 }
-class MockReporter implements Reporter {}
 class MockExecutor implements Executor {
   run(block: PipelineStep<unknown>, context: WorkflowContext<unknown>): Promise<PipelineStep<unknown>> {
     throw new Error('Method not implemented.')
@@ -57,36 +54,6 @@ test('.logger() should accept loggers correctly', () => {
   expect(use).toHaveBeenCalledWith(MockLogger)
 })
 
-test('.reporter() should accept reporters correctly', () => {
-  const use = jest.fn()
-  const setup = new SetupContainer({
-    reporterRegistry: {
-      use,
-    } as any,
-  })
-
-  expect(() => setup.reporter(MockReporter)).not.toThrow()
-
-  // ensure setup.use() just passes input without mutation
-  expect(use).toHaveBeenCalledTimes(1)
-  expect(use).toHaveBeenCalledWith(MockReporter)
-})
-
-test('.reporter() should accept reporters correctly', () => {
-  const use = jest.fn()
-  const setup = new SetupContainer({
-    reporterRegistry: {
-      use,
-    } as any,
-  })
-
-  expect(() => setup.reporter(MockReporter)).not.toThrow()
-
-  // ensure setup.use() just passes input without mutation
-  expect(use).toHaveBeenCalledTimes(1)
-  expect(use).toHaveBeenCalledWith(MockReporter)
-})
-
 test('.executor() should accept executors correctly', () => {
   const setup = new SetupContainer({})
 
@@ -95,13 +62,12 @@ test('.executor() should accept executors correctly', () => {
 
 test('.build() should return { pluginManager, loggerManager, reporterManager, executor }', async () => {
   const setup = new SetupContainer()
-  const {pluginManager, loggerManager, reporterManager, executor} = await setup.build({
+  const {pluginManager, loggerManager, executor} = await setup.build({
     config: {lite: true},
   } as any)
 
   expect(pluginManager).toBeInstanceOf(PluginManager)
   expect(loggerManager).toBeInstanceOf(LoggerManager)
-  expect(reporterManager).toBeInstanceOf(ReporterManager)
 
   expect(executor).toBeInstanceOf(InProcessExecutor)
 })

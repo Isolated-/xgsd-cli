@@ -9,30 +9,28 @@ import {ProjectContext} from '../types/project.types'
 import {loadUserSetup, resolveFactory, UserSetupFn} from './util'
 import {LoggerRegistry} from './loggers/logger.registry'
 import {LoggerManager} from './loggers/logger.manager'
-import {ReporterRegistry} from './reporters/reporter.registry'
-import {ReporterManager} from './reporters/reporter.manager'
-import {EventBus} from './lifecycle'
+import {EventBus} from '@xgsd/engine'
+import EventEmitter2 from 'eventemitter2'
 
 export type SetupOpts = {
   // di
   pluginRegistry?: PluginRegistry
   loggerRegistry?: LoggerRegistry
-  reporterRegistry?: ReporterRegistry
 
-  bus?: EventBus
+  bus?: EventBus<EventEmitter2>
 }
 
 export class SetupContainer {
   private pluginContainer: PluginRegistry
   private loggerRegistry: LoggerRegistry
-  private reporterRegistry: ReporterRegistry
+  private bus: EventBus<EventEmitter2>
 
   private executorFactory?: (ctx: ProjectContext) => Executor
 
   constructor(opts?: SetupOpts) {
     this.pluginContainer = opts?.pluginRegistry || new PluginRegistry()
     this.loggerRegistry = opts?.loggerRegistry || new LoggerRegistry()
-    this.reporterRegistry = opts?.reporterRegistry || new ReporterRegistry()
+    this.bus = opts?.bus!
   }
 
   use(plugin: PluginInput) {
@@ -43,10 +41,6 @@ export class SetupContainer {
     this.loggerRegistry.use(logger)
   }
 
-  reporter(reporter: ReporterInput) {
-    this.reporterRegistry.use(reporter)
-  }
-
   executor(input: ExecutorInput) {
     this.executorFactory = resolveFactory(input)
   }
@@ -54,24 +48,17 @@ export class SetupContainer {
   async build(context: ProjectContext): Promise<{
     pluginManager: PluginManager
     loggerManager: LoggerManager
-    reporterManager: ReporterManager
     executor: Executor
   }> {
     const defaultExecutor = context.config.lite ? new InProcessExecutor() : new ProcessExecutor()
 
     const pluginManager = new PluginManager(this.pluginContainer.build(context))
     const loggerManager = new LoggerManager(this.loggerRegistry.build(context))
-    const reporterManager = new ReporterManager(this.reporterRegistry.build(context))
     const executor = this.executorFactory ? this.executorFactory(context) : defaultExecutor
-
-    await loggerManager.init(context)
-    await pluginManager.init(context)
-    await reporterManager.init(context)
 
     return {
       pluginManager,
       loggerManager,
-      reporterManager,
       executor,
     }
   }
