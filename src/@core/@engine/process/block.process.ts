@@ -85,9 +85,11 @@ export async function processStep(
 
   event?.(BlockEvent.Started, {step: prepared})
 
+  // this doesn't work as expected
   const options = merge(context.config.options, step.options) as {retries: number; timeout: number}
 
   prepared.state = PipelineState.Running
+
   const retries = options.retries!
   const timeout = options.timeout!
 

@@ -5,6 +5,7 @@ import {WorkflowContext} from '../context.builder'
 import {ProcessManager} from '../process/manager.process'
 import {Executor} from '../types/generics/executor.interface'
 import {resolveStepData} from '../helpers/helpers.util'
+import {deepmerge2} from '../../util/object.util'
 
 export class ProcessExecutor<T = SourceData> implements Executor<T> {
   async run(block: PipelineStep<T>, context: WorkflowContext<T>): Promise<PipelineStep<T>> {
@@ -16,18 +17,12 @@ export class ProcessExecutor<T = SourceData> implements Executor<T> {
     const startedAt = new Date().toISOString()
 
     let timeoutMs: number | undefined
-    if (step.options?.timeout) {
-      timeoutMs =
-        typeof step.options.timeout === 'string' ? ms(step.options.timeout as ms.StringValue) : step.options.timeout
+    const opts = deepmerge2(context.config.options, step.options) as {
+      timeout: string | number
     }
 
-    if (step.options?.timeout && step.options?.delay) {
-      const delayMs =
-        typeof step.options.delay === 'string' ? ms(step.options.delay as ms.StringValue) : step.options.delay
-
-      if (delayMs && timeoutMs) {
-        timeoutMs += delayMs
-      }
+    if (opts?.timeout) {
+      timeoutMs = typeof opts.timeout === 'string' ? ms(opts.timeout as ms.StringValue) : opts.timeout
     }
 
     step.env = resolveStepData(step.env || {}, {context, step}) as Record<string, string>

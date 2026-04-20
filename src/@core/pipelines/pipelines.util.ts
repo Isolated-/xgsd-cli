@@ -141,6 +141,11 @@ export const validateAndPrepareWorkflowConfig = (config: FlexibleWorkflowConfig)
   const steps = value.steps.map((step: any) => {
     const mergedData = deepmerge({}, value.data, step.data, step.with)
 
+    const mergedOptions = {
+      ...value.options,
+      ...step.options,
+    }
+
     return {
       ...step,
       name: step.name || step.run || 'no name',
@@ -151,10 +156,8 @@ export const validateAndPrepareWorkflowConfig = (config: FlexibleWorkflowConfig)
       env: step.env || null,
       if: step.if ?? null,
       options: {
-        timeout: step.options.timeout,
-        retries: step.options.retries,
-        backoff: step.options.backoff,
-        delay: step.options.delay,
+        ...mergedOptions,
+        timeout: ms(mergedOptions.timeout),
       },
     }
   })
