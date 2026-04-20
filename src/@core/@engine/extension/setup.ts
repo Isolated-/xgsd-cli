@@ -29,7 +29,7 @@ export class SetupContainer {
   private loggerRegistry: LoggerRegistry
   private bus: EventBus<EventEmitter2>
 
-  private executorFactory?: (ctx: ProjectContext) => Executor
+  private executorFactory?: (ctx: Context) => Executor
 
   constructor(opts?: SetupOpts) {
     this.pluginRegistry = opts?.pluginRegistry || new PluginRegistry()
@@ -54,16 +54,16 @@ export class SetupContainer {
     loggerManager: LoggerManager
     executor: Executor
   }> {
+    // todo: re-add InProcessExecutor()
     const defaultExecutor = new ProcessExecutor()
 
     const plugins: Hooks[] = this.pluginRegistry.build(context)
     const loggers: Logger[] = this.loggerRegistry.build(context)
-    const executor = defaultExecutor
 
     const pluginManager = new PluginManager(plugins, this.bus)
     const loggerManager = new LoggerManager(loggers, this.bus)
 
-    //const executor = this.executorFactory ? this.executorFactory(context) : defaultExecutor
+    const executor = this.executorFactory ? this.executorFactory(context) : defaultExecutor
 
     return {
       pluginManager,
