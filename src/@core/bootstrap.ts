@@ -13,6 +13,9 @@ import {DebugPlugin} from './plugins/debug.plugin'
 import {EventBus} from '@xgsd/engine'
 import {SystemEvent} from './@engine/types/events.types'
 import {byteSize} from './util/misc.util'
+import {ConfigParser} from './config'
+import * as Joi from 'joi'
+import {join} from 'path'
 /**
  *  @param {any} data
  *  @param {FlexibleWorkflowConfig} config
@@ -27,13 +30,22 @@ export const runProject = async <T extends SourceData = SourceData>(
   lite: boolean = false,
 ) => {
   const handler = event ?? new EventEmitter2()
-  const {collect} = config
-
-  if (collect) {
-    ensureDirSync(config.output)
-  }
 
   const bus = new EventBus(handler)
+
+  // new config parser
+  const parser = new ConfigParser(join(config.package!, 'config.yaml'))
+
+  const schema = Joi.object()
+
+  const conf = parser
+    .load()
+    .parse()
+    .validate((input) => schema.validate(input).value)
+    .build()
+
+  // otherwise use it
+
   const ctx = new WorkflowContext(config, handler, 'v1')
 
   // plugins + executor added in v0.5
@@ -59,7 +71,7 @@ export const runProject = async <T extends SourceData = SourceData>(
 
   const input = deepmerge2(config.data, data) as T
 
-  await orchestrator.orchestrate(input)
+  //await orchestrator.orchestrate(input)
 
   // clean this up
   await pluginManager.exit(ctx as ProjectContext, bus)
