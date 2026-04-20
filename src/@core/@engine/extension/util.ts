@@ -73,7 +73,13 @@ export const runExit = async <T extends Extension>(items: T[], ctx: Context, bus
   }
 }
 
-export const resolveFactory = <T = unknown>(input: FactoryInput<T>) => {
+export const resolveFactory = <T = unknown>(
+  input: FactoryInput<T>,
+  opts: {
+    type: 'logger' | 'plugin' | 'executor'
+    core?: boolean
+  },
+) => {
   return (ctx: ProjectContext) => {
     const instance =
       typeof input === 'function'
@@ -87,13 +93,17 @@ export const resolveFactory = <T = unknown>(input: FactoryInput<T>) => {
         : input
 
     const name =
-      instance?.name || // user-defined name wins
-      instance?.constructor?.name || // class name (works for new MockPlugin())
-      (typeof input === 'function' ? input.name : undefined) || // fallback for class input
-      'anonymous' // if all else fails go with "anonymous"
+      instance?.name ||
+      instance?.constructor?.name ||
+      (typeof input === 'function' ? input.name : undefined) ||
+      'anonymous'
 
     if (instance && typeof instance === 'object') {
       instance.name = name
+
+      // 👇 attach metadata here, not in user class
+      instance.type = opts.type
+      instance.core = opts.core ?? false
     }
 
     return instance
