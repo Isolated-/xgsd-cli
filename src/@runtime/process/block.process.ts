@@ -3,7 +3,7 @@ import {FatalError, FatalErrorCode} from '../error'
 import {BlockEvent} from '../types/events.types'
 import {retry, WrappedError, RetryAttempt, SourceData} from '@xgsd/engine'
 import {getBackoffStrategy} from '../backoff'
-import {Events} from '../event'
+import {Events} from '../types/events.types'
 import ms = require('ms')
 import {Block, Context} from '../config'
 import {ContextLike, importUserModuleRunFn} from '../extension/util'

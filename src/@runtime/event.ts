@@ -1,54 +1,4 @@
-import {RetryAttempt, SourceData, WrappedError} from '@xgsd/engine'
-import {BlockEvent, ProjectEvent, SystemEvent} from './types/events.types'
-import {LoggerLevel} from './types/interfaces/logger.interface'
-import {Context} from 'vm'
-import {Block} from './config'
-import {ExtensionType} from './extension/util'
-
-export type Events = {
-  [ProjectEvent.Started]: {
-    ctx: Context
-  }
-  [ProjectEvent.Ended]: {
-    ctx: Context
-  }
-  [BlockEvent.Started]: {
-    block: Block
-  }
-  [BlockEvent.Ended]: {
-    block: Block
-  }
-  [BlockEvent.Failed]: {
-    block: Block
-    error: unknown
-    errors?: unknown[]
-  }
-  [BlockEvent.Retrying]: {
-    block: Block
-    attempt: RetryAttempt
-  }
-  [BlockEvent.Waiting]: {
-    block: Block
-  }
-  [SystemEvent.SystemMessage]: {
-    level: LoggerLevel
-    message: string
-    data?: Record<string, unknown>
-  }
-  [SystemEvent.ExtensionLoaded]: {
-    name: string
-    core: boolean
-    version?: string
-    type: ExtensionType
-  }
-  [SystemEvent.ExtensionUnloaded]: {
-    name: string
-    core: boolean
-    version?: string // future support
-    type: ExtensionType
-  }
-  [key: string]: Record<string, unknown>
-}
+import {Events} from './types/events.types'
 
 export type EventEnvelope<K extends string, T> = {
   event: K
@@ -56,16 +6,11 @@ export type EventEnvelope<K extends string, T> = {
   timestamp?: string
 }
 
-export type Subscribes = {
+export type EventBusAdapter = {
   on: (event: string, handler: (...args: any[]) => void) => void
   off: (event: string, handler: (...args: any[]) => void) => void
-}
-
-export type Publishes = {
   emit: (event: string, payload: any) => any
 }
-
-export type EventBusAdapter = Subscribes & Publishes
 
 export class EventBus<T extends EventBusAdapter, E extends Events = Events> {
   constructor(private stream: T) {}
