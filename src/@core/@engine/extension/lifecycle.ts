@@ -16,6 +16,7 @@ const EVENT_MAP = {
   [BlockEvent.Retrying]: BlockEvent.Retrying,
   [BlockEvent.Skipped]: BlockEvent.Skipped,
   [BlockEvent.Waiting]: BlockEvent.Waiting,
+  [BlockEvent.Failed]: BlockEvent.Failed,
 
   // system events
   [SystemEvent.ExtensionLoaded]: SystemEvent.ExtensionLoaded,
