@@ -52,7 +52,7 @@ export class SetupContainer {
     executor: Executor
   }> {
     // todo: re-add InProcessExecutor()
-    const defaultExecutor = context.lite ? new InProcessExecutor() : new ProcessExecutor()
+    const defaultExecutor = context.lite === true ? new InProcessExecutor() : new ProcessExecutor()
 
     const plugins: Hooks[] = this.pluginRegistry.build(context)
     const loggers: Logger[] = this.loggerRegistry.build(context)
@@ -62,7 +62,6 @@ export class SetupContainer {
 
     const executor = this.executorFactory ? this.executorFactory(context) : defaultExecutor
 
-    console.log(executor)
     return {
       pluginManager,
       loggerManager,

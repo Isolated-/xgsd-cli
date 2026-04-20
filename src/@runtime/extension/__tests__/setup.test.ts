@@ -56,10 +56,10 @@ test('.executor() should accept executors correctly', () => {
   expect(() => setup.executor(MockExecutor)).not.toThrow()
 })
 
-test('.build() should return { pluginManager, loggerManager, reporterManager, executor }', async () => {
+test('.build() should return { pluginManager, loggerManager, executor }', async () => {
   const setup = new SetupContainer()
   const {pluginManager, loggerManager, executor} = await setup.build({
-    config: {lite: true},
+    lite: true, // <- no longer nested
   } as any)
 
   expect(pluginManager).toBeInstanceOf(PluginManager)
@@ -70,13 +70,13 @@ test('.build() should return { pluginManager, loggerManager, reporterManager, ex
 
 test('.build() returns ProcessExecutor when .lite is false', async () => {
   const setup = new SetupContainer()
-  const {executor} = await setup.build({config: {lite: false}} as any)
+  const {executor} = await setup.build({lite: false} as any)
   expect(executor).toBeInstanceOf(ProcessExecutor)
 })
 
 test('.build() returns custom/overriden executor', async () => {
   const setup = new SetupContainer()
   setup.executor(MockExecutor)
-  const {executor} = await setup.build({config: {lite: false}} as any)
+  const {executor} = await setup.build({lite: false} as any)
   expect(executor).toBeInstanceOf(MockExecutor)
 })
