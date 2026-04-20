@@ -3,7 +3,9 @@ import {Logger, LogMessage, LoggerLevel} from '../@engine/types/interfaces/logge
 import ms = require('ms')
 
 export class DebugLogger implements Logger {
-  log(event: unknown): void {
-    //console.log(event)
+  log(event: any): void {
+    if (event.event === SystemEvent.SystemMessage) {
+      console.log(`[DebugLogger] message: ${event.payload.message}`)
+    }
   }
 }

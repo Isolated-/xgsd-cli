@@ -48,7 +48,7 @@ export const runProject = async <T extends SourceData = SourceData>(
     bus,
   })
 
-  const orchestrator = new Orchestrator<T>(ctx, executor as any)
+  const orchestrator = new Orchestrator<T>(ctx, executor as any, bus)
 
   bindEventBusToLoggerManager(bus, loggerManager)
   attachManagerLifecycleListeners(pluginManager, bus)

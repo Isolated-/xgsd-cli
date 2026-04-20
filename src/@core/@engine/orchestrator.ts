@@ -1,22 +1,26 @@
+import {EventBus} from '@xgsd/engine'
 import {SourceData, PipelineStep, PipelineState} from '../@types/pipeline.types'
 import {deepmerge2} from '../util/object.util'
 import {WorkflowContext} from './context.builder'
 import {executeSteps} from './process/orchestration.process'
 import {ProjectEvent, BlockEvent} from './types/events.types'
 import {Executor} from './types/generics/executor.interface'
+import EventEmitter2 from 'eventemitter2'
+import {WorkflowError} from './error'
 
 export class Orchestrator<T extends SourceData = SourceData> {
   constructor(
     public context: WorkflowContext<T>,
     private executor: Executor<T>,
+    private bus: EventBus<EventEmitter2>,
   ) {}
 
   async before(): Promise<void> {
-    this.event(ProjectEvent.Started, {context: this.context})
+    await this.event(ProjectEvent.Started, {context: this.context})
   }
 
-  event(name: ProjectEvent | BlockEvent, payload: any): void {
-    this.context.stream.emit(name, {event: name, payload})
+  async event(name: ProjectEvent | BlockEvent, payload: any): Promise<void> {
+    await this.bus.emit(name, payload)
   }
 
   async orchestrate(data: T): Promise<void> {
@@ -56,6 +60,11 @@ export class Orchestrator<T extends SourceData = SourceData> {
           input: context.input,
         })
 
+        // handle error/hard failures:
+        if (result.error && result.error instanceof WorkflowError) {
+          await this.event(BlockEvent.Failed, result.error)
+        }
+
         return result
       },
     )
@@ -75,7 +84,7 @@ export class Orchestrator<T extends SourceData = SourceData> {
     ctx.state = PipelineState.Completed
     ctx.end = new Date().toISOString()
 
-    this.event(ProjectEvent.Ended, {
+    await this.event(ProjectEvent.Ended, {
       context: ctx,
     })
   }

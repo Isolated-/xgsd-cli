@@ -55,6 +55,7 @@ export const runInit = async <T extends Extension>(items: T[], ctx: Context, bus
       await bus.emit(SystemEvent.ExtensionLoaded, {
         name: item.name ?? 'anonymous',
         core: !!item.core,
+        type: item.type,
       })
     }
   }
@@ -70,6 +71,7 @@ export const runExit = async <T extends Extension>(items: T[], ctx: Context, bus
       await bus.emit(SystemEvent.ExtensionUnloaded, {
         name: item.name ?? 'anonymous',
         core: !!item.core,
+        type: item.type,
       })
     }
   }
