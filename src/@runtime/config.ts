@@ -184,12 +184,15 @@ export class ContextFinalStage<T extends Record<string, unknown>> {
     return this
   }
 
-  concurrency(count: number): this {
-    if (count) {
-      this.ctx.concurrency = count
+  concurrency(count?: number): this {
+    const mode = this.ctx.mode ?? (this.ctx.config?.project.mode as string)
+
+    if (mode === 'async') {
+      this.ctx.concurrency = count && count > 0 ? count : 4
       return this
     }
 
+    this.ctx.concurrency = 1
     return this
   }
 
