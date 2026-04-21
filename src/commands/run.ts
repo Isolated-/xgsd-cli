@@ -2,7 +2,21 @@ import {Args, Command, Flags} from '@oclif/core'
 import {resolve} from 'path'
 import {readJsonSync} from 'fs-extra'
 import {BaseCommand} from '../base'
-import {runProject} from '../@runtime'
+import {bootstrap, RuntimePreset, RuntimePresetFunction} from '../@runtime/bootstrap'
+import {debugPreset} from '../presets/debug.preset'
+import {defaultPreset} from '../presets/default.preset'
+import {developmentPreset} from '../presets/development.preset'
+
+// this will live in sdk
+function composePreset(...presets: RuntimePresetFunction[]): RuntimePreset {
+  const compiled: RuntimePreset[] = presets.map((p) => p())
+
+  return {
+    loggers: compiled.flatMap((p) => p.loggers ?? []),
+    plugins: compiled.flatMap((p) => p.plugins ?? []),
+    executor: compiled.reverse().find((p) => p.executor)?.executor,
+  }
+}
 
 export default class Run extends BaseCommand<typeof Command> {
   static override args = {
@@ -12,48 +26,40 @@ export default class Run extends BaseCommand<typeof Command> {
     }),
   }
   static override enableJsonFlag: boolean = true
-  static override description =
-    'Run workflows and your code with full confidence. Error handling, retries, timeouts, and isolation - all built in.'
+  static override description = ''
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
-    data: Flags.string({
+    debug: Flags.boolean({
+      char: 'D',
+      description: 'verbose debug information is printed when this option is used.',
+      aliases: ['verbose'],
+    }),
+    development: Flags.boolean({
+      description: '--lite has been replaced by this option. Uses no process isolation for faster runs',
       char: 'd',
-      description: 'data file to use (must be a path)',
-      exists: true,
-      required: false,
-      parse: (input) => {
-        return readJsonSync(input)
-      },
-    }),
-
-    concurrency: Flags.integer({
-      char: 'c',
-      description: 'maximum number of concurrent processes (only for async mode)',
-      required: false,
-      max: 32,
-      min: 1,
-    }),
-
-    lite: Flags.boolean({
-      default: undefined,
+      aliases: ['dev', 'local'],
     }),
   }
 
   public async run(): Promise<any> {
     const flags = this.flags!
     const args = this.args!
-
-    const path = resolve(args.function)
-    const userModulePath = path
-
-    const data = flags.data as any
+    const userModulePath = resolve(args.function)
 
     try {
-      await runProject({
-        data,
-        config: {
-          package: userModulePath,
-        },
+      const presets: any[] = [defaultPreset]
+      if (flags.debug) {
+        presets.push(debugPreset)
+      }
+
+      if (flags.development) {
+        presets.push(developmentPreset)
+      }
+
+      // new way
+      await bootstrap({
+        packagePath: userModulePath,
+        preset: composePreset(...presets),
       })
     } catch (e: any) {
       if (e.message) {

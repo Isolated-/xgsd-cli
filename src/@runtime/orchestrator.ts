@@ -36,8 +36,8 @@ export class Orchestrator {
 
     // import user module here too
     const userModule = await import(this.context.packagePath)
-    let concurrency = config.project?.concurrency || 4
-    if (ctx.mode === 'chained' || ctx.mode === 'fanout') {
+    let concurrency = config.project?.concurrency as number
+    if (ctx.mode === 'chain' || ctx.mode === 'fanout') {
       concurrency = 1
     }
 
@@ -48,12 +48,11 @@ export class Orchestrator {
     const results = await executeBlocks<Block>(
       input as any,
       config.blocks as any,
-      ctx,
       {
-        mode: config.project.mode as ExecutionMode,
-        concurrency: 1,
+        mode: ctx.mode as ExecutionMode,
+        concurrency,
       },
-      async (block: Block, input: any) => {
+      async (block: Block) => {
         block.fn = userModule[block.run]
 
         block.options = {
@@ -96,7 +95,6 @@ export class Orchestrator {
 
   async after(results: Block[]): Promise<void> {
     // finalise context?
-
     const ctx = this.context
 
     ctx.state = RunState.Completed

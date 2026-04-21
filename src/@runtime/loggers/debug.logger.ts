@@ -22,8 +22,6 @@ export class DebugLogger implements Logger {
     if (e.event === SystemEvent.SystemMessage) {
       const {level, message} = e.payload
 
-      console.log(level, this.options?.levels)
-
       if (!this.options!.levels.includes(level)) {
         return
       }

@@ -165,7 +165,6 @@ process.on('message', async (msg: {type: string; block: Block; ctx: ContextLike}
   // placing it here won't affect step timing
   // v0.5.0 (note) -> ctx.blocks is no longer sent to child process
   // instead blockCount() can achieve this function
-  console.log(ctx.blockCount)
   const nextStepDelayMs = getStepDelay(ctx.blockCount)
   await delayFor(nextStepDelayMs)
 

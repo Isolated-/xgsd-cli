@@ -25,13 +25,12 @@ export type Runnable<T extends SourceData = SourceData> = {
 export async function executeRunnables<T extends Runnable<SourceData>, C extends Context>(args: {
   runnables: T[]
   input: Record<string, unknown>
-  ctx: C
   options: ExecutionOptions
-  run: (runnable: T, input: SourceData) => Promise<T>
+  run: (runnable: T) => Promise<T>
 }): Promise<T[]> {
-  const {runnables, input, ctx, options, run} = args
+  const {runnables, input, options, run} = args
 
-  let concurrency = options.concurrency || 1
+  let concurrency = options.concurrency
   if (options.mode === 'chain' || options.mode === 'fanout') {
     concurrency = 1
   }
@@ -39,45 +38,14 @@ export async function executeRunnables<T extends Runnable<SourceData>, C extends
   let results: T[] = []
   let data = input
 
-  if (options.mode === 'batched') {
-    const batchSize = concurrency
+  await runWithConcurrency(runnables, concurrency!, async (block) => {
+    block.input = deepmerge2(block.input, data) as SourceData
 
-    for (let i = 0; i < runnables.length; i += batchSize) {
-      const batch = runnables.slice(i, i + batchSize)
-
-      const batchResults: T[] = []
-      await runWithConcurrency(batch, batch.length, async (step, idx) => {
-        step.input = data
-        const result = await run(step, {...ctx, steps: results})
-        batchResults.push(result)
-        return result
-      })
-
-      // merge batch outputs for next batch input
-      const reduced = batchResults.reduce((acc, step) => {
-        acc = deepmerge2(acc, step.output) as any
-        return acc
-      }, {})
-
-      data = deepmerge2(input, reduced) as any
-      results.push(...batchResults)
-    }
-
-    return results
-  }
-
-  await runWithConcurrency(runnables, concurrency!, async (step, idx) => {
-    step.input = data // don't need to assign to `data` each time
-
-    const result = await run(step, {
-      ...ctx,
-      // empty array is sent to async/fanout as v0.4.2
-      steps: options.mode === 'chain' ? results : [],
-    })
+    const result = await run(block)
 
     // merge chained ouputs for next step input
     if (options.mode === 'chain') {
-      data = deepmerge2(input, result.output) as any
+      data = deepmerge2(block.input, result.output) as any
     }
 
     results.push(result)
@@ -89,14 +57,12 @@ export async function executeRunnables<T extends Runnable<SourceData>, C extends
 export async function executeBlocks<T extends SourceData = SourceData>(
   input: T,
   blocks: Block[],
-  ctx: Context,
   options: ExecutionOptions,
-  run: (block: Block, input: unknown) => Promise<Block>,
+  run: (block: Block) => Promise<Block>,
 ): Promise<Block[]> {
   return executeRunnables({
     input,
     runnables: blocks,
-    ctx,
     options,
     run,
   })

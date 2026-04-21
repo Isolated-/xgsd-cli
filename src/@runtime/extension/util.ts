@@ -10,6 +10,7 @@ import {FatalError, FatalErrorCode} from '../error'
 import {EventBus} from '../event'
 import {SystemEvent} from '../types/events.types'
 import {FactoryInput, Factory, PluginInput, LoggerInput, ExecutorInput} from '../types/factory.types'
+import {RuntimePreset} from '../bootstrap'
 
 export type UserSetupFn = (ctx: Context, setup: SetupContainer) => Promise<void>
 export type ContextLike = {
@@ -100,6 +101,7 @@ export const resolveFactory = <T = unknown>(
   opts?: {
     type: 'logger' | 'plugin' | 'executor'
     core?: boolean
+    env?: 'dev' | 'test' | 'production'
   },
 ) => {
   return (ctx: Context) => {
@@ -125,6 +127,7 @@ export const resolveFactory = <T = unknown>(
 
       instance.type = opts?.type
       instance.core = opts?.core ?? false
+      instance.env = opts?.env ?? 'dev'
     }
 
     return instance
@@ -167,19 +170,17 @@ export const loadUserSetup = async (context: Context, setup: SetupContainer) => 
 export const createRuntime = async (opts: {
   bus?: EventBus<EventEmitter2>
   ctx: Context
-  plugins?: PluginInput[]
-  loggers?: LoggerInput[]
-  executor?: ExecutorInput
+  preset: RuntimePreset
   setupContainer?: SetupContainer
   userCodeFn?: UserSetupFn
 }) => {
   const pluginRegistry = new PluginRegistry()
   const loggerRegistry = new LoggerRegistry()
 
-  const {plugins, loggers, executor, ctx} = opts
+  const {ctx, preset} = opts
 
-  plugins?.forEach((plugin) => pluginRegistry.use(plugin, true))
-  loggers?.forEach((logger) => loggerRegistry.use(logger, true))
+  preset.plugins?.forEach((plugin) => pluginRegistry.use(plugin, true))
+  preset.loggers?.forEach((logger) => loggerRegistry.use(logger, true))
 
   const setup =
     opts.setupContainer ??
@@ -191,18 +192,10 @@ export const createRuntime = async (opts: {
 
   const userCodeFn = opts.userCodeFn ?? loadUserSetup
 
-  const settings = await userCodeFn(ctx, setup)
+  await userCodeFn(ctx, setup)
 
-  /*if (settings?.disableCoreLoggers) {
-    // remove
-  }
-
-  if (settings?.disableCorePlugins) {
-    // remove
-  }*/
-
-  if (executor) {
-    setup.executor(executor)
+  if (preset.executor) {
+    setup.executor(preset.executor)
   }
 
   return setup.build(ctx)

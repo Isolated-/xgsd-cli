@@ -8,12 +8,8 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
   static baseFlags = {
     // general
     force: Flags.boolean({description: 'force the action to complete (not recommended)'}),
-    watch: Flags.boolean({
-      char: 'w',
-      description:
-        'watch for changes (streams logs to console from containers/processes/etc), wont impact logs written to disk',
-    }),
 
+    // TODO: map these to Logger levels
     level: Flags.string({
       char: 'l',
       description: 'the level of log to output (must be used with --watch), CSV',
@@ -23,15 +19,8 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
       options: ['info', 'user', 'status', 'success', 'retry', 'warn', 'error'],
     }),
 
-    // workflow/orchestration
-    workflow: Flags.string({
-      char: 'e',
-      description: 'you can specify a workflow by name when you have a workflows/ folder in your NPM package',
-      required: false,
-    }),
-
-    // UI/output
-    plain: Flags.boolean({char: 'p', description: 'run in plain mode (no colours)'}),
+    // TODO: implement this
+    silent: Flags.boolean(),
   }
 
   protected flags!: Flags<T>

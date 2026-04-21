@@ -1,17 +1,14 @@
 import {EventEmitter2} from 'eventemitter2'
 import {attachManagerLifecycleListeners, bindEventBusToLoggerManager} from './extension/lifecycle'
-import {deepmerge2} from './util/object.util'
 import {createRuntime} from './extension/util'
-import {DebugLogger} from './loggers/debug.logger'
-import {DebugPlugin} from './plugins/debug.plugin'
-import {ConfigParser, ConfigType, Context, createContext} from './config'
+import {ConfigParser, Context, createContext} from './config'
 import * as Joi from 'joi'
 import {join} from 'path'
 import {SourceData} from '@xgsd/engine'
-import {UserHooksPlugin} from './plugins/userhooks.plugin'
 import {EventBus} from './event'
 import {Orchestrator} from './orchestrator'
 import {Manager} from './types/generics/manager.interface'
+import {ExecutorInput, LoggerInput, PluginInput} from './types/factory.types'
 
 export const dispatchToManagers = async (opts: {
   managers: Manager[]
@@ -25,12 +22,17 @@ export const dispatchToManagers = async (opts: {
   }
 }
 
-type RunProjectConfig = {
-  package: string
+export type RuntimePreset = {
+  loggers?: LoggerInput[]
+  plugins?: PluginInput[]
+  executor?: ExecutorInput
 }
 
-export const runProject = async (opts: {data: SourceData; config: RunProjectConfig; lite?: boolean}) => {
-  const {data, config, lite} = opts
+export type RuntimePresetFunction = () => RuntimePreset
+export type RuntimePresetFilterFunction = (preset: RuntimePreset, filterArgs: {}) => RuntimePreset
+
+export const bootstrap = async (opts: {packagePath: string; preset: RuntimePreset}) => {
+  const {packagePath, preset} = opts
 
   const bus = new EventBus(
     new EventEmitter2({
@@ -38,46 +40,37 @@ export const runProject = async (opts: {data: SourceData; config: RunProjectConf
     }),
   )
 
-  // new config parser
-  const parser = new ConfigParser(join(config.package!, 'config.yaml'))
-
+  // TODO: wrap this a function to resolve .json and .yaml/.yml
+  const configPath = join(packagePath, 'config.yaml')
   const schema = Joi.object()
-
-  const conf = parser
+  const config = new ConfigParser(configPath)
     .load()
     .parse()
     .default({
-      // defaults
+      mode: 'async',
+      concurrency: 4,
+      blocks: [],
     })
     .validate((input) => schema.validate(input).value)
-    .build() as {project: any; blocks: any[]}
+    .build() as {project: any; blocks: any[]} // <- fix this up
 
-  const liteMode = lite || !!conf.project.lite
-  const ctx = createContext(config.package!)
-    .config(conf)
+  const ctx = createContext(packagePath)
+    .config(config)
     .bus(bus)
-    .meta()
-    .data(data)
+    .id()
+    .name()
+    .version()
+    .data()
+    .mode()
+    .concurrency(config.project.concurrency)
     .blocks()
     .blockCount()
-    .lite(liteMode)
     .build()
 
-  // plugins + executor added in v0.5
-  // executor allows users to override how
-  // blocks are processed (in process/isolation/remote/etc)
-  // hooks provide a simple way of reacting to events
-  // these are registered as a plugin
   const {pluginManager, loggerManager, executor} = await createRuntime({
     ctx,
     bus,
-    loggers: [
-      () =>
-        new DebugLogger(ctx, {
-          levels: ['error', 'warn', 'debug', 'info'],
-        }),
-    ],
-    plugins: [DebugPlugin, UserHooksPlugin],
+    preset,
   })
 
   const orchestrator = new Orchestrator(ctx, executor as any, bus)
@@ -92,9 +85,8 @@ export const runProject = async (opts: {data: SourceData; config: RunProjectConf
     type: 'init',
   })
 
-  const input = deepmerge2(conf.project.data, data)
-
-  await orchestrator.orchestrate(input as SourceData)
+  // stop merging input data (config no longer has top-level data)
+  await orchestrator.orchestrate(config.project.data)
 
   // clean this up
   await dispatchToManagers({

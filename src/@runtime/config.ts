@@ -8,10 +8,12 @@ import {v4} from 'uuid'
 import {createHash} from 'crypto'
 import {SourceData} from '@xgsd/engine'
 import {EventBus} from './event'
-import {Runnable} from './process/orchestration.process'
+import {ExecutionMode, Runnable} from './process/orchestration.process'
 import {RunState} from './types/state.types'
+import {FatalError, FatalErrorCode} from './error'
 
 // TODO: extract most of this into @xgsd/runtime as staged builders
+// TODO: add result builder for finalising outputs vs hardcoding them in processBlock()
 
 export function getPackageVersion(input: string): string {
   try {
@@ -54,12 +56,6 @@ function resolvePackageJson(input: string): string {
   }
 }
 
-export type ParseError = {
-  stage: 'load' | 'parse' | 'validate'
-  message: string
-  details?: unknown
-}
-
 export type Context<T extends SourceData = SourceData> = {
   id: string
   hash: string
@@ -67,8 +63,8 @@ export type Context<T extends SourceData = SourceData> = {
   version: string
   packagePath: string
   mode: string
+  concurrency: number
   lite: boolean
-  input: Record<string, unknown>
   output: Record<string, unknown>
   blockCount: number
   blocks: T[]
@@ -146,31 +142,15 @@ export class ContextFinalStage<T extends Record<string, unknown>> {
     return this
   }
 
-  meta(metadata?: {name?: string; version?: string; output?: string}): this {
-    if (!this.ctx.id) this.id()
-    if (!this.ctx.name) this.name(metadata?.name)
-    if (!this.ctx.version) this.version(metadata?.version)
-    if (!this.ctx.env) this.env()
-    if (!this.ctx.outputPath) this.output(metadata?.output)
-
-    return this
-  }
-
   output(path?: string): this {
     this.ctx.outputPath = path ?? join(this.ctx.packagePath!, 'runs')
     return this
   }
 
+  // TODO: stop merging data inside this method
+  // instead just assign it to ctx.input
+  // and allow data to be processed before ContextBuilder
   data(data?: Record<string, unknown>): this {
-    const configData = this.ctx.config?.project?.data as T
-
-    if (!data) {
-      // load from config only
-      this.ctx.input = configData
-      return this
-    }
-
-    this.ctx.input = deepmerge2(configData, data) as T
     return this
   }
 
@@ -204,6 +184,20 @@ export class ContextFinalStage<T extends Record<string, unknown>> {
     return this
   }
 
+  concurrency(count: number): this {
+    if (count) {
+      this.ctx.concurrency = count
+      return this
+    }
+
+    return this
+  }
+
+  mode(): this {
+    this.ctx.mode = this.ctx.config?.project.mode as string
+    return this
+  }
+
   // not strictly needed
   // is used to prevent needing the array of blocks
   // or full context in child processes (see ContextLike)
@@ -215,13 +209,6 @@ export class ContextFinalStage<T extends Record<string, unknown>> {
   build(): Context<T> {
     return this.ctx as Context<T>
   }
-}
-
-export type ConfigType = Record<string, unknown>
-
-type ProjectConfig<T extends ConfigType = ConfigType> = {
-  data: T
-  blocks?: T[]
 }
 
 type BlockConfig<T extends ConfigType = ConfigType> = {}
@@ -325,7 +312,106 @@ export class BlockContextBuilderFinalStage {
   }
 }
 
-export class ConfigParser<T extends ProjectConfig> {
+export type ConfigType = Record<string, unknown>
+
+type ProjectConfig<T extends ConfigType = ConfigType> = {
+  data: T
+  blocks?: T[]
+}
+
+export type ParseError = {
+  stage: 'load' | 'parse' | 'validate'
+  message: string
+  details?: unknown
+}
+
+type UserConfig = {
+  name?: string
+  description?: string
+  version?: string
+
+  mode?: ExecutionMode
+  concurrency?: number
+  lite?: boolean
+
+  metadata?: Record<string, unknown>
+
+  blocks?: UserBlockConfig[]
+}
+
+type UserBlockEnvConfig = {
+  type: 'env'
+  ref: string
+}
+
+type EnvType = Record<string, UserBlockEnvConfig | string | number | boolean | unknown>
+
+type UserBlockConfig = {
+  run?: string
+  data?: SourceData
+  options?: {
+    retries?: string | number
+    timeout?: string | number
+  }
+  env?: EnvType
+}
+
+export const createConfig = (input: string | ConfigType) => {
+  return new ConfigBuilderLoadStage(input).load()
+}
+
+export class ConfigBuilderLoadStage {
+  constructor(private readonly input: string | ConfigType) {}
+
+  load() {
+    if (typeof this.input === 'object') {
+      return new ConfigBuilderParseStage(this.input)
+    }
+
+    const filePath = this.input
+
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`Config file not found: ${filePath}`)
+    }
+
+    const content = fs.readFileSync(filePath, 'utf-8')
+    return new ConfigBuilderParseStage(content)
+  }
+}
+
+export class ConfigBuilderParseStage {
+  constructor(private readonly _raw: string | Record<string, unknown>) {}
+
+  parse() {
+    let parsed: any
+    if (typeof this._raw === 'object') {
+      parsed = this._raw
+      return new ConfigBuilderValidateStage(parsed)
+    }
+
+    const raw = String(this._raw).trim()
+
+    // try JSON first
+    try {
+      parsed = JSON.parse(raw)
+      return new ConfigBuilderValidateStage(parsed)
+    } catch {}
+
+    // fallback YAML
+    parsed = yaml.parse(raw)
+    return new ConfigBuilderValidateStage(parsed)
+  }
+}
+
+export class ConfigBuilderValidateStage {
+  constructor(private readonly config: Partial<UserConfig>) {}
+}
+
+export class ConfigBuilderFinalStage {
+  build() {}
+}
+
+export class ConfigParser<T extends UserConfig = UserConfig> {
   private _errors: ParseError[] = []
   private _raw: unknown
   private _parsed: any

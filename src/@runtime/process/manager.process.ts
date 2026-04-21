@@ -36,7 +36,6 @@ export class ProcessManager {
   }
 
   fork() {
-    console.log(`block env: ${JSON.stringify(this.block.env)}`)
     this.process = fork(this.path, {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
       env: {
