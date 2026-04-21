@@ -20,7 +20,7 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
     }),
 
     // TODO: implement this
-    silent: Flags.boolean(),
+    silent: Flags.boolean({char: 's'}),
   }
 
   protected flags!: Flags<T>

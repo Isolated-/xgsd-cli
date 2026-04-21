@@ -6,6 +6,7 @@ import {bootstrap, RuntimePreset, RuntimePresetFunction} from '../@runtime/boots
 import {debugPreset} from '../presets/debug.preset'
 import {defaultPreset} from '../presets/default.preset'
 import {developmentPreset} from '../presets/development.preset'
+import ora from 'ora'
 
 // this will live in sdk
 function composePreset(...presets: RuntimePresetFunction[]): RuntimePreset {
@@ -56,11 +57,18 @@ export default class Run extends BaseCommand<typeof Command> {
         presets.push(developmentPreset)
       }
 
+      let spinner
+      if (!flags.silent) {
+        spinner = ora('running your project').start()
+      }
+
       // new way
       await bootstrap({
         packagePath: userModulePath,
         preset: composePreset(...presets),
       })
+
+      spinner?.stop()
     } catch (e: any) {
       if (e.message) {
         this.error(e.message)
