@@ -1,9 +1,12 @@
-import {BlockEvent, ProjectEvent, SystemEvent} from '../types/events.types'
-import {Plugin} from '../types/interfaces/plugin.interface'
-import {byteSize} from '../util/misc.util'
 import prettyBytes from 'pretty-bytes'
 import chalk from 'chalk'
 import ms = require('ms')
+import {BlockEvent, Plugin, ProjectEvent, SystemEvent} from '@xgsd/runtime'
+
+const byteSize = (data: unknown): number => {
+  if (!data) return 0
+  return Buffer.byteLength(JSON.stringify(data ?? ''), 'utf8')
+}
 
 export class DebugPlugin implements Plugin {
   async on(e: any): Promise<void> {

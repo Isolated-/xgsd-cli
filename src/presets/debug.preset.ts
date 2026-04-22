@@ -1,6 +1,6 @@
-import {RuntimePreset} from '../@runtime/bootstrap'
-import {DebugLogger} from '../@runtime/loggers/debug.logger'
-import {DebugPlugin} from '../@runtime/plugins/debug.plugin'
+import {RuntimePreset} from '@xgsd/runtime'
+import {DebugLogger} from '../loggers/debug.logger'
+import {DebugPlugin} from '../plugins/debug.plugin'
 
 export function debugPreset(): RuntimePreset {
   return {

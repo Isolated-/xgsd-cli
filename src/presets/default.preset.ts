@@ -1,6 +1,5 @@
-import {RuntimePreset} from '../@runtime/bootstrap'
-import {ProcessExecutor} from '../@runtime/executors/process.executor'
-import {UserHooksPlugin} from '../@runtime/plugins/userhooks.plugin'
+import {ProcessExecutor, RuntimePreset} from '@xgsd/runtime'
+import {UserHooksPlugin} from '../plugins/userhooks.plugin'
 
 export function defaultPreset(): RuntimePreset {
   return {

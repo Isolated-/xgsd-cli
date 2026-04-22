@@ -1,8 +1,8 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {resolve} from 'path'
-import {readJsonSync} from 'fs-extra'
 import {BaseCommand} from '../base'
-import {bootstrap, RuntimePreset, RuntimePresetFunction} from '../@runtime/bootstrap'
+import {EventEmitter2} from 'eventemitter2'
+import {bootstrap, RuntimePreset, RuntimePresetFunction} from '@xgsd/runtime'
 import {debugPreset} from '../presets/debug.preset'
 import {defaultPreset} from '../presets/default.preset'
 import {developmentPreset} from '../presets/development.preset'
@@ -62,14 +62,17 @@ export default class Run extends BaseCommand<typeof Command> {
         spinner = ora('running your project').start()
       }
 
+      const stream = new EventEmitter2({wildcard: true})
       // new way
       await bootstrap({
         packagePath: userModulePath,
         preset: composePreset(...presets),
+        stream,
       })
 
       spinner?.stop()
     } catch (e: any) {
+      console.log(e)
       if (e.message) {
         this.error(e.message)
       } else {

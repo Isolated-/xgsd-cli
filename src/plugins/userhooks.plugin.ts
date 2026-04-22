@@ -1,8 +1,6 @@
-import {Context} from '../config'
-import {FatalError, FatalErrorCode} from '../error'
-import {importUserModule} from '../extension/util'
-import {ProjectEvent, BlockEvent, SystemEvent} from '../types/events.types'
-import {Plugin} from '../types/interfaces/plugin.interface'
+import {ProjectEvent, BlockEvent, SystemEvent, FatalError, FatalErrorCode, Plugin} from '@xgsd/runtime'
+import {Context} from 'vm'
+
 let cachedModule: any = null
 
 const eventToHookMap = {
@@ -23,18 +21,21 @@ const eventToHookMap = {
   [SystemEvent.ExtensionUnloaded]: 'onExtensionUnload',
 } as const
 
-// slightly different versions of this
-// across the project
-// when extracting to @xgsd/runtime
-// create a single source of truth
-async function loadUserModule(context: Context) {
-  if (cachedModule) return cachedModule
+type ContextLike = {
+  packagePath: string
+  blockCount: number
+}
 
+async function importUserModule<T extends ContextLike = ContextLike>(context: T) {
   try {
-    cachedModule = await importUserModule(context)
-    return cachedModule
-  } catch (error: any) {
-    throw new FatalError(`${context.packagePath} couldn't be loaded. (${error.message})`, FatalErrorCode.ModuleNotFound)
+    const mod = await import(context.packagePath)
+    return mod
+  } catch (e: any) {
+    // clean this up
+    throw new FatalError(
+      `${context.packagePath} couldn't be loaded. This could mean it wasn't found, or there's an error preventing its load. Check logs for more information. (${e.message})`,
+      FatalErrorCode.ModuleNotFound,
+    )
   }
 }
 
@@ -42,7 +43,7 @@ export class UserHooksPlugin implements Plugin {
   private module: any
 
   async init(context: Context): Promise<void> {
-    this.module = await loadUserModule(context)
+    this.module = await importUserModule(context as ContextLike)
   }
 
   private async callHook(data: {event: keyof typeof eventToHookMap; payload: unknown}) {

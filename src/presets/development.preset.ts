@@ -1,4 +1,4 @@
-import {InProcessExecutor} from '../sdk'
+import {InProcessExecutor} from '@xgsd/runtime'
 
 export function developmentPreset() {
   return {

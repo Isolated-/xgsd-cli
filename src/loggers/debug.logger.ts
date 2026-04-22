@@ -1,9 +1,6 @@
+import {Logger, SystemEvent} from '@xgsd/runtime'
 import chalk from 'chalk'
-
-import ms = require('ms')
-import {Context} from '../config'
-import {Logger} from '../types/interfaces/logger.interface'
-import {SystemEvent} from '../types/events.types'
+import {Context} from 'vm'
 
 type LogLevels = 'info' | 'warn' | 'error' | 'debug'
 
