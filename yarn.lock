@@ -3081,20 +3081,15 @@
   resolved "https://registry.npmjs.org/@unrs/resolver-binding-win32-x64-msvc/-/resolver-binding-win32-x64-msvc-1.11.1.tgz#538b1e103bf8d9864e7b85cc96fa8d6fb6c40777"
   integrity sha512-lrW200hZdbfRtztbygyaq/6jP6AKE8qQN2KvPcJ+x7wiD038YtnYtZ82IMNJ69GJibV7bwL3y9FgK+5w/pYt6g==
 
-"@xgsd/engine@0.0.12":
-  version "0.0.12"
-  resolved "https://registry.yarnpkg.com/@xgsd/engine/-/engine-0.0.12.tgz#cde974f1045e081732ec95cff4b4ffccd19df5bd"
-  integrity sha512-nqtP29zlN4zue2EUOTRSOU9mTaQcn8OB5+PVSbLrAlG0eA6RyP1ECqnkbNzBV9gX1dHY6Icwl+zZE/RMrR190A==
-
 "@xgsd/engine@0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@xgsd/engine/-/engine-0.1.0.tgz#74a9b55072a491c8033ec4a833c88e3503dd7636"
   integrity sha512-kNbX1lMiIpReUMHEVSBiKD+iVb9UsL2ZZ9Qb6OrHiQJGrMa/67lNYYGXJE4NGIfv85vaEmHCv7H2LLLGzjiOKQ==
 
-"@xgsd/runtime@0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@xgsd/runtime/-/runtime-0.0.1.tgz#a5637e16b4d44704a7b512c23fd7b348747bd568"
-  integrity sha512-4BrZRB/3xrrNwTcH5hbrMY7Wy1dFsTND3JoZLo3oUPOORIBBf4wNSF9AwkrKIXysUMnjM1zJ8DlwNESzHSntSg==
+"@xgsd/runtime@0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@xgsd/runtime/-/runtime-0.0.2.tgz#70b92e4787189d490b3479252637d830605a02e6"
+  integrity sha512-ReG/g2JWkIvPMxdkFIabqx2kufQMi1CLc8onQ5tFdi0nhDBzSOsp6GJ3AaDONgiKyEtRuk8NbBKuzIpb/peUBw==
   dependencies:
     "@types/fs-extra" "^11.0.4"
     "@types/ms" "^2.1.0"

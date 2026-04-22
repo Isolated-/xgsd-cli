@@ -14,12 +14,6 @@ export class DebugPlugin implements Plugin {
 
     console.log(`[DebugPlugin] event ${event}`)
 
-    if (event === ProjectEvent.Started) {
-      if (payload.context.lite) {
-        console.warn(chalk.yellow(`currently running in development mode, considering removing --lite`))
-      }
-    }
-
     if (event === SystemEvent.ExtensionLoaded || event === SystemEvent.ExtensionUnloaded) {
       const loaded = event === SystemEvent.ExtensionLoaded ? 'loaded' : 'unloaded'
       console.log(`[${payload.name}] extension ${loaded}: ${payload.name} (core: ${payload.core})`)

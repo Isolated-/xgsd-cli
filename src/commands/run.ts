@@ -1,5 +1,5 @@
 import {Args, Command, Flags} from '@oclif/core'
-import {resolve} from 'path'
+import {join, resolve} from 'path'
 import {BaseCommand} from '../base'
 import {EventEmitter2} from 'eventemitter2'
 import {bootstrap, RuntimePreset, RuntimePresetFunction} from '@xgsd/runtime'
@@ -23,7 +23,7 @@ export default class Run extends BaseCommand<typeof Command> {
   static override args = {
     function: Args.string({
       description: 'function to run',
-      required: true,
+      default: '.',
     }),
   }
   static override enableJsonFlag: boolean = true
@@ -40,12 +40,17 @@ export default class Run extends BaseCommand<typeof Command> {
       char: 'd',
       aliases: ['dev', 'local'],
     }),
+    config: Flags.string({
+      char: 'c',
+      description: 'path to your configuration file (defaults to config.yaml inside your project directory)',
+    }),
   }
 
   public async run(): Promise<any> {
     const flags = this.flags!
     const args = this.args!
-    const userModulePath = resolve(args.function)
+    const packagePath = resolve(args.function)
+    const configPath = flags.config ?? join(packagePath, 'config.yaml')
 
     try {
       const presets: any[] = [defaultPreset]
@@ -63,11 +68,13 @@ export default class Run extends BaseCommand<typeof Command> {
       }
 
       const stream = new EventEmitter2({wildcard: true})
+
       // new way
       await bootstrap({
-        packagePath: userModulePath,
-        preset: composePreset(...presets),
+        packagePath,
+        configPath,
         stream,
+        preset: composePreset(...presets),
       })
 
       spinner?.stop()
