@@ -3081,25 +3081,21 @@
   resolved "https://registry.npmjs.org/@unrs/resolver-binding-win32-x64-msvc/-/resolver-binding-win32-x64-msvc-1.11.1.tgz#538b1e103bf8d9864e7b85cc96fa8d6fb6c40777"
   integrity sha512-lrW200hZdbfRtztbygyaq/6jP6AKE8qQN2KvPcJ+x7wiD038YtnYtZ82IMNJ69GJibV7bwL3y9FgK+5w/pYt6g==
 
-"@xgsd/engine@0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@xgsd/engine/-/engine-0.1.0.tgz#74a9b55072a491c8033ec4a833c88e3503dd7636"
-  integrity sha512-kNbX1lMiIpReUMHEVSBiKD+iVb9UsL2ZZ9Qb6OrHiQJGrMa/67lNYYGXJE4NGIfv85vaEmHCv7H2LLLGzjiOKQ==
+"@xgsd/engine@0.1.1", "@xgsd/engine@^0.1.1":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@xgsd/engine/-/engine-0.1.1.tgz#760fe21f6bf0c44592fc2613d4146e0d7492d0fd"
+  integrity sha512-Tovh4Q6nGRM6TAl67szODYn+QL8wkYYPtp5MZe2SGshPQJK3PsorIR3I3k8cRPCwsWSJnkwcuih60DMz9CLSWg==
 
-"@xgsd/runtime@0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@xgsd/runtime/-/runtime-0.0.2.tgz#70b92e4787189d490b3479252637d830605a02e6"
-  integrity sha512-ReG/g2JWkIvPMxdkFIabqx2kufQMi1CLc8onQ5tFdi0nhDBzSOsp6GJ3AaDONgiKyEtRuk8NbBKuzIpb/peUBw==
+"@xgsd/runtime@../xgsd-runtime":
+  version "0.0.3"
   dependencies:
     "@types/fs-extra" "^11.0.4"
     "@types/ms" "^2.1.0"
-    "@xgsd/engine" "0.1.0"
-    eventemitter2 "^6.4.9"
+    "@xgsd/engine" "0.1.1"
     fs-extra "^11.3.4"
     joi "^18.1.2"
     ms "^2.1.3"
     ts-deepmerge "^7.0.3"
-    uuid "^14.0.0"
     yaml "^2.8.3"
 
 abbrev@^3.0.0, abbrev@^3.0.1:
@@ -8899,11 +8895,6 @@ uuid@^11.1.0:
   version "11.1.0"
   resolved "https://registry.npmjs.org/uuid/-/uuid-11.1.0.tgz#9549028be1753bb934fc96e2bca09bb4105ae912"
   integrity sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==
-
-uuid@^14.0.0:
-  version "14.0.0"
-  resolved "https://registry.yarnpkg.com/uuid/-/uuid-14.0.0.tgz#0af883220163d264ffe0c084f6b8a89b9666966d"
-  integrity sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==
 
 v8-compile-cache-lib@^3.0.1:
   version "3.0.1"
