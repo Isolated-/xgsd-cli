@@ -1,11 +1,8 @@
 import {Args, Command, Flags} from '@oclif/core'
 import * as path from 'node:path'
 import {BaseCommand} from '../base'
-import {pathExistsSync, readJsonSync} from 'fs-extra'
 import {Context, execute} from '@xgsd/runtime'
 import {prettyMs} from '../plugins/debug.plugin'
-import {watch} from 'node:fs'
-import ms = require('ms')
 
 export async function importUserModule<T extends Context = Context>(context: T) {
   try {
@@ -21,9 +18,7 @@ export default class Test extends BaseCommand<typeof Command> {
   }
   static override description = 'describe the command here'
   static override examples = ['<%= config.bin %> <%= command.id %>']
-  static override flags = {
-    entry: Flags.string({char: 'e', default: 'index.js'}),
-  }
+  static override flags = {}
 
   async runOnce(entryFile: string, block: string, data: any) {
     const mod = await importUserModule({entry: entryFile} as any)

@@ -1,6 +1,6 @@
 import bytes from 'pretty-bytes'
 import chalk from 'chalk'
-import {BlockEvent, Plugin, SystemEvent} from '@xgsd/runtime'
+import {BlockEvent, Context, Plugin, SystemEvent} from '@xgsd/runtime'
 import ms from 'pretty-ms'
 
 export const sizeOf = (value: any): number => {
@@ -33,6 +33,12 @@ export const prettyBytes = (input: string | number): string => {
 }
 
 export class DebugPlugin implements Plugin {
+  entry!: string
+
+  async init(ctx: Context) {
+    this.entry = ctx.entry
+  }
+
   async on(event: any, payload: any): Promise<void> {
     console.log(`[DebugPlugin] event ${event} (data size: ${prettyBytes(sizeOf(payload))}})`)
 
@@ -47,6 +53,7 @@ export class DebugPlugin implements Plugin {
           `[DebugPlugin] ${payload.name ?? payload.block.run} has failed - reason: ${payload.error.message} stack:`,
         ),
       )
+
       console.warn(chalk.red(payload.error.stack))
     }
 

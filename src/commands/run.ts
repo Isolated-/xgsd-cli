@@ -2,7 +2,16 @@ import {Args, Command, Flags} from '@oclif/core'
 import {join, resolve} from 'path'
 import {BaseCommand} from '../base'
 import {EventEmitter2} from 'eventemitter2'
-import {bootstrap, ConfigParser, createContext, EventBus, RuntimePreset, RuntimePresetFunction} from '@xgsd/runtime'
+import {
+  Block,
+  BlockContext,
+  bootstrap,
+  ConfigParser,
+  createContext,
+  EventBus,
+  RuntimePreset,
+  RuntimePresetFunction,
+} from '@xgsd/runtime'
 import {debugPreset} from '../presets/debug.preset'
 import {defaultPreset} from '../presets/default.preset'
 import {developmentPreset} from '../presets/development.preset'
@@ -44,21 +53,48 @@ function composePreset(opts: any, ...presets: RuntimePresetFunction[]): RuntimeP
   const compiled: RuntimePreset[] = presets.map((p) => p(opts))
 
   return {
-    loggers: compiled.flatMap((p) => p.loggers ?? []),
     plugins: compiled.flatMap((p) => p.plugins ?? []),
     executor: compiled.reverse().find((p) => p.executor)?.executor,
     orchestrator: compiled.reverse().find((p) => p.orchestrator)?.orchestrator,
   }
 }
 
+function createValidationSchema(): Joi.Schema {
+  const options = Joi.object({
+    backoff: Joi.string().valid('linear', 'exponential', 'squaring').default('exponential'),
+    retries: Joi.number().greater(0).default(3),
+    timeout: Joi.alt(Joi.number().greater(0), Joi.string()).default(5000),
+  }).default({
+    backoff: 'exponential',
+    retries: 3,
+    timeout: 5000,
+  })
+
+  const block = Joi.object({
+    run: Joi.string().required(),
+    name: Joi.string(),
+    input: Joi.object(),
+    env: Joi.object(),
+    options,
+  })
+
+  const schema = Joi.object({
+    name: Joi.string().default('unknown'),
+    description: Joi.string().default('no description'),
+    version: Joi.alt(Joi.string(), Joi.number()),
+    mode: Joi.string().valid('async', 'chain').default('async'),
+    metadata: Joi.object().default({}),
+    options,
+    data: Joi.object(),
+    concurrency: Joi.number().greater(0).less(32).default(4),
+    blocks: Joi.array().items(block).default([]),
+  })
+
+  return schema
+}
+
 export default class Run extends BaseCommand<typeof Command> {
-  static override args = {
-    function: Args.string({
-      description: 'function to run',
-      default: '.',
-    }),
-  }
-  static override enableJsonFlag: boolean = true
+  static override args = {}
   static override description = ''
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
@@ -74,7 +110,8 @@ export default class Run extends BaseCommand<typeof Command> {
     }),
     config: Flags.string({
       char: 'c',
-      description: 'path to your configuration file (defaults to config.yaml inside your project directory)',
+      description: 'path to your configuration file (defaults to config.yaml)',
+      default: 'config.yaml',
     }),
     save: Flags.boolean({
       char: 's',
@@ -86,33 +123,17 @@ export default class Run extends BaseCommand<typeof Command> {
       allowNo: true,
       default: true,
     }),
-    // TODO: provide data here again but make it explictly override config.yaml data vs merging with it
-    // support data not from a file
-    data: Flags.string({
-      char: 'i',
-      description: 'overrides config data (completely), path to your data (must be in JSON or yaml format)',
-      parse: (path: string) => {
-        const p = resolve(path)
-
-        let data = undefined
-        try {
-          data = readJsonSync(p)
-          return data
-        } catch (error) {}
-
-        const raw = readFileSync(p).toString()
-        const yaml = load(raw)
-
-        return yaml
-      },
-    }),
   }
 
   public async run(): Promise<any> {
     const flags = this.flags!
-    const args = this.args!
-    const packagePath = resolve(args.function)
-    const configPath = flags.config ?? join(packagePath, 'config.yaml')
+    const entryFile = resolve(flags.entry)
+    const projectPath = path.dirname(entryFile)
+    const configPath = flags.config
+
+    if (!entryFile.endsWith('js')) {
+      this.error('-e should be a JavaScript file')
+    }
 
     try {
       const presets: any[] = [defaultPreset]
@@ -124,87 +145,51 @@ export default class Run extends BaseCommand<typeof Command> {
         presets.push(developmentPreset)
       }
 
-      const options = Joi.object({
-        backoff: Joi.string().valid('linear', 'exponential', 'squaring').default('exponential'),
-        retries: Joi.number().greater(0).default(3),
-        timeout: Joi.alt(Joi.number().greater(0), Joi.string()).default(5000),
-      }).default({
-        backoff: 'exponential',
-        retries: 3,
-        timeout: 5000,
-      })
-
-      const block = Joi.object({
-        run: Joi.string().required(),
-        name: Joi.string(),
-        input: Joi.object(),
-        env: Joi.object(),
-        options,
-      })
-
       const stream = new EventEmitter2({wildcard: true})
-      const schema = Joi.object({
-        name: Joi.string().default('unknown'),
-        description: Joi.string().default('no description'),
-        version: Joi.alt(Joi.string(), Joi.number()),
-        mode: Joi.string().valid('async', 'chain').default('async'),
-        metadata: Joi.object().default({}),
-        options,
-        data: Joi.object(),
-        concurrency: Joi.number().greater(0).less(32).default(4),
-        blocks: Joi.array().items(block).default([]),
-      })
 
-      const config = new ConfigParser(configPath)
-        .load()
-        .parse()
-        .validate((input) => {
-          const {value, error} = schema.validate(input)
+      function validator(input: any) {
+        const {value, error} = createValidationSchema().validate(input)
 
-          if (error) {
-            throw new Error(error.message)
-          }
+        if (error) {
+          throw new Error(error.message)
+        }
 
-          const blocks = value.blocks.map((b: any) => {
-            const {options, ...block} = b
-            const opts = options
+        return {
+          ...value,
+        }
+      }
 
-            if (opts.timeout && typeof opts.timeout === 'string') {
-              opts.timeout = ms(opts.timeout as ms.StringValue)
-            }
+      const config = new ConfigParser(configPath).load().parse().validate(validator).build() as {
+        project: any
+        blocks: any[]
+      } // <- fix this up
 
-            return {
-              ...block,
-              options: opts,
-            }
-          })
+      function mapper(block: BlockContext) {
+        const {options, ...rest} = block
+        const opts = options!
 
-          return {
-            ...value,
-            blocks,
-          }
-        })
-        .build() as {project: any; blocks: any[]} // <- fix this up
+        if (opts.timeout && typeof opts.timeout === 'string') {
+          opts.timeout = ms(opts.timeout as ms.StringValue)
+        }
+
+        return {...rest, options: opts}
+      }
+
+      config.blocks = config.blocks.map(mapper)
 
       const bus = new EventBus(stream)
 
       // resolve the entry point from package json
-      const pkg = resolvePackageJson(packagePath)
-      const context = readJsonSync(pkg)
-
-      if (!context.main) {
-        throw new Error('no entry point found in package.json')
-      }
 
       // TODO: move this back into @xgsd/runtime
-      const ctx = createContext(packagePath)
-        .entry(join(packagePath, context.main))
+      const ctx = createContext(projectPath)
+        .entry(entryFile)
         .config(config)
         .bus(bus)
         .id(v7)
         .name()
         .version()
-        .data(flags.data ?? config.project.data)
+        .data(this.data ?? config.project.data)
         .mode()
         .env()
         .concurrency(config.project.concurrency)

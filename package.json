@@ -10,7 +10,6 @@
   "dependencies": {
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
-    "@oclif/plugin-update": "^4.7.4",
     "@oclif/plugin-version": "^2.2.32",
     "@xgsd/engine": "^0.1.1",
     "@xgsd/runtime": "../xgsd-runtime",
@@ -26,6 +25,7 @@
     "pretty-ms": "^9.3.0",
     "treeify": "^1.1.0",
     "ts-deepmerge": "^7.0.3",
+    "usercode-v1": "../usercode-v1",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
@@ -77,7 +77,6 @@
     "commands": "./dist/commands",
     "plugins": [
       "@oclif/plugin-help",
-      "@oclif/plugin-update",
       "@oclif/plugin-version"
     ],
     "topicSeparator": " "

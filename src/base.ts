@@ -2,7 +2,6 @@ import {Command, Flags, Interfaces} from '@oclif/core'
 import {ensureDirSync, pathExistsSync, readFileSync, readJsonSync, writeFileSync} from 'fs-extra'
 import {load} from 'js-yaml'
 import {join, resolve} from 'path'
-import {v7} from 'uuid'
 
 export type Flags<T extends typeof Command> = Interfaces.InferredFlags<(typeof BaseCommand)['baseFlags'] & T['flags']>
 export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>
@@ -48,6 +47,8 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
         }
       },
     }),
+
+    entry: Flags.string({char: 'e', default: 'index.js', description: 'the entry point to your project'}),
   }
 
   protected flags!: Flags<T>
