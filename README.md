@@ -5,7 +5,9 @@
 [![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)  
 [![CI & Release](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml/badge.svg)](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml)
 
-xGSD is a runtime for your Node.js functions so you can think less about application design and more about logic. Perfect for when you just want to get stuff done without writing all the glue code.
+xGSD is a runtime for your Node.js functions that removes the usual glue code.
+
+You write small functions, xGSD handles the rest — so you can focus on logic instead of wiring everything together.
 
 ### Before xGSD
 
@@ -53,8 +55,6 @@ async function fetchUserProfile({userId}) {
 }
 ```
 
-Why re-invent the wheel each time you create a new project when you can use xGSD?
-
 ## Install
 
 Use NPM to install xGSD globally:
@@ -63,7 +63,38 @@ Use NPM to install xGSD globally:
 npm install -g @xgsd/cli
 ```
 
-## Getting started
+## Quickstart
+
+Create a home for your project files:
+
+```bash
+mkdir my-project
+cd my-project
+```
+
+Add an `index.js` with your block (pure function):
+
+```javascript
+export async function greet(data) {
+  console.log(`Hello ${data.name}`)
+}
+```
+
+Create a config file:
+
+```yaml
+blocks:
+  - run: greet
+```
+
+And then run it:
+
+```bash
+xgsd run -d '{"name": "world"}'
+
+# output
+Hello world
+```
 
 ## Documentation
 
