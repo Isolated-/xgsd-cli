@@ -1,8 +1,6 @@
 import {ProjectEvent, BlockEvent, SystemEvent, FatalError, FatalErrorCode, Plugin} from '@xgsd/runtime'
 import {Context} from 'vm'
 
-let cachedModule: any = null
-
 const eventToHookMap = {
   // project events
   [ProjectEvent.Started]: 'onProjectStart',
@@ -42,6 +40,8 @@ async function importUserModule<T extends ContextLike = ContextLike>(context: T)
 export class UserHooksPlugin implements Plugin {
   private module: any
 
+  constructor(private readonly opts: Record<string, unknown>) {}
+
   async init(context: Context): Promise<void> {
     this.module = await importUserModule(context as ContextLike)
   }
@@ -63,7 +63,7 @@ export class UserHooksPlugin implements Plugin {
     }
   }
 
-  async on(event: any): Promise<void> {
-    await this.callHook(event)
+  async on(event: any, payload: any): Promise<void> {
+    await this.callHook({event, payload})
   }
 }

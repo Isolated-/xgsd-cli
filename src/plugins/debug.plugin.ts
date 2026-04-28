@@ -1,18 +1,40 @@
-import prettyBytes from 'pretty-bytes'
+import bytes from 'pretty-bytes'
 import chalk from 'chalk'
-import ms = require('ms')
-import {BlockEvent, Plugin, ProjectEvent, SystemEvent} from '@xgsd/runtime'
+import {BlockEvent, Plugin, SystemEvent} from '@xgsd/runtime'
+import ms from 'pretty-ms'
 
-const byteSize = (data: unknown): number => {
-  if (!data) return 0
-  return Buffer.byteLength(JSON.stringify(data ?? ''), 'utf8')
+export const sizeOf = (value: any): number => {
+  if (Buffer.isBuffer(value)) return value.length
+  if (typeof value === 'string') return Buffer.byteLength(value)
+  if (Array.isArray(value)) return value.reduce((n, v) => n + sizeOf(v), 0)
+  if (typeof value === 'object' && value !== null) {
+    return Object.values(value).reduce((n: number, v) => n + sizeOf(v), 0) as number
+  }
+  return 0
+}
+
+export const prettyMs = (input: string | number): string => {
+  if (typeof input === 'string') {
+    return input
+  }
+
+  return ms(input, {secondsDecimalDigits: 2, millisecondsDecimalDigits: 4})
+}
+
+export const prettyBytes = (input: string | number): string => {
+  if (typeof input === 'string') {
+    return input
+  }
+
+  return bytes(input, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
 }
 
 export class DebugPlugin implements Plugin {
-  async on(e: any): Promise<void> {
-    const {event, payload} = e
-
-    console.log(`[DebugPlugin] event ${event}`)
+  async on(event: any, payload: any): Promise<void> {
+    console.log(`[DebugPlugin] event ${event} (data size: ${prettyBytes(sizeOf(payload))}})`)
 
     if (event === SystemEvent.ExtensionLoaded || event === SystemEvent.ExtensionUnloaded) {
       const loaded = event === SystemEvent.ExtensionLoaded ? 'loaded' : 'unloaded'
@@ -20,18 +42,28 @@ export class DebugPlugin implements Plugin {
     }
 
     if (event === BlockEvent.Failed) {
-      console.warn(chalk.red(`[DebugPlugin] ${payload.name} has failed - reason: ${payload.error.message} stack:`))
+      console.warn(
+        chalk.red(
+          `[DebugPlugin] ${payload.name ?? payload.block.run} has failed - reason: ${payload.error.message} stack:`,
+        ),
+      )
       console.warn(chalk.red(payload.error.stack))
     }
 
     if (event === BlockEvent.Retrying) {
       console.warn(
         chalk.yellow(
-          `[DebugPlugin] ${payload.block.name || payload.block.run} is failing, reason: ${payload.attempt.error.message}, retry: ${payload.attempt.attempt + 1}/${payload.attempt.maxRetries}, next attempt in ${ms(payload.attempt.nextMs)}`,
+          `[DebugPlugin] ${payload.block.name ?? payload.block.run} is failing, reason: ${payload.attempt.error.message}, retry: ${payload.attempt.attempt + 1}/${payload.attempt.maxRetries}, next attempt in ${prettyMs(payload.attempt.nextMs)}`,
         ),
       )
     }
 
-    console.log(`[DebugPlugin] size of this event is ${prettyBytes(byteSize(payload))}`)
+    if (event === SystemEvent.Ended) {
+      console.log(
+        chalk.bold(
+          `project completed in ${prettyMs(Math.floor(payload.projectDuration))} (${prettyMs(payload.bootstrapDuration)} total runtime)`,
+        ),
+      )
+    }
   }
 }

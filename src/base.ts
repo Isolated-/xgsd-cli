@@ -1,30 +1,58 @@
 import {Command, Flags, Interfaces} from '@oclif/core'
+import {ensureDirSync, pathExistsSync, readFileSync, readJsonSync, writeFileSync} from 'fs-extra'
+import {load} from 'js-yaml'
+import {join, resolve} from 'path'
+import {v7} from 'uuid'
 
 export type Flags<T extends typeof Command> = Interfaces.InferredFlags<(typeof BaseCommand)['baseFlags'] & T['flags']>
 export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>
 
+export function getInstallation(path: string): string | null {
+  if (!pathExistsSync(path)) {
+    return null
+  }
+
+  return readFileSync(path).toString()
+}
+
+function loadDataFromFile(path: string): Record<string, unknown> {
+  const absolute = resolve(path)
+
+  let data = undefined
+  try {
+    data = readJsonSync(absolute)
+  } catch (error) {}
+
+  const raw = readFileSync(absolute).toString()
+  const yaml = load(raw)
+
+  return yaml as Record<string, unknown>
+}
+
 export abstract class BaseCommand<T extends typeof Command> extends Command {
   static enableJsonFlag: boolean = true
   static baseFlags = {
-    // general
-    force: Flags.boolean({description: 'force the action to complete (not recommended)'}),
+    data: Flags.string({
+      char: 'd',
+      parse: async (input: string) => {
+        try {
+          // parse as JSON
+          return JSON.parse(input)
+        } catch (error) {
+          // parse as JSON/yaml file
+          if (pathExistsSync(input)) {
+            return loadDataFromFile(input)
+          }
 
-    // TODO: map these to Logger levels
-    level: Flags.string({
-      char: 'l',
-      description: 'the level of log to output (must be used with --watch), CSV',
-      multiple: true,
-      multipleNonGreedy: true,
-      default: ['info', 'user', 'status', 'success', 'retry', 'warn', 'error'],
-      options: ['info', 'user', 'status', 'success', 'retry', 'warn', 'error'],
+          throw new Error('cannot parse data')
+        }
+      },
     }),
-
-    // TODO: implement this
-    silent: Flags.boolean({char: 's'}),
   }
 
   protected flags!: Flags<T>
   protected args!: Args<T>
+  protected data!: Record<string, unknown>
 
   public async init(): Promise<void> {
     await super.init()
@@ -38,5 +66,19 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
 
     this.flags = flags as Flags<T>
     this.args = args as Args<T>
+
+    let data: Record<string, unknown> = this.flags.data as any
+    // stdin support
+    if (data === undefined && !process.stdin.isTTY) {
+      const stdin = await new Promise<string>((resolve) => {
+        let buf = ''
+        process.stdin.on('data', (chunk) => (buf += chunk))
+        process.stdin.on('end', () => resolve(buf))
+      })
+
+      data = JSON.parse(stdin)
+    }
+
+    this.data = data
   }
 }

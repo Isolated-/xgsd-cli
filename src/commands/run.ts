@@ -6,12 +6,12 @@ import {bootstrap, ConfigParser, createContext, EventBus, RuntimePreset, Runtime
 import {debugPreset} from '../presets/debug.preset'
 import {defaultPreset} from '../presets/default.preset'
 import {developmentPreset} from '../presets/development.preset'
-import ora from 'ora'
-import {v4, v7} from 'uuid'
+import {v7} from 'uuid'
 import Joi = require('joi')
 import {pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
 import {load} from 'js-yaml'
 import * as path from 'path'
+import ms = require('ms')
 
 function resolvePackageJson(input: string): string {
   try {
@@ -40,13 +40,14 @@ function resolvePackageJson(input: string): string {
 }
 
 // this will live in sdk
-function composePreset(...presets: RuntimePresetFunction[]): RuntimePreset {
-  const compiled: RuntimePreset[] = presets.map((p) => p())
+function composePreset(opts: any, ...presets: RuntimePresetFunction[]): RuntimePreset {
+  const compiled: RuntimePreset[] = presets.map((p) => p(opts))
 
   return {
     loggers: compiled.flatMap((p) => p.loggers ?? []),
     plugins: compiled.flatMap((p) => p.plugins ?? []),
     executor: compiled.reverse().find((p) => p.executor)?.executor,
+    orchestrator: compiled.reverse().find((p) => p.orchestrator)?.orchestrator,
   }
 }
 
@@ -62,20 +63,31 @@ export default class Run extends BaseCommand<typeof Command> {
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
     debug: Flags.boolean({
-      char: 'D',
+      char: 'd',
       description: 'verbose debug information is printed when this option is used.',
       aliases: ['verbose'],
     }),
-    development: Flags.boolean({
+    local: Flags.boolean({
       description: '--lite has been replaced by this option. Uses no process isolation for faster runs',
-      char: 'd',
-      aliases: ['dev', 'local'],
+      char: 'l',
+      aliases: ['dev', 'development', 'local', 'fast'],
     }),
     config: Flags.string({
       char: 'c',
       description: 'path to your configuration file (defaults to config.yaml inside your project directory)',
     }),
+    save: Flags.boolean({
+      char: 's',
+      allowNo: true,
+      default: true,
+    }),
+    logs: Flags.boolean({
+      char: 'L',
+      allowNo: true,
+      default: true,
+    }),
     // TODO: provide data here again but make it explictly override config.yaml data vs merging with it
+    // support data not from a file
     data: Flags.string({
       char: 'i',
       description: 'overrides config data (completely), path to your data (must be in JSON or yaml format)',
@@ -108,26 +120,70 @@ export default class Run extends BaseCommand<typeof Command> {
         presets.push(debugPreset)
       }
 
-      if (flags.development) {
+      if (flags.local) {
         presets.push(developmentPreset)
       }
 
-      let spinner
-      if (!flags.silent) {
-        spinner = ora('running your project').start()
-      }
+      const options = Joi.object({
+        backoff: Joi.string().valid('linear', 'exponential', 'squaring').default('exponential'),
+        retries: Joi.number().greater(0).default(3),
+        timeout: Joi.alt(Joi.number().greater(0), Joi.string()).default(5000),
+      }).default({
+        backoff: 'exponential',
+        retries: 3,
+        timeout: 5000,
+      })
+
+      const block = Joi.object({
+        run: Joi.string().required(),
+        name: Joi.string(),
+        input: Joi.object(),
+        env: Joi.object(),
+        options,
+      })
 
       const stream = new EventEmitter2({wildcard: true})
-      const schema = Joi.object()
+      const schema = Joi.object({
+        name: Joi.string().default('unknown'),
+        description: Joi.string().default('no description'),
+        version: Joi.alt(Joi.string(), Joi.number()),
+        mode: Joi.string().valid('async', 'chain').default('async'),
+        metadata: Joi.object().default({}),
+        options,
+        data: Joi.object(),
+        concurrency: Joi.number().greater(0).less(32).default(4),
+        blocks: Joi.array().items(block).default([]),
+      })
+
       const config = new ConfigParser(configPath)
         .load()
         .parse()
-        .default({
-          mode: 'async',
-          concurrency: 4,
-          blocks: [],
+        .validate((input) => {
+          const {value, error} = schema.validate(input)
+
+          if (error) {
+            throw new Error(error.message)
+          }
+
+          const blocks = value.blocks.map((b: any) => {
+            const {options, ...block} = b
+            const opts = options
+
+            if (opts.timeout && typeof opts.timeout === 'string') {
+              opts.timeout = ms(opts.timeout as ms.StringValue)
+            }
+
+            return {
+              ...block,
+              options: opts,
+            }
+          })
+
+          return {
+            ...value,
+            blocks,
+          }
         })
-        .validate((input) => schema.validate(input).value)
         .build() as {project: any; blocks: any[]} // <- fix this up
 
       const bus = new EventBus(stream)
@@ -140,10 +196,9 @@ export default class Run extends BaseCommand<typeof Command> {
         throw new Error('no entry point found in package.json')
       }
 
-      const entry = join(packagePath, context.main)
-
+      // TODO: move this back into @xgsd/runtime
       const ctx = createContext(packagePath)
-        .entry(entry)
+        .entry(join(packagePath, context.main))
         .config(config)
         .bus(bus)
         .id(v7)
@@ -161,10 +216,16 @@ export default class Run extends BaseCommand<typeof Command> {
       await bootstrap({
         ctx,
         stream,
-        preset: composePreset(...presets),
+        summary: {},
+        preset: composePreset(
+          {
+            createReport: flags.save,
+            levels: !flags.logs ? [] : ['info', 'user', 'warn', 'error'],
+            logs: flags.logs,
+          },
+          ...presets,
+        ),
       })
-
-      spinner?.stop()
     } catch (e: any) {
       if (e.message) {
         this.error(e.message)

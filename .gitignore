@@ -29,3 +29,5 @@ my-project/*
 
 temp.txt
 docs/*
+
+src/portability/*
