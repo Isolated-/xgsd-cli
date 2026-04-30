@@ -9,8 +9,6 @@ xGSD is a runtime for your Node.js functions that removes the usual glue code.
 
 You write small functions, xGSD handles the rest — so you can focus on logic instead of wiring everything together.
 
----
-
 ### Before xGSD
 
 ```javascript
@@ -57,8 +55,6 @@ async function fetchUserProfile({userId}) {
 }
 ```
 
----
-
 ## Install
 
 Use NPM to install xGSD globally:
@@ -66,8 +62,6 @@ Use NPM to install xGSD globally:
 ```bash
 npm install -g @xgsd/cli
 ```
-
----
 
 ## Quickstart
 
@@ -102,13 +96,9 @@ xgsd run -d '{"name": "world"}'
 Hello world
 ```
 
----
-
 ## Documentation
 
 To learn about xGSD read the [**Documentation**](https://isolated-.github.io/xgsd-userdocs/)
-
----
 
 ## Versioning
 
@@ -119,8 +109,6 @@ This project follows [Semantic Versioning](https://semver.org/):
 - **PATCH** (0.0.x): Backwards-compatible bug fixes or small internal improvements.
 
 Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable releases.
-
----
 
 ## Commands
 
