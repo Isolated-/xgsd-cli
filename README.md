@@ -98,7 +98,7 @@ Hello world
 
 ## Documentation
 
-To learn about xGSD read the [**Documentation**](https://isolated-.github.io/xgsd-userdocs/)
+To learn about xGSD read the [**Documentation**](https://isolated-.github.io/xgsd-userdocs/).
 
 ## Versioning
 
@@ -113,11 +113,40 @@ Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable re
 ## Commands
 
 <!-- commands -->
+* [`xgsd call BLOCK`](#xgsd-call-block)
+* [`xgsd help [COMMAND]`](#xgsd-help-command)
+* [`xgsd run`](#xgsd-run)
+* [`xgsd version`](#xgsd-version)
 
-- [`xgsd help [COMMAND]`](#xgsd-help-command)
-- [`xgsd run`](#xgsd-run)
-- [`xgsd test BLOCK`](#xgsd-test-block)
-- [`xgsd version`](#xgsd-version)
+## `xgsd call BLOCK`
+
+describe the command here
+
+```
+USAGE
+  $ xgsd call BLOCK [--json] [-d <value>] [-e <value>] [--dev] [--retries <value>] [--timeout <value>]
+
+ARGUMENTS
+  BLOCK  the block/function to test
+
+FLAGS
+  -d, --data=<value>
+  -e, --entry=<value>    [default: index.js] the entry point to your project
+  --dev
+      --retries=<value>  [default: 3]
+      --timeout=<value>  [default: 1000]
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  describe the command here
+
+EXAMPLES
+  $ xgsd call
+```
+
+_See code: [src/commands/call.ts](https://github.com/Isolated-/xgsd-cli/blob/v0.5.0/src/commands/call.ts)_
 
 ## `xgsd help [COMMAND]`
 
@@ -163,33 +192,6 @@ EXAMPLES
 
 _See code: [src/commands/run.ts](https://github.com/Isolated-/xgsd-cli/blob/v0.5.0/src/commands/run.ts)_
 
-## `xgsd test BLOCK`
-
-describe the command here
-
-```
-USAGE
-  $ xgsd test BLOCK [--json] [-d <value>] [-e <value>]
-
-ARGUMENTS
-  BLOCK  the block/function to test
-
-FLAGS
-  -d, --data=<value>
-  -e, --entry=<value>  [default: index.js] the entry point to your project
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  describe the command here
-
-EXAMPLES
-  $ xgsd test
-```
-
-_See code: [src/commands/test.ts](https://github.com/Isolated-/xgsd-cli/blob/v0.5.0/src/commands/test.ts)_
-
 ## `xgsd version`
 
 ```
@@ -209,5 +211,4 @@ FLAG DESCRIPTIONS
 ```
 
 _See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/2.2.42/src/commands/version.ts)_
-
 <!-- commandsstop -->
