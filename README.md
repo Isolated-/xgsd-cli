@@ -100,6 +100,16 @@ Hello world
 
 To learn about xGSD read the [**Documentation**](https://isolated-.github.io/xgsd-userdocs/).
 
+## v0.4 -> Now
+
+xGSD started as an experimental runtime for running functions in a structured way. Early iterations worked, but the system was tightly coupled and difficult to extend without changing core internals.
+
+It has since been redesigned into a more modular system where behaviour like logging and execution control can be added externally rather than being built into the runtime.
+
+The next step is to expand how projects can be triggered and executed.
+
+From here on, the system reflects the current design. Earlier examples may no longer apply.
+
 ## Versioning
 
 This project follows [Semantic Versioning](https://semver.org/):
@@ -113,10 +123,11 @@ Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable re
 ## Commands
 
 <!-- commands -->
-* [`xgsd call BLOCK`](#xgsd-call-block)
-* [`xgsd help [COMMAND]`](#xgsd-help-command)
-* [`xgsd run`](#xgsd-run)
-* [`xgsd version`](#xgsd-version)
+
+- [`xgsd call BLOCK`](#xgsd-call-block)
+- [`xgsd help [COMMAND]`](#xgsd-help-command)
+- [`xgsd run`](#xgsd-run)
+- [`xgsd version`](#xgsd-version)
 
 ## `xgsd call BLOCK`
 
@@ -211,4 +222,5 @@ FLAG DESCRIPTIONS
 ```
 
 _See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/2.2.42/src/commands/version.ts)_
+
 <!-- commandsstop -->
