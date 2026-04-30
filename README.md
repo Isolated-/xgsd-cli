@@ -9,6 +9,8 @@ xGSD is a runtime for your Node.js functions that removes the usual glue code.
 
 You write small functions, xGSD handles the rest — so you can focus on logic instead of wiring everything together.
 
+---
+
 ### Before xGSD
 
 ```javascript
@@ -55,6 +57,8 @@ async function fetchUserProfile({userId}) {
 }
 ```
 
+---
+
 ## Install
 
 Use NPM to install xGSD globally:
@@ -62,6 +66,8 @@ Use NPM to install xGSD globally:
 ```bash
 npm install -g @xgsd/cli
 ```
+
+---
 
 ## Quickstart
 
@@ -96,23 +102,13 @@ xgsd run -d '{"name": "world"}'
 Hello world
 ```
 
+---
+
 ## Documentation
 
-Learn about xGSD and how to use it for your next project at [TBD](#).
+To learn about xGSD read the [**Documentation**](https://isolated-.github.io/xgsd-userdocs/)
 
-## Upgrade from v0.4
-
-`v0.5` is a complete redesign of xGSD to make it more extensible and less restrictive. The core of xGSD remains mostly untouched but you will need to change some or all of your project code.
-
-Some of the changes:
-
-- **Plugin system** added allowing you to override default behaviour of xGSD
-- **Helper system** replaced with templating for consistency
-- **Custom orchestrators and executors** enable complete override of how the runtime works
-- **Configuration** simplified to avoid confusion and ensure runs are consistent
-- **Block testing** allows for blocks/functions to be tested in isolation without a full project run
-
-Future updates will introduce more ways to test blocks and introduce a **Trigger API** for running projects via HTTP.
+---
 
 ## Versioning
 
@@ -124,13 +120,16 @@ This project follows [Semantic Versioning](https://semver.org/):
 
 Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable releases.
 
+---
+
 ## Commands
 
 <!-- commands -->
-* [`xgsd help [COMMAND]`](#xgsd-help-command)
-* [`xgsd run`](#xgsd-run)
-* [`xgsd test BLOCK`](#xgsd-test-block)
-* [`xgsd version`](#xgsd-version)
+
+- [`xgsd help [COMMAND]`](#xgsd-help-command)
+- [`xgsd run`](#xgsd-run)
+- [`xgsd test BLOCK`](#xgsd-test-block)
+- [`xgsd version`](#xgsd-version)
 
 ## `xgsd help [COMMAND]`
 
@@ -222,4 +221,5 @@ FLAG DESCRIPTIONS
 ```
 
 _See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/2.2.42/src/commands/version.ts)_
+
 <!-- commandsstop -->

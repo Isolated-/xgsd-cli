@@ -10,7 +10,7 @@ export class ReporterPlugin implements Plugin {
     const {context, output} = payload
     const {config, bus, blocks, blockCount, ...ctx} = context
 
-    const path = join(ctx.packagePath, 'runs', ctx.end + '.json')
+    const path = join(ctx.projectPath, 'runs', ctx.end + '.json')
     ensureDirSync(dirname(path))
     writeJsonSync(
       path,

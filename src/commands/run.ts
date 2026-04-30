@@ -76,6 +76,7 @@ function createValidationSchema(): Joi.Schema {
     input: Joi.object(),
     env: Joi.object(),
     options,
+    instances: Joi.number().min(1).max(100).default(1),
   })
 
   const schema = Joi.object({
@@ -164,7 +165,8 @@ export default class Run extends BaseCommand<typeof Command> {
         blocks: any[]
       } // <- fix this up
 
-      function mapper(block: BlockContext) {
+      let blocks: any[] = []
+      function mapper(block: any) {
         const {options, ...rest} = block
         const opts = options!
 
