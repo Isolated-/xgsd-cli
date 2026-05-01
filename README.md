@@ -65,60 +65,30 @@ npm install -g @xgsd/cli
 
 ## Quickstart
 
-Create a home for your project files:
-
-```bash
-mkdir my-project
-cd my-project
-```
-
-Add an `index.js` with your block (pure function):
+Create a `index.js` with your block (pure function):
 
 ```javascript
-export async function greet(data) {
-  console.log(`Hello ${data.name}`)
+// index.js
+export async function greet({name}) {
+  return {message: `Hello ${name}`}
 }
 ```
 
-Create a config file:
-
-```yaml
-blocks:
-  - run: greet
-```
-
-And then run it:
+And then call it:
 
 ```bash
-xgsd run -d '{"name": "world"}'
-
-# output
-Hello world
+xgsd call greet -d '{"name": "world"}'
 ```
 
-## Documentation
+Output:
 
-To learn about xGSD read the [**Documentation**](https://isolated-.github.io/xgsd-userdocs/).
+```bash
+{
+  "message": "Hello world"
+}
+```
 
-## v0.4 -> Now
-
-xGSD started as an experimental runtime for running functions in a structured way. Early iterations worked, but the system was tightly coupled and difficult to extend without changing core internals.
-
-It has since been redesigned into a more modular system where behaviour like logging and execution control can be added externally rather than being built into the runtime.
-
-The next step is to expand how projects can be triggered and executed.
-
-From here on, the system reflects the current design. Earlier examples may no longer apply.
-
-## Versioning
-
-This project follows [Semantic Versioning](https://semver.org/):
-
-- **MAJOR** (x.0.0): Breaking changes, incompatible API modifications.
-- **MINOR** (0.x.0): Backwards-compatible new features and improvements.
-- **PATCH** (0.0.x): Backwards-compatible bug fixes or small internal improvements.
-
-Pre-release tags (e.g., `1.2.0-beta.1`) may be used for testing before stable releases.
+Check the [**Documentation**](https://isolated-.github.io/xgsd-userdocs/) to learn more.
 
 ## Commands
 
