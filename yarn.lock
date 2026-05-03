@@ -2516,11 +2516,6 @@
   dependencies:
     "@types/node" "*"
 
-"@types/ms@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/@types/ms/-/ms-2.1.0.tgz#052aa67a48eccc4309d7f0191b7e41434b90bb78"
-  integrity sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==
-
 "@types/mute-stream@^0.0.4":
   version "0.0.4"
   resolved "https://registry.npmjs.org/@types/mute-stream/-/mute-stream-0.0.4.tgz#77208e56a08767af6c5e1237be8888e2f255c478"
@@ -2789,27 +2784,19 @@
   resolved "https://registry.yarnpkg.com/@xgsd/engine/-/engine-0.1.1.tgz#760fe21f6bf0c44592fc2613d4146e0d7492d0fd"
   integrity sha512-Tovh4Q6nGRM6TAl67szODYn+QL8wkYYPtp5MZe2SGshPQJK3PsorIR3I3k8cRPCwsWSJnkwcuih60DMz9CLSWg==
 
-"@xgsd/runtime@../xgsd-runtime":
+"@xgsd/runtime@0.1.0":
   version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@xgsd/runtime/-/runtime-0.1.0.tgz#26f8d7a87d3151e23980effb1688823e0ac6fd38"
+  integrity sha512-MO8ZCfC26i0ThKNmqPA+8/abWgp5oEKobUBTZaV/EgwSZJthJckRlNUuCyQRFARzLU3brOG0Nn/RR3Gy3FbN9g==
   dependencies:
-    "@types/fs-extra" "^11.0.4"
-    "@types/ms" "^2.1.0"
     "@xgsd/engine" "0.1.2"
-    "@xgsd/uniqid" "^0.1.0"
     dotenv "^17.4.2"
     fs-extra "^11.3.4"
     joi "^18.1.2"
     ms "^2.1.3"
     ts-deepmerge "^7.0.3"
+    uuid "10.0.0"
     yaml "^2.8.3"
-
-"@xgsd/uniqid@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@xgsd/uniqid/-/uniqid-0.1.0.tgz#b174bb51ad2faab6a7e3966758299854f212744c"
-  integrity sha512-8cMWY/0qKDbjQI0AlAsN9zfRKtkXqzA/XVuRt20+ssDJdIKDLskyaq28xGCdDKm8ygvlHbLMZJsbktg6KIaWKQ==
-  dependencies:
-    bs58 "^6.0.0"
-    uuid "^11.1.0"
 
 abstract-logging@^2.0.1:
   version "2.0.1"
@@ -3053,15 +3040,6 @@ axios@^1.11.0:
     form-data "^4.0.5"
     proxy-from-env "^2.1.0"
 
-axios@^1.15.2:
-  version "1.15.2"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-1.15.2.tgz#eb8fb6d30349abace6ade5b4cb4d9e8a0dc23e5b"
-  integrity sha512-wLrXxPtcrPTsNlJmKjkPnNPK2Ihe0hn0wGSaTEiHRPxwjvJwT3hKmXF4dpqxmPO9SoNb2FsYXj/xEo0gHN+D5A==
-  dependencies:
-    follow-redirects "^1.15.11"
-    form-data "^4.0.5"
-    proxy-from-env "^2.1.0"
-
 babel-jest@30.3.0:
   version "30.3.0"
   resolved "https://registry.npmjs.org/babel-jest/-/babel-jest-30.3.0.tgz#3ff5553fa3bcbb8738d2d7335a4dbdc3bd1a0eb5"
@@ -3132,11 +3110,6 @@ balanced-match@^4.0.2:
   resolved "https://registry.npmjs.org/balanced-match/-/balanced-match-4.0.4.tgz#bfb10662feed8196a2c62e7c68e17720c274179a"
   integrity sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==
 
-base-x@^5.0.0:
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/base-x/-/base-x-5.0.1.tgz#16bf35254be1df8aca15e36b7c1dda74b2aa6b03"
-  integrity sha512-M7uio8Zt++eg3jPj+rHMfCC+IuygQHHCOU+IYsVtik6FWjuYpVt/+MRKcgsAMHh8mMFAwnB+Bs+mTrFiXjMzKg==
-
 baseline-browser-mapping@^2.10.12:
   version "2.10.20"
   resolved "https://registry.npmjs.org/baseline-browser-mapping/-/baseline-browser-mapping-2.10.20.tgz#7c99b86d43ae9be3810cac515f4675802e1f6b87"
@@ -3203,13 +3176,6 @@ bs-logger@^0.2.6:
   integrity sha512-pd8DCoxmbgc7hyPKOvxtqNcjYoOsABPQdcCUjGp3d42VR2CX1ORhk2A87oqqu5R1kk+76nsxZupkmyd+MVtCog==
   dependencies:
     fast-json-stable-stringify "2.x"
-
-bs58@^6.0.0:
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/bs58/-/bs58-6.0.0.tgz#a2cda0130558535dd281a2f8697df79caaf425d8"
-  integrity sha512-PD0wEnEYg6ijszw/u8s+iI3H17cTymlrwkKhDhPZq+Sokl3AU4htyBFTjAeNAlCCmg0f53g6ih3jATyCKftTfw==
-  dependencies:
-    base-x "^5.0.0"
 
 bser@2.1.1:
   version "2.1.1"
@@ -7579,12 +7545,10 @@ uri-js@^4.2.2:
   dependencies:
     punycode "^2.1.0"
 
-usercode-v1@../usercode-v1:
-  version "1.0.0"
-  dependencies:
-    "@xgsd/runtime" "../xgsd-runtime"
-    axios "^1.15.2"
-    fs-extra "^11.3.4"
+uuid@10.0.0:
+  version "10.0.0"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-10.0.0.tgz#5a95aa454e6e002725c79055fd42aaba30ca6294"
+  integrity sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==
 
 uuid@^11.1.0:
   version "11.1.0"
