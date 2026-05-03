@@ -86,10 +86,6 @@ export default class Up extends Command {
 
     const usageFlag = flags.usage
 
-    this.log(chalk.bold(`EXPERIMENTAL FEATURE`))
-    this.log(chalk.bold(`Use --usage or set usage.enabled = true in your project config to improve this command`))
-    this.log()
-
     const url = `http://${flags.host}:${flags.port}`
 
     this.log(`Run: ${chalk.green.bold(url + '/run')}`)
@@ -106,7 +102,6 @@ export default class Up extends Command {
         stdio: ['ignore', 'ignore', 'inherit'],
         env: {
           ...process.env,
-          XGSD_USAGE_FLAG: String(usageFlag),
           XGSD_API_KEY: apiKey,
           XGSD_PORT: String(flags.port),
           XGSD_HOST: flags.host,
@@ -119,7 +114,6 @@ export default class Up extends Command {
       child.unref()
     } else {
       const api = createApi({
-        usageFlag,
         apiKey,
         pidPath: '',
       })

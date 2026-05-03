@@ -5,7 +5,6 @@ import {defaultPreset} from './presets/default.preset'
 import {createWriteStream, ensureDirSync, writeFileSync} from 'fs-extra'
 
 type Opts = {
-  usageFlag?: boolean
   apiKey?: string
   logs?: boolean
   port?: number
@@ -100,7 +99,7 @@ export function createApi(opts: Opts) {
         preset: composePresetWithOpts({
           presets: [defaultPreset],
           opts: {
-            usage: opts.usageFlag ?? config.usage?.enabled ?? false,
+            usage: config.usage?.enabled ?? false,
           },
         }),
         data: (req.body as any).data,
