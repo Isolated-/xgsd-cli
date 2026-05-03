@@ -48,7 +48,7 @@ export async function writeCopyAndSend<T extends Record<string, unknown>, R>({
     timestamp: new Date().toISOString(),
   }
 
-  const fileName = 'exports.jsonl'
+  const fileName = 'metrics.jsonl'
   appendFileSync(join(exportDir, fileName), JSON.stringify(record) + '\r\n')
 
   return fn(data)
