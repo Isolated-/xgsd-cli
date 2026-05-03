@@ -39,9 +39,11 @@ export function createValidationSchema(): Joi.Schema {
     timeout: 5000,
   })
 
-  const usage = Joi.object({
+  const metrics = Joi.object({
     enabled: Joi.boolean(),
-    accept: Joi.array().items(Joi.string().valid('execution', 'minimum')),
+    //url: Joi.string().uri(),
+    //urls: Joi.array().items(Joi.string().uri()),
+    accept: Joi.array().items(Joi.string().valid('basic')),
   })
 
   const block = Joi.object({
@@ -63,7 +65,7 @@ export function createValidationSchema(): Joi.Schema {
     entry: Joi.string(),
     mode: Joi.string().valid('async', 'chain'),
     metadata: Joi.object(),
-    usage,
+    metrics,
     options,
     env: Joi.object(),
     data: Joi.object(),

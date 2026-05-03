@@ -49,8 +49,10 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
       },
     }),
 
-    usage: Flags.boolean({
-      description: 'send a one-off anonymous usage signal for this command (no data beyond install ID)',
+    metrics: Flags.boolean({
+      description: 'sends anonymous metrics to xGSD (everything sent logs to {project}/exports/exports.jsonl).',
+      default: true,
+      allowNo: true,
     }),
 
     entry: Flags.string({char: 'e', default: 'index.js', description: 'the entry point to your project'}),
