@@ -18,7 +18,7 @@ export default class Call extends BaseCommand<typeof Command> {
   static override args = {
     block: Args.string({description: 'the block/function to test', required: true}),
   }
-  static override description = 'describe the command here'
+  static override description = 'call a function without running your project (ideal for testing/development)'
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
     dev: Flags.boolean(),
