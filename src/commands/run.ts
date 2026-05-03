@@ -7,18 +7,10 @@ import {defaultPreset} from '../presets/default.preset'
 import {developmentPreset} from '../presets/development.preset'
 import * as path from 'path'
 import {createValidationSchema, resolvePackageJson} from '../util'
-import Joi from 'joi'
-import axios from 'axios'
-
-// put this elsewhere
-const isValidUrl = (url: string) => {
-  const schema = Joi.string().uri()
-  return schema.validate(url.trim()).error === undefined
-}
 
 export default class Run extends BaseCommand<typeof Command> {
   static override args = {}
-  static override description = ''
+  static override description = 'run your xGSD project'
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
     debug: Flags.boolean({
@@ -75,7 +67,7 @@ export default class Run extends BaseCommand<typeof Command> {
       validator,
     })
 
-    const usage = this.flags.usage ?? config.usage?.enabled ?? false
+    const metrics = !flags.metrics ? false : (config.metrics?.enabled ?? flags.metrics)
 
     const presets: any[] = [defaultPreset]
 
@@ -96,7 +88,7 @@ export default class Run extends BaseCommand<typeof Command> {
         preset: composePresetWithOpts({
           opts: {
             createReport: flags.save,
-            usage,
+            metrics,
           },
           presets,
         }),
