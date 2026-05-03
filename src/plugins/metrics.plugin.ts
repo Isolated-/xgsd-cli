@@ -1,4 +1,4 @@
-import {Context, Plugin} from '@xgsd/runtime'
+import {Plugin} from '@xgsd/runtime'
 import {sizeOf} from './debug.plugin'
 import {appendFileSync, ensureDirSync} from 'fs-extra'
 import {join} from 'path'
@@ -17,22 +17,18 @@ export interface ProjectExecutionMetric {
   payloadSize: number
 }
 
-export type ExportReason = 'usage_opt_in'
+export type ExportReason = 'metrics_opt_in'
 
-/**
- * Human-readable explanation shown in export records
- */
 const reasonToExplanation: Record<ExportReason, string> = {
-  usage_opt_in: 'explicit opt-in via --usage flag',
+  metrics_opt_in: 'use --no-metrics or set metrics.enabled = false in project config to disable this',
 }
 
 type AnyFn<T = any, R = any> = (data: T) => Promise<R> | R
 
-export async function recordExport<T extends Record<string, unknown>, R>({
+export async function writeCopyAndSend<T extends Record<string, unknown>, R>({
   data,
   fn,
   projectPath,
-  name,
   reason,
 }: {
   data: T
@@ -46,9 +42,9 @@ export async function recordExport<T extends Record<string, unknown>, R>({
   ensureDirSync(exportDir)
 
   const record = {
+    data,
     reason,
     explanation: reasonToExplanation[reason],
-    data,
     timestamp: new Date().toISOString(),
   }
 
@@ -58,20 +54,20 @@ export async function recordExport<T extends Record<string, unknown>, R>({
   return fn(data)
 }
 
-export class UsagePlugin implements Plugin {
+export class MetricsPlugin implements Plugin {
   events = ['project.ended', 'block.ended']
   private blocks = {total: 0, failed: 0}
   private url: string
 
-  constructor(private readonly opts: {id: string; usage: boolean}) {
+  constructor(private readonly opts: {metrics: boolean}) {
     const packageJson = require('../../package.json')
     this.url = packageJson.backend
   }
 
   async on(event: string, payload: any): Promise<void> {
-    if (!this.opts.usage) return
+    if (!this.opts.metrics) return
 
-    const dispatchUsage = async (data: any) => {
+    const dispatchMetrics = async (data: any) => {
       await fetch(this.url, {
         method: 'POST',
         body: JSON.stringify(data),
@@ -110,10 +106,10 @@ export class UsagePlugin implements Plugin {
     }
 
     try {
-      await recordExport({
+      await writeCopyAndSend({
         data: metrics,
-        fn: dispatchUsage,
-        reason: 'usage_opt_in',
+        fn: dispatchMetrics,
+        reason: 'metrics_opt_in',
         projectPath,
       })
     } catch (error) {}
