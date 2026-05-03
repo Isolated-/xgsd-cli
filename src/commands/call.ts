@@ -1,15 +1,7 @@
 import {Args, Command, Flags} from '@oclif/core'
 import * as path from 'node:path'
 import {BaseCommand} from '../base'
-import {
-  Context,
-  createBlockContext,
-  EventBus,
-  execute,
-  InProcessExecutor,
-  processBlock,
-  ProcessExecutor,
-} from '@xgsd/runtime'
+import {Context, EventBus, InProcessExecutor, ProcessExecutor} from '@xgsd/runtime'
 import {prettyMs} from '../plugins/debug.plugin'
 import {EventEmitter2} from 'eventemitter2'
 import ms = require('ms')
@@ -59,7 +51,7 @@ export default class Call extends BaseCommand<typeof Command> {
 
     const stream = new EventEmitter2({wildcard: true})
     const bus = new EventBus(stream)
-    const blockCtx = createBlockContext(b, 0)
+    //const blockCtx = createBlockContext(b, 0)
     const executor = this.flags.dev ? new InProcessExecutor() : new ProcessExecutor()
 
     bus.on('system.message', ({payload}) => {
@@ -74,14 +66,15 @@ export default class Call extends BaseCommand<typeof Command> {
 
     const output = await executor.run(
       {
-        ...blockCtx,
+        //...blockCtx,
+        run: block,
         fn: mod[block],
         options: {
           retries: this.flags.retries,
           timeout: Number(this.flags.timeout),
         },
         input: this.data,
-      },
+      } as any,
       {
         entry: entryFile,
         bus,

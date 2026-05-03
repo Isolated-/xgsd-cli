@@ -1,27 +1,53 @@
-import {createConfig, bootstrap, ProcessExecutor, DefaultOrchestrator, composePresetWithOpts} from '@xgsd/runtime'
+import {createConfig, bootstrap, composePresetWithOpts} from '@xgsd/runtime'
 import Fastify from 'fastify'
 import {join} from 'path'
 import {defaultPreset} from './presets/default.preset'
+import {createWriteStream, ensureDirSync, writeFileSync} from 'fs-extra'
 
-export function createApi(opts: {
-  projectPath: string
-  configName: string
+type Opts = {
   usageFlag?: boolean
   apiKey?: string
   logs?: boolean
-}) {
-  const {projectPath, configName} = opts
-  const app = Fastify({logger: opts.logs})
-  const start = performance.now()
+  port?: number
+  host?: string
+  pidPath: string
+}
 
-  const packageJsonPath = join(projectPath, 'package.json')
-  const configPath = join(projectPath, configName)
+export async function startDaemon(opts: Opts) {
+  const app = createApi(opts)
 
-  const config = createConfig({
-    packageJsonPath,
-    configPath,
-    validator: (input) => input,
+  const port = opts.port ? opts.port : 3010
+
+  const path = opts.pidPath
+
+  ensureDirSync(path)
+  writeFileSync(join(path, 'xgsd.pid'), String(process.pid))
+
+  await app.listen({port, host: opts.host ?? 'localhost'})
+
+  console.log(`[xGSD daemon] running on :${port}`)
+
+  // ---- graceful shutdown ----
+  const shutdown = async () => {
+    console.log('[xGSD daemon] shutting down...')
+    await app.close()
+    process.exit(0)
+  }
+
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
+}
+
+export function createApi(opts: Opts) {
+  const stream = createWriteStream(join(opts.pidPath, 'server-logs.combined.jsonl'), {flags: 'a'})
+  const app = Fastify({
+    logger: {
+      enabled: true,
+      stream,
+    },
   })
+
+  const start = performance.now()
 
   function authenticate(headers?: Record<string, any>, token?: string): boolean {
     if (!token) return true
@@ -33,18 +59,13 @@ export function createApi(opts: {
   }
 
   let runs = 0
+  let errors = 0
 
   app.get('/info', async (req, res) => {
-    if (!authenticate(req.headers, opts.apiKey)) {
-      return res.status(401).send({error: 'invalid_api_key'})
-    }
-
     return res.status(200).send({
-      projectPath,
-      configPath,
       runs,
-      name: config.name,
-      entry: config.entry,
+      errors,
+      memory_usage_heap_used: process.memoryUsage().heapUsed,
       uptime: performance.now() - start,
     })
   })
@@ -59,21 +80,36 @@ export function createApi(opts: {
       return res.status(401).send({error: 'invalid_api_key'})
     }
 
-    const result = await bootstrap({
-      projectPath,
-      config,
-      activation: 'http',
-      preset: composePresetWithOpts({
-        presets: [defaultPreset],
-        opts: {
-          usage: opts.usageFlag ?? config.usage?.enabled ?? false,
-        },
-      }),
-      data: req.body as any,
+    const projectPath = (req.body as any).projectPath
+    const packageJsonPath = join(projectPath, 'package.json')
+    const configPath = join(projectPath, (req.body as any).configName ?? 'config.yaml')
+
+    const config = createConfig({
+      packageJsonPath,
+      configPath,
+      validator: (input) => input,
     })
 
     runs++
-    return result
+
+    try {
+      const result = await bootstrap({
+        projectPath,
+        config,
+        activation: 'http',
+        preset: composePresetWithOpts({
+          presets: [defaultPreset],
+          opts: {
+            usage: opts.usageFlag ?? config.usage?.enabled ?? false,
+          },
+        }),
+        data: (req.body as any).data,
+      })
+
+      return result
+    } catch (error) {
+      errors++
+    }
   })
 
   return app
