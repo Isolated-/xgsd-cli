@@ -5,6 +5,8 @@
 [![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)  
 [![CI & Release](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml/badge.svg)](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml)
 
+## Overview
+
 xGSD is a runtime for your Node.js functions that removes the usual glue code.
 
 You write small functions, xGSD handles the rest — so you can focus on logic instead of wiring everything together.
@@ -194,3 +196,47 @@ FLAG DESCRIPTIONS
 _See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/2.2.42/src/commands/version.ts)_
 
 <!-- commandsstop -->
+
+## Metrics
+
+Fully anonymous performance data is collected to improve xGSD and understand how it's used.
+
+### What's collected
+
+These metrics are:
+
+```json
+{
+  "kind": "execution",
+  "mode": "async",
+  "activation": "http",
+  "concurrency": 4,
+  "state": "completed",
+  "duration": 15066,
+  "payloadSize": 14394,
+  "runtime": "0.1.0",
+  "blockCount": 2,
+  "blockFailureRate": 0.5
+}
+```
+
+For transparency, you can view a copy of what's sent in `{project}/exports/metrics.jsonl`.
+
+### Disable collection
+
+To disable metrics via the CLI:
+
+```bash
+xgsd run --no-metrics
+```
+
+Via config:
+
+```bash
+metrics:
+  enabled: false
+```
+
+### View the code
+
+All code related to this is inside `src/plugins/metrics.plugin.ts`.
