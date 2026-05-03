@@ -1,11 +1,9 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {createApi} from '../../api'
-import {BaseCommand} from '../../base'
 import chalk from 'chalk'
 import {v4} from 'uuid'
 import {join, resolve} from 'path'
 import {spawn} from 'child_process'
-import Joi from 'joi'
 import {pathExistsSync, readFileSync, rmSync} from 'fs-extra'
 import {isBackgroundProcessRunning} from './down'
 
@@ -23,23 +21,31 @@ export default class Up extends Command {
 
     force: Flags.boolean({
       char: 'f',
-      description: 'when process is already running, --force will force start another process',
+      description: 'when process is already running, --force will kill the running process and start a new one',
       default: false,
     }),
 
     port: Flags.integer({char: 'p', default: 3010, description: 'port for incoming connections'}),
     host: Flags.string({char: 'h', default: 'localhost', description: 'ip/hostname for incoming connections'}),
+
     auth: Flags.boolean({
       char: 'a',
       default: true,
       allowNo: true,
       description: 'when true, authentication is required (Bearer token) - use --no-auth to override this',
     }),
+
     token: Flags.string({
       char: 't',
       default: v4(),
       description: '(recommended) leave this empty to generate a random token',
     }),
+
+    cwd: Flags.string({
+      description: 'ideal if your projects are in the same directory',
+    }),
+
+    // TODO: support passing in a server.yaml vs flag config
   }
 
   public async run(): Promise<void> {
@@ -47,44 +53,23 @@ export default class Up extends Command {
     const apiKey = flags.auth ? flags.token : undefined
 
     const path = join(this.config.home, '.local', 'state', 'xgsd')
-    const processRunning = pathExistsSync(join(path, 'xgsd.pid'))
 
-    if (processRunning && !flags.force) {
-      this.error('Service is already running, use xgsd stop')
-    }
-
-    if (flags.force && processRunning) {
-      const pid = Number(readFileSync(join(path, 'xgsd.pid')).toString())
-
-      this.log(`killing process ${pid}`)
-
-      try {
-        process.kill(pid, 'SIGTERM')
-      } catch (error) {}
-
-      this.log('removing old pid file')
-      rmSync(join(path, 'xgsd.pid'))
+    let cwd: string | undefined = undefined
+    if (flags.cwd) {
+      cwd = resolve(flags.cwd)
     }
 
     const pid = isBackgroundProcessRunning(join(path, 'xgsd.pid'))
-    if (pid !== false && !flags.force) {
-      this.error(`background service already running - use \`xgsd stop\` with \`--pid ${pid}\` (optional)`)
+    if (pid && !flags.force) {
+      this.error('service is already running in the background, use `xgsd down` to stop it.')
     }
 
-    if (typeof pid === 'number' && !flags.force) {
-      rmSync(join(path, 'xgsd.pid'))
-
+    if (pid && flags.force) {
       try {
-        process.kill(pid)
-      } catch (error: any) {
-        if (error.code === 'ESRCH') return
-        throw error
-      }
-
-      this.warn('using this option is not recommended, use `xgsd down` first')
+        process.kill(pid as number, 'SIGTERM')
+        rmSync(join(path, 'xgsd.pid'))
+      } catch (error) {}
     }
-
-    const usageFlag = flags.usage
 
     const url = `http://${flags.host}:${flags.port}`
 
@@ -99,12 +84,13 @@ export default class Up extends Command {
       const daemonPath = resolve(__dirname, '..', '..', 'daemon.js')
       const child = spawn('node', [daemonPath], {
         detached: true,
-        stdio: ['ignore', 'ignore', 'inherit'],
+        stdio: ['ignore', 'ignore', 'ignore'],
         env: {
           ...process.env,
           XGSD_API_KEY: apiKey,
           XGSD_PORT: String(flags.port),
           XGSD_HOST: flags.host,
+          XGSD_CWD: cwd,
           XGSD_PID_PATH: path,
         },
       })
@@ -116,6 +102,7 @@ export default class Up extends Command {
       const api = createApi({
         apiKey,
         pidPath: '',
+        cwd,
       })
 
       await api.listen({port: flags.port, host: flags.host})
