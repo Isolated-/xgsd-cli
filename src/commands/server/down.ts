@@ -53,31 +53,27 @@ export default class Down extends Command {
 
     const pid = isBackgroundProcessRunning(path, flags.pid)
 
-    if (flags.force) {
-      rmSync(path)
-    }
-
-    // false if not running
-    if (!isBackgroundProcessRunning(path)) {
+    if (!pid && !flags.force) {
       this.log('no background service running\nuse `xgsd up` to start it')
       return
     }
 
-    // or pid if is
     if (typeof pid === 'number') {
       try {
-        process.kill(pid)
+        process.kill(pid, 'SIGTERM')
       } catch (error: any) {
         if (error.code === 'ESRCH') return
         throw error
       }
 
       this.log(`killed process ${pid}`)
-
-      rmSync(path)
-      this.log(`removed pid file from ${path}`)
     }
 
-    this.log('successfully stopped background service')
+    try {
+      rmSync(path)
+      this.log(`removed pid file from ${path}`)
+    } catch (error) {}
+
+    this.log('successfully stopped background service (if it was running)')
   }
 }

@@ -101,7 +101,7 @@ export default class Up extends Command {
     } else {
       const api = createApi({
         apiKey,
-        pidPath: '',
+        pidPath: path,
         cwd,
       })
 
