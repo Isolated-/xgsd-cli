@@ -62,7 +62,7 @@ export async function runProjectHandler(
       preset: composePresetWithOpts({
         presets: [defaultPreset],
         opts: {
-          usage: config.metrics?.enabled ?? true,
+          metrics: config.metrics?.enabled ?? true,
         },
       }),
       data,
