@@ -1,151 +1,104 @@
-import {Args, Command, Flags} from '@oclif/core'
-import {basename, extname, join, resolve} from 'path'
-import {mkdtempSync, pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
-import {userCodeOrchestration} from '../@core/pipelines/pipeline.concrete'
-import {EventEmitter2} from 'eventemitter2'
-import chalk from 'chalk'
-import {
-  findUserWorkflowConfigPath,
-  loadUserWorkflowConfig,
-  orchestration,
-  validateWorkflowConfig,
-} from '../@core/pipelines/pipelines.util'
-import {userLogThemes} from '../constants'
+import {Command, Flags} from '@oclif/core'
+import {join} from 'path'
 import {BaseCommand} from '../base'
-import {defaultWith} from '../@core/util/misc.util'
-import {normaliseWorkflowName} from '../@core/util/workflow.util'
-import {PipelineState} from '../@core/@types/pipeline.types'
-import {merge} from '../@core/util/object.util'
-
-export const prettyPrintLogs = (event: EventEmitter2, flags: Record<string, any>, cmd: Run) => {
-  if (!flags.watch) {
-    return
-  }
-
-  event.on('message', (msg) => {
-    let message = `${msg.log.message}`
-    if (!flags.level || !flags.level.includes(msg.log.level)) {
-      return
-    }
-
-    if ((flags.level && flags.plain) || !userLogThemes[msg.log.level]) {
-      cmd.log(`(${msg.log.level}) ${msg.log.message}`)
-      return
-    }
-
-    message = userLogThemes[msg.log.level](message)
-    cmd.log(message)
-  })
-}
+import {bootstrap, createConfig, composePresetWithOpts} from '@xgsd/runtime'
+import {debugPreset} from '../presets/debug.preset'
+import {defaultPreset} from '../presets/default.preset'
+import {developmentPreset} from '../presets/development.preset'
+import * as path from 'path'
+import {createValidationSchema, resolvePackageJson} from '../util'
 
 export default class Run extends BaseCommand<typeof Command> {
-  static override args = {
-    function: Args.string({
-      description: 'function to run',
-      required: true,
-    }),
-  }
-  static override enableJsonFlag: boolean = true
-  static override description =
-    'Run workflows and your code with full confidence. Error handling, retries, timeouts, and isolation - all built in.'
+  static override args = {}
+  static override description = 'run your xGSD project'
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
-    data: Flags.string({
+    debug: Flags.boolean({
       char: 'd',
-      description: 'data file to use (must be a path)',
-      exists: true,
-      required: false,
-      parse: (input) => {
-        return readJsonSync(input)
-      },
+      description: 'verbose debug information is printed when this option is used.',
+      aliases: ['verbose'],
     }),
 
-    concurrency: Flags.integer({
+    local: Flags.boolean({
+      description: '--lite has been replaced by this option. Uses no process isolation for faster runs',
+      char: 'l',
+      aliases: ['dev', 'development', 'local', 'fast'],
+    }),
+
+    config: Flags.string({
       char: 'c',
-      description: 'maximum number of concurrent processes (only for async mode)',
-      required: false,
-      max: 32,
-      min: 1,
+      description: 'path to your configuration file (defaults to config.yaml)',
+      default: 'config.yaml',
+    }),
+
+    save: Flags.boolean({
+      char: 's',
+      allowNo: true,
+      default: true,
+      description: 'when false/--no-save is used, no report will be saved to runs/{date}.json',
+    }),
+
+    path: Flags.string({
+      char: 'p',
+      description: 'path to your project (will override config path + entry)',
+      aliases: ['project', 'projectPath'],
     }),
   }
 
   public async run(): Promise<any> {
     const flags = this.flags!
-    const args = this.args!
 
-    const path = resolve(args.function)
-    const userModulePath = path
+    const projectPath = this.flags.path ? path.resolve(this.flags.path) : process.cwd()
+    const packageJson = resolvePackageJson(projectPath)
+    const configPath = join(projectPath, flags.config)
 
-    // this will eventually be refactored
-    const packageJsonPath = join(path, 'package.json')
-    if (!pathExistsSync(packageJsonPath)) {
-      this.error(`package.json not found at ${packageJsonPath}, you'll need an NPM package before continuing.`)
-    }
+    const validator = (input: any) => {
+      const validation = createValidationSchema().validate(input)
 
-    const userCodePackageJson = readJsonSync(packageJsonPath)
-    const foundPath = findUserWorkflowConfigPath(userModulePath, flags.workflow)
-    if (!foundPath) {
-      this.error(
-        `unable to find a configuration file at ${userModulePath}, please create a new "config.yaml" in your package folder.`,
-      )
-    }
-
-    let userConfig
-    try {
-      userConfig = validateWorkflowConfig(loadUserWorkflowConfig(userModulePath, flags.workflow!))
-      userConfig.options = merge(userConfig.options || {}, {
-        concurrency: flags.concurrency || userConfig.options?.concurrency,
-      })
-    } catch (error: any) {
-      this.error(error.message)
-    }
-
-    const data = flags.data as any
-
-    if (!userConfig.enabled) {
-      this.log(
-        chalk.bold.red(
-          `${userConfig.name} is currently disabled - if this is a mistake, re-enable it in the config file by marking \`enabled: true\`.`,
-        ),
-      )
-      this.exit(1)
-    }
-
-    const start = performance.now()
-    const event = new EventEmitter2({maxListeners: 32, wildcard: true})
-    event.on('event', (data) => {
-      const end = performance.now()
-      if (process.env.DETAIL) {
-        console.log(`(event) ${data.payload.step?.name} ${data.event} ${(end - start).toFixed(2)}ms`)
+      if (validation.error) {
+        this.error(`config validation failed: ${validation.error.details[0].message}`)
       }
+
+      return validation.value
+    }
+
+    const config = createConfig({
+      configPath,
+      packageJsonPath: packageJson,
+      validator,
     })
 
-    // this will be moved somewhere else
-    const getWorkflowName = (path: string, configName?: string, packageName?: string) => {
-      const base = basename(path)
-      const configFileName = base.split('.').shift()
-      return normaliseWorkflowName(defaultWith('no name', configName, configFileName, packageName)!)
+    const metrics = !flags.metrics ? false : (config.metrics?.enabled ?? flags.metrics)
+
+    const presets: any[] = [defaultPreset]
+
+    if (flags.debug) {
+      presets.push(debugPreset)
     }
 
-    const workflowName = getWorkflowName(foundPath, userConfig.name, userCodePackageJson.name)
-    const newOutputPath = userConfig.logs?.path || join(this.config.home, '.xgsd')
+    if (flags.local) {
+      presets.push(developmentPreset)
+    }
 
-    prettyPrintLogs(event, flags, this)
     try {
-      await userCodeOrchestration(
-        data,
-        {
-          ...userConfig,
-          name: workflowName,
-          version: userConfig.version || userCodePackageJson.version,
-          package: userModulePath,
-          output: newOutputPath,
-          force: flags.force || false,
-          cli: this.config.version,
-        },
-        event,
-      )
+      const result = await bootstrap({
+        data: this.data,
+        activation: 'cli',
+        projectPath,
+        config,
+        preset: composePresetWithOpts({
+          opts: {
+            createReport: flags.save,
+            metrics,
+          },
+          presets,
+        }),
+      })
+
+      return result
     } catch (e: any) {
+      if (e.stack) this.log(e.stack)
+
       if (e.message) {
         this.error(e.message)
       } else {

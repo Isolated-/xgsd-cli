@@ -22,3 +22,12 @@ coverage/*
 runs/*
 
 ARCH.md
+
+userdocs/*
+templates/*
+my-project/*
+
+temp.txt
+docs/*
+
+src/portability/*
