@@ -35,6 +35,7 @@ export default class Run extends BaseCommand<typeof Command> {
       char: 's',
       allowNo: true,
       default: true,
+      description: 'when false/--no-save is used, no report will be saved to runs/{date}.json',
     }),
 
     path: Flags.string({
