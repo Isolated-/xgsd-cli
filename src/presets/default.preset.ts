@@ -1,11 +1,10 @@
 import {DefaultOrchestrator, ProcessExecutor, RuntimePreset} from '@xgsd/runtime'
-import {ReporterPlugin} from '../plugins/reporter.plugin'
 import {UserLogsPlugin} from '../plugins/user-logs.plugin'
-import {UsagePlugin} from '../plugins/usage.plugin'
+import {MetricsPlugin} from '../plugins/metrics.plugin'
 
 export function defaultPreset(opts: any): Partial<RuntimePreset> {
   return {
-    plugins: [new UserLogsPlugin(), new UsagePlugin(opts)],
+    plugins: [new UserLogsPlugin(), new MetricsPlugin(opts)],
     executor: ProcessExecutor,
     orchestrator: DefaultOrchestrator,
   }
