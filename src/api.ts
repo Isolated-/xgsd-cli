@@ -1,15 +1,80 @@
-import {createConfig, bootstrap, composePresetWithOpts} from '@xgsd/runtime'
-import Fastify from 'fastify'
+import {createConfig, bootstrap, composePresetWithOpts, ProjectConfig} from '@xgsd/runtime'
+import Fastify, {FastifyReply, FastifyRequest} from 'fastify'
 import {join} from 'path'
 import {defaultPreset} from './presets/default.preset'
 import {createWriteStream, ensureDirSync, writeFileSync} from 'fs-extra'
+import {createValidationSchema} from './util'
 
 type Opts = {
   apiKey?: string
   logs?: boolean
   port?: number
   host?: string
+  cwd?: string
   pidPath: string
+}
+
+let runs = 0
+let errors = 0
+let running = 0
+
+export async function runProjectHandler(
+  opts: {
+    projectPath: string
+    data: Record<string, any>
+  },
+  res: FastifyReply,
+) {
+  const {projectPath, data} = opts
+
+  if (running > 10) {
+    return res.status(429).send({error: 'too many running projects'})
+  }
+
+  runs++
+  running++
+
+  // allow overriding these
+  const packageJsonPath = join(projectPath, 'package.json')
+  const configPath = join(projectPath, 'config.yaml')
+  const schema = createValidationSchema()
+
+  // cache this carefully
+  const config = createConfig({
+    packageJsonPath,
+    configPath,
+    validator: (input) => {
+      const validation = schema.validate(input)
+
+      if (validation.error) {
+        return res.status(400).send({error: 'invalid config', errors: validation.error.details.map((d) => d.message)})
+      }
+
+      return validation.value
+    },
+  })
+
+  try {
+    const result = await bootstrap({
+      projectPath,
+      config,
+      activation: 'http',
+      preset: composePresetWithOpts({
+        presets: [defaultPreset],
+        opts: {
+          usage: config.metrics?.enabled ?? true,
+        },
+      }),
+      data,
+    })
+
+    running--
+    return res.status(200).send(result)
+  } catch (error) {
+    running--
+    errors++
+    return res.status(500).send(error)
+  }
 }
 
 export async function startDaemon(opts: Opts) {
@@ -57,9 +122,6 @@ export function createApi(opts: Opts) {
     return bearer === token
   }
 
-  let runs = 0
-  let errors = 0
-
   app.get('/info', async (req, res) => {
     return res.status(200).send({
       runs,
@@ -69,47 +131,31 @@ export function createApi(opts: Opts) {
     })
   })
 
-  app.post('/run', async (req, res) => {
-    // TODO: implement validation
-    if (req.body && typeof req.body !== 'object') {
-      return res.status(400).send({})
-    }
-
-    if (!authenticate(req.headers as Record<string, any>, opts.apiKey)) {
+  function handler(req: FastifyRequest, res: FastifyReply) {
+    if (!authenticate(req.headers, opts.apiKey)) {
       return res.status(401).send({error: 'invalid_api_key'})
     }
 
-    const projectPath = (req.body as any).projectPath
-    const packageJsonPath = join(projectPath, 'package.json')
-    const configPath = join(projectPath, (req.body as any).configName ?? 'config.yaml')
-
-    const config = createConfig({
-      packageJsonPath,
-      configPath,
-      validator: (input) => input,
-    })
-
-    runs++
-
-    try {
-      const result = await bootstrap({
-        projectPath,
-        config,
-        activation: 'http',
-        preset: composePresetWithOpts({
-          presets: [defaultPreset],
-          opts: {
-            usage: config.usage?.enabled ?? false,
-          },
-        }),
-        data: (req.body as any).data,
-      })
-
-      return result
-    } catch (error) {
-      errors++
+    const body = (req.body as any) ?? {}
+    if (!body.project) {
+      return res.status(400).send({error: '"project" is missing and should be the absolute path to your project'})
     }
-  })
+
+    const projectPath = opts.cwd ? join(opts.cwd, body.project) : body.project
+
+    // then run the project
+    return runProjectHandler(
+      {
+        projectPath,
+        data: body.data,
+      },
+      res,
+    )
+  }
+
+  // routes
+  app.post('/v1/run', handler)
+  app.post('/run', handler)
 
   return app
 }

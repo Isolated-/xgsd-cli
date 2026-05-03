@@ -5,4 +5,5 @@ startDaemon({
   port: Number(process.env.XGSD_PORT),
   host: process.env.XGSD_HOST,
   pidPath: process.env.XGSD_PID_PATH!,
+  cwd: process.env.XGSD_CWD!,
 })
