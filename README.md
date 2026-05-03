@@ -92,6 +92,11 @@ Output:
 
 Check the [**Documentation**](https://isolated-.github.io/xgsd-userdocs/) to learn more.
 
+## Related repos
+
+- [`@xgsd/runtime`](https://github.com/Isolated-/xgsd-runtime) - all logic required to orchestrate and execute blocks.
+- [`@xgsd/engine`](https://github.com/Isolated-/xgsd-engine) - provides a pure abstraction for executing promises in sequence and with concurrency
+
 ## Commands
 
 <!-- commands -->
@@ -203,7 +208,7 @@ Fully anonymous performance data is collected to improve xGSD and understand how
 
 ### What's collected
 
-These metrics are:
+We collect:
 
 ```json
 {
