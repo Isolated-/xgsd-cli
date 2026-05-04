@@ -1,6 +1,7 @@
-import {pathExistsSync} from 'fs-extra'
+import {ensureDirSync, pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
 import * as path from 'path'
 import * as Joi from 'joi'
+import * as esbuild from 'esbuild'
 
 export function resolvePackageJson(input: string): string {
   try {
@@ -23,6 +24,7 @@ export function resolvePackageJson(input: string): string {
 
       throw new Error(`package.json not found for ${input}`)
     } catch (err: any) {
+      console.log(err)
       throw new Error(`Cannot resolve package.json for "${input}"`)
     }
   }
@@ -74,4 +76,58 @@ export function createValidationSchema(): Joi.Schema {
   })
 
   return schema
+}
+
+function bannerLines(object: Record<string, string>) {
+  const lines = []
+  lines.push(' * xGSD bundle.js')
+  for (const key of Object.keys(object)) {
+    lines.push(` * ${key}: ${object[key]}`)
+  }
+  lines.push(' * WARNING: this file is generated. Do not edit manually.')
+  return lines.join('\r\n')
+}
+
+export async function bundle(options: {
+  packageJsonPath: string
+  entry: string
+  out: string
+  format: 'esm' | 'cjs'
+  banner: Record<string, string>
+}) {
+  const {packageJsonPath} = options
+  const json = readJsonSync(packageJsonPath)
+
+  const dependencies = []
+  if (json.dependencies) {
+    for (const [item] of Object.entries(json.dependencies)) {
+      dependencies.push(item)
+    }
+  }
+
+  const outdir = path.dirname(options.out)
+  ensureDirSync(outdir)
+  writeJsonSync(path.join(outdir, 'package.json'), {
+    ...json,
+    type: options.format === 'esm' ? 'module' : 'commonjs',
+  })
+
+  return esbuild.build({
+    keepNames: true,
+    entryPoints: [options.entry],
+    bundle: true,
+    platform: 'node',
+    outfile: options.out,
+    format: options.format,
+    minify: false,
+    sourcemap: false,
+    external: dependencies,
+    banner: {
+      js: `
+/**
+${bannerLines(options.banner)}
+ */
+`.trim(),
+    },
+  })
 }

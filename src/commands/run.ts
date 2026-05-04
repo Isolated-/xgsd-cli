@@ -6,7 +6,26 @@ import {debugPreset} from '../presets/debug.preset'
 import {defaultPreset} from '../presets/default.preset'
 import {developmentPreset} from '../presets/development.preset'
 import * as path from 'path'
-import {createValidationSchema, resolvePackageJson} from '../util'
+import {bundle, createValidationSchema, resolvePackageJson} from '../util'
+
+export async function createBundle({project, entry}: {project: string; entry: string}): Promise<string> {
+  const out = join(project, '.xgsd', 'bundle.js')
+  const entryFile = join(project, entry)
+  const packageJsonPath = join(project, 'package.json')
+
+  // for now let esbuild notify of errors
+  await bundle({
+    packageJsonPath,
+    entry: entryFile,
+    out,
+    banner: {
+      generated: new Date().toISOString(),
+    },
+    format: 'esm',
+  })
+
+  return join('.xgsd', 'bundle.js')
+}
 
 export default class Run extends BaseCommand<typeof Command> {
   static override args = {}
@@ -43,6 +62,13 @@ export default class Run extends BaseCommand<typeof Command> {
       description: 'path to your project (will override config path + entry)',
       aliases: ['project', 'projectPath'],
     }),
+
+    bundle: Flags.boolean({
+      char: 'b',
+      description: 'bundle your code before running your project (makes xGSD more portable)',
+      default: true,
+      allowNo: true,
+    }),
   }
 
   public async run(): Promise<any> {
@@ -68,8 +94,11 @@ export default class Run extends BaseCommand<typeof Command> {
       validator,
     })
 
-    const metrics = !flags.metrics ? false : (config.metrics?.enabled ?? flags.metrics)
+    if (flags.bundle) {
+      config.entry = await createBundle({project: projectPath, entry: flags.entry ?? config.entry})
+    }
 
+    const metrics = !flags.metrics ? false : (config.metrics?.enabled ?? flags.metrics)
     const presets: any[] = [defaultPreset]
 
     if (flags.debug) {
@@ -97,7 +126,7 @@ export default class Run extends BaseCommand<typeof Command> {
 
       return result
     } catch (e: any) {
-      if (e.stack) this.log(e.stack)
+      if (e.stack) this.error(e.stack)
 
       if (e.message) {
         this.error(e.message)

@@ -4,6 +4,7 @@ import {join} from 'path'
 import {defaultPreset} from './presets/default.preset'
 import {createWriteStream, ensureDirSync, writeFileSync} from 'fs-extra'
 import {createValidationSchema} from './util'
+import {createBundle} from './commands/run'
 
 type Opts = {
   apiKey?: string
@@ -53,6 +54,8 @@ export async function runProjectHandler(
       return validation.value
     },
   })
+
+  config.entry = await createBundle({project: projectPath, entry: config.entry ?? 'index.js'})
 
   try {
     const result = await bootstrap({
