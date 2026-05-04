@@ -63,6 +63,7 @@ export async function runProjectHandler(
         presets: [defaultPreset],
         opts: {
           metrics: config.metrics?.enabled ?? true,
+          createReport: true,
         },
       }),
       data,
