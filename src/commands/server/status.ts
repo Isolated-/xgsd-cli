@@ -1,7 +1,8 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {join} from 'path'
 import {isBackgroundProcessRunning} from './down'
-import {prettyMs} from '../../plugins/debug.plugin'
+import {prettyMs, prettyBytes} from '../../plugins/debug.plugin'
+import chalk from 'chalk'
 
 export default class Status extends Command {
   static override args = {}
@@ -27,8 +28,18 @@ export default class Status extends Command {
       return
     }
 
-    const {uptime, errors, runs} = await (await fetch(flags.url)).json()
+    const {uptime, errors, runs, memory_usage_heap_used} = await (await fetch(flags.url)).json()
 
-    this.log(`background service running (pid: ${pid})\n${errors} errors/${runs} runs - ${prettyMs(uptime)} uptime`)
+    const info = chalk.bold.blue
+    const error = chalk.bold.red
+
+    this.log(`background service is running (pid: ${info(pid)})`)
+
+    this.log()
+    this.log(`memory usage: ${info(prettyBytes(memory_usage_heap_used))}`)
+    this.log(`uptime: ${info(prettyMs(uptime))}`)
+
+    this.log()
+    this.log(`${error(errors)} errors/${info(runs)} runs`)
   }
 }
