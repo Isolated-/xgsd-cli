@@ -1,12 +1,11 @@
 import {Command, Flags} from '@oclif/core'
 import {join} from 'path'
 import {BaseCommand} from '../base'
-import {bootstrap, createConfig, composePresetWithOpts} from '@xgsd/runtime'
 import {debugPreset} from '../presets/debug.preset'
 import {defaultPreset} from '../presets/default.preset'
 import {developmentPreset} from '../presets/development.preset'
 import * as path from 'path'
-import {bundle, createValidationSchema, resolvePackageJson} from '../util'
+import {bundle, createValidationSchema, resolvePackageJson, resolveDependencyWithWarning} from '../util'
 
 export async function createBundle({project, entry}: {project: string; entry: string}): Promise<string> {
   const out = join(project, '.xgsd', 'bundle.js')
@@ -66,7 +65,7 @@ export default class Run extends BaseCommand<typeof Command> {
     bundle: Flags.boolean({
       char: 'b',
       description: 'bundle your code before running your project (makes xGSD more portable)',
-      default: true,
+      default: false,
       allowNo: true,
     }),
   }
@@ -87,6 +86,8 @@ export default class Run extends BaseCommand<typeof Command> {
 
       return validation.value
     }
+
+    const {bootstrap, createConfig, composePresetWithOpts} = resolveDependencyWithWarning('@xgsd/runtime', projectPath)
 
     const config = createConfig({
       configPath,

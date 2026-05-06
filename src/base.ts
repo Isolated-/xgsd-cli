@@ -1,8 +1,7 @@
 import {Command, Flags, Interfaces} from '@oclif/core'
-import {appendFileSync, ensureDirSync, pathExistsSync, readFileSync, readJsonSync, writeFileSync} from 'fs-extra'
+import {pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
 import {load} from 'js-yaml'
-import {join, resolve} from 'path'
-import {v7} from 'uuid'
+import {resolve} from 'path'
 
 export type Flags<T extends typeof Command> = Interfaces.InferredFlags<(typeof BaseCommand)['baseFlags'] & T['flags']>
 export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>

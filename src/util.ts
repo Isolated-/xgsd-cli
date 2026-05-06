@@ -1,7 +1,7 @@
 import {ensureDirSync, pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
 import * as path from 'path'
 import * as Joi from 'joi'
-import * as esbuild from 'esbuild'
+import {warn} from '@oclif/core/errors'
 
 export function resolvePackageJson(input: string): string {
   try {
@@ -24,7 +24,6 @@ export function resolvePackageJson(input: string): string {
 
       throw new Error(`package.json not found for ${input}`)
     } catch (err: any) {
-      console.log(err)
       throw new Error(`Cannot resolve package.json for "${input}"`)
     }
   }
@@ -88,6 +87,51 @@ function bannerLines(object: Record<string, string>) {
   return lines.join('\r\n')
 }
 
+export function resolvePath(moduleName: string, root: string): string {
+  return require.resolve(moduleName, {
+    paths: [root],
+  })
+}
+
+/**
+ *  used to migrate dependencies to peer dependencies without breaking projects
+ *  tries to find dependency locally before falling back to @xgsd/cli
+ *  @param dependency
+ *  @param projectRoot
+ */
+export function resolveDependency(dependency: string, projectRoot: string): {source: string; module: any} {
+  try {
+    const localPath = resolvePath(dependency, projectRoot)
+
+    return {
+      source: 'project',
+      module: require(localPath),
+    }
+  } catch {}
+
+  try {
+    const bundledPath = require.resolve(dependency)
+    return {
+      source: 'cli',
+      module: require(bundledPath),
+    }
+  } catch {}
+
+  throw new Error(
+    `Could not resolve ${dependency}.\nInstall it with \`yarn add ${dependency}\` or re-install @xgsd/cli.`,
+  )
+}
+
+export function resolveDependencyWithWarning(module: string, projectRoot: string, removal: string = '1.0.0') {
+  const mod = resolveDependency(module, projectRoot)
+
+  if (mod.source === 'cli') {
+    warn(`"${module}" should be installed locally, migrate by v${removal}.`)
+  }
+
+  return mod.module
+}
+
 export async function bundle(options: {
   packageJsonPath: string
   entry: string
@@ -97,6 +141,8 @@ export async function bundle(options: {
 }) {
   const {packageJsonPath} = options
   const json = readJsonSync(packageJsonPath)
+
+  const esbuild = resolveDependencyWithWarning('esbuild', path.dirname(options.entry))
 
   const dependencies = []
   if (json.dependencies) {
