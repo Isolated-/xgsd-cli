@@ -1,9 +1,8 @@
-import {createConfig, bootstrap, composePresetWithOpts, ProjectConfig} from '@xgsd/runtime'
 import Fastify, {FastifyReply, FastifyRequest} from 'fastify'
 import {join} from 'path'
 import {defaultPreset} from './presets/default.preset'
 import {createWriteStream, ensureDirSync, writeFileSync} from 'fs-extra'
-import {createValidationSchema} from './util'
+import {createValidationSchema, resolveDependencyWithWarning} from './util'
 import {createBundle} from './commands/run'
 
 type Opts = {
@@ -40,11 +39,13 @@ export async function runProjectHandler(
   const configPath = join(projectPath, 'config.yaml')
   const schema = createValidationSchema()
 
+  const {bootstrap, createConfig, composePresetWithOpts} = resolveDependencyWithWarning('@xgsd/runtime', projectPath)
+
   // cache this carefully
   const config = createConfig({
     packageJsonPath,
     configPath,
-    validator: (input) => {
+    validator: (input: unknown) => {
       const validation = schema.validate(input)
 
       if (validation.error) {
