@@ -31,22 +31,31 @@ export function resolvePackageJson(input: string): string {
   }
 }
 
-export function createValidationSchema(): Joi.Schema {
-  const options = Joi.object({
-    backoff: Joi.string().valid('linear', 'exponential', 'squaring').default('exponential'),
-    retries: Joi.number().greater(0).default(3),
-    timeout: Joi.alt(Joi.number().greater(0), Joi.string()).default(5000),
-  }).default({
-    backoff: 'exponential',
-    retries: 3,
-    timeout: 5000,
-  })
+export const bundledConfigDefaults = {
+  options: {backoff: 'exponential', retries: 3, timeout: 5000},
+  mode: 'async',
+  entry: 'index.js',
+  concurrency: 4,
+  env: null,
+  data: null,
+  metadata: null,
+  blocks: [],
+}
 
+export function createValidationSchema(partialDefaults: any = bundledConfigDefaults): Joi.Schema {
+  const defaults = {...bundledConfigDefaults, ...partialDefaults}
+  const options = Joi.object({
+    backoff: Joi.string().valid('linear', 'exponential', 'squaring').default(defaults.options.backoff),
+    retries: Joi.number().greater(0).default(defaults.options.retries),
+    timeout: Joi.alt(Joi.number().greater(0), Joi.string()).default(defaults.options.timeout),
+  }) //.default(defaults.options)
+
+  // TODO: move this to .xgsd.json
   const metrics = Joi.object({
     enabled: Joi.boolean(),
     //url: Joi.string().uri(),
     //urls: Joi.array().items(Joi.string().uri()),
-    accept: Joi.array().items(Joi.string().valid('basic')),
+    //accept: Joi.array().items(Joi.string().valid('basic')),
   })
 
   const block = Joi.object({
@@ -58,23 +67,25 @@ export function createValidationSchema(): Joi.Schema {
     env: Joi.object(),
     options,
     metadata: Joi.object(),
-    instances: Joi.number().min(1).max(100).default(1),
+    //instances: Joi.number().min(1).max(100).default(1),
   })
 
   const schema = Joi.object({
     name: Joi.string(),
     description: Joi.string(),
     version: Joi.alt(Joi.string(), Joi.number()),
-    entry: Joi.string(),
-    mode: Joi.string().valid('async', 'chain'),
-    metadata: Joi.object(),
+    entry: Joi.string().default(defaults.entry),
+    mode: Joi.string().valid('async', 'chain').default(defaults.mode),
+    metadata: Joi.object().default(defaults.metadata),
     metrics,
     options,
-    env: Joi.object(),
-    data: Joi.object(),
-    concurrency: Joi.number().greater(0).less(32),
-    blocks: Joi.array().items(block),
-  }).unknown(true)
+    env: Joi.object().default(defaults.env),
+    data: Joi.object().default(defaults.data),
+    concurrency: Joi.number().greater(0).less(32).default(defaults.concurrency),
+    blocks: Joi.array().items(block).default(defaults.blocks).min(1).max(999),
+  })
+    .unknown(true)
+    .strip(false)
 
   return schema
 }

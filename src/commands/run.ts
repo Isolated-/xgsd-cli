@@ -10,6 +10,7 @@ import {pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
 import {prettyMs} from '../plugins/debug.plugin'
 import {buildGraph} from '../graph/graph'
 import {BundlerGraphView, SummaryGraphView} from '../graph/summary'
+import {BundlerConfig, configFile, ConfigFile} from '../config'
 
 export async function createBundle({
   project,
@@ -69,7 +70,7 @@ export async function createBundle({
   return outPathRel
 }
 
-export default class Run extends BaseCommand<typeof Command> {
+export default class Run extends BaseCommand<typeof Run> {
   static override args = {}
   static override description = 'run your xGSD project'
   static override examples = ['<%= config.bin %> <%= command.id %>']
@@ -130,8 +131,19 @@ export default class Run extends BaseCommand<typeof Command> {
     const packageJson = resolvePackageJson(projectPath)
     const configPath = join(projectPath, flags.config)
 
+    const globalCli = configFile(this.config.configDir)
+    const cli = configFile(projectPath)
+    cli.merge(globalCli)
+
+    const bundler = cli.get<BundlerConfig>('bundler', {
+      enabled: flags.bundle,
+      cache: {
+        strategy: flags.cache ? 'change' : 'never',
+      },
+    })
+
     const validator = (input: any) => {
-      const validation = createValidationSchema().validate(input)
+      const validation = createValidationSchema(cli.get('defaults')?.config).validate(input)
 
       if (validation.error) {
         this.error(`config validation failed: ${validation.error.details[0].message}`)
@@ -148,16 +160,16 @@ export default class Run extends BaseCommand<typeof Command> {
       validator,
     })
 
-    if (flags.bundle) {
+    if (bundler.enabled) {
       config.entry = await createBundle({
         project: projectPath,
         entry: config.entry,
-        cache: flags.cache,
+        cache: bundler.cache?.strategy !== 'never' ? true : false,
         log: !flags.json,
       })
     }
 
-    const metrics = !flags.metrics ? false : (config.metrics?.enabled ?? flags.metrics)
+    const metrics = cli.get<{enabled: boolean}>('metrics', {enabled: flags.metrics})
     const presets: any[] = [defaultPreset]
 
     if (flags.debug) {
@@ -177,7 +189,8 @@ export default class Run extends BaseCommand<typeof Command> {
         preset: composePresetWithOpts({
           opts: {
             createReport: flags.save,
-            metrics,
+            metrics: metrics.enabled,
+            debug: flags.debug,
           },
           presets,
         }),
