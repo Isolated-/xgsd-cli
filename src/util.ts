@@ -74,7 +74,7 @@ export function createValidationSchema(): Joi.Schema {
     data: Joi.object(),
     concurrency: Joi.number().greater(0).less(32),
     blocks: Joi.array().items(block),
-  })
+  }).unknown(true)
 
   return schema
 }
