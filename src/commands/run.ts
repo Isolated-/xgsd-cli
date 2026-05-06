@@ -125,6 +125,11 @@ export default class Run extends BaseCommand<typeof Command> {
         }),
       })
 
+      this.log(`finished running your project, use --json to view the result of runs.`)
+      if (flags.save) {
+        this.log(`saved result to ${join(projectPath, result.end + '.json')}`)
+      }
+
       return result
     } catch (e: any) {
       if (e.stack) this.error(e.stack)

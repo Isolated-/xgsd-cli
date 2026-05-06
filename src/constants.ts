@@ -10,3 +10,15 @@ export const userLogThemes: {[key: string]: (msg: string) => string} = {
   status: chalk.magenta,
   info: chalk.whiteBright,
 }
+
+export enum EnvVars {
+  CLI_NO_WARNINGS = 'XGSD_NO_WARNINGS',
+}
+
+export function getEnvVarBool(key: string): boolean {
+  if (key in process.env) {
+    return true
+  }
+
+  return false
+}

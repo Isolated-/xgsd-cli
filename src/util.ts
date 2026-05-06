@@ -2,6 +2,7 @@ import {ensureDirSync, pathExistsSync, readJsonSync, writeJsonSync} from 'fs-ext
 import * as path from 'path'
 import * as Joi from 'joi'
 import {warn} from '@oclif/core/errors'
+import {EnvVars, getEnvVarBool} from './constants'
 
 export function resolvePackageJson(input: string): string {
   try {
@@ -125,8 +126,14 @@ export function resolveDependency(dependency: string, projectRoot: string): {sou
 export function resolveDependencyWithWarning(module: string, projectRoot: string, removal: string = '1.0.0') {
   const mod = resolveDependency(module, projectRoot)
 
+  const envVar = getEnvVarBool(EnvVars.CLI_NO_WARNINGS)
+
+  if (envVar) return mod.module
+
   if (mod.source === 'cli') {
-    warn(`"${module}" should be installed locally, migrate by v${removal}.`)
+    warn(
+      `"${module}" should be installed locally, migrate by v${removal}. Set XGSD_NO_WARNINGS=1 to silence this warning.`,
+    )
   }
 
   return mod.module
