@@ -3113,6 +3113,11 @@
   resolved "https://registry.npmjs.org/@types/stack-utils/-/stack-utils-2.0.3.tgz#6209321eb2c1712a7e7466422b8cb1fc0d9dd5d8"
   integrity sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==
 
+"@types/treeify@^1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@types/treeify/-/treeify-1.0.3.tgz#f502e11e851b1464d5e80715d5ce3705ad864638"
+  integrity sha512-hx0o7zWEUU4R2Amn+pjCBQQt23Khy/Dk56gQU5xi5jtPL1h83ACJCeFaB2M/+WO1AntvWrSoVnnCAfI1AQH4Cg==
+
 "@types/unist@*":
   version "3.0.3"
   resolved "https://registry.npmjs.org/@types/unist/-/unist-3.0.3.tgz#acaab0f919ce69cce629c2d4ed2eb4adc1b6c20c"
@@ -8477,6 +8482,11 @@ toad-cache@^3.7.0:
   version "3.7.0"
   resolved "https://registry.yarnpkg.com/toad-cache/-/toad-cache-3.7.0.tgz#b9b63304ea7c45ec34d91f1d2fa513517025c441"
   integrity sha512-/m8M+2BJUpoJdgAHoG+baCwBT+tf2VraSfkBgl0Y00qIWt41DJ8R5B8nsEw0I58YwF5IZH6z24/2TobDKnqSWw==
+
+treeify@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/treeify/-/treeify-1.1.0.tgz#4e31c6a463accd0943879f30667c4fdaff411bb8"
+  integrity sha512-1m4RA7xVAJrSGrrXGs0L3YTwyvBs2S8PbRHaLZAkFw7JR8oIFwYtysxlBZhYIa7xSyiYJKZ3iGrrk55cGA3i9A==
 
 treeverse@^3.0.0:
   version "3.0.0"

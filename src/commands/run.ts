@@ -8,7 +8,7 @@ import path from 'path'
 import {bundle, createValidationSchema, resolvePackageJson, resolveDependencyWithWarning} from '../util'
 import {pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
 import {prettyMs} from '../plugins/debug.plugin'
-import {buildGraph, calculateModuleGraphHash} from '../graph/graph'
+import {buildGraph} from '../graph/graph'
 import {BundlerGraphView, SummaryGraphView} from '../graph/summary'
 
 export async function createBundle({
@@ -60,7 +60,7 @@ export async function createBundle({
   })
 
   writeJsonSync(summaryPath, summary, {spaces: 2})
-  if (log) console.log(`code summary written to .xgsd/summary.json`)
+  if (log) console.log(`summary written to .xgsd/summary.json`)
 
   const ms = performance.now() - start
 
@@ -151,7 +151,7 @@ export default class Run extends BaseCommand<typeof Command> {
     if (flags.bundle) {
       config.entry = await createBundle({
         project: projectPath,
-        entry: flags.entry ?? config.entry,
+        entry: config.entry,
         cache: flags.cache,
         log: !flags.json,
       })
