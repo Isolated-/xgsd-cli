@@ -56,6 +56,8 @@ function registerExternal(graph: ModuleGraph, pkgKey: string, fromFile: string, 
   ext.specifiers.push(...specifiers)
   ext.specifiers = dedupe(ext.specifiers).sort()
 
+  // sanity check
+
   if (ext.version === null) {
     const pkgEntry = resolveImport(fromFile, pkgKey, {allowExternal: true})
 
@@ -193,8 +195,10 @@ export function resolveImport(from: string, specifier: string, opts?: {allowExte
     const resolved = path.resolve(path.dirname(from), specifier)
 
     const withJs = resolved.endsWith('.js') ? resolved : `${resolved}.js`
+    const withTs = resolved.endsWith('.ts') ? resolved : `${resolved}.ts`
 
     if (existsSync(withJs)) return withJs
+    if (existsSync(withTs)) return withTs
     if (existsSync(resolved)) return resolved
 
     return null

@@ -61,6 +61,7 @@ export async function createBundle({
   })
 
   writeJsonSync(summaryPath, summary, {spaces: 2})
+  writeJsonSync(join(xgsd, 'graph.json'), graph, {spaces: 2})
   if (log) console.log(`summary written to .xgsd/summary.json`)
 
   const ms = performance.now() - start
