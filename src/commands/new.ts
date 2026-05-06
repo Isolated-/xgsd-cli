@@ -187,7 +187,7 @@ export default class New extends Command {
       const dest = join(destination, path)
       const abs = join(templatePath, path)
 
-      if (abs.includes('node_modules')) {
+      if (abs.includes('node_modules') && !abs.includes('@xgsd/cli')) {
         continue
       }
 
