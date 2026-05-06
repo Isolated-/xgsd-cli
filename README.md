@@ -67,28 +67,22 @@ npm install -g @xgsd/cli
 
 ## Quickstart
 
-Create a `index.js` with your block (pure function):
-
-```javascript
-// index.js
-export async function greet({name}) {
-  return {message: `Hello ${name}`}
-}
-```
-
-And then call it:
+Create a new project:
 
 ```bash
-xgsd call greet -d '{"name": "world"}'
+xgsd new my-project
+cd my-project
 ```
 
-Output:
+This creates a "greet" example project.
+
+Now run it:
 
 ```bash
-{
-  "message": "Hello world"
-}
+xgsd run -d '{"name": "Me"}'
 ```
+
+View the results under `runs`.
 
 Check the [**Documentation**](https://isolated-.github.io/xgsd-userdocs/) to learn more.
 
@@ -100,20 +94,21 @@ Check the [**Documentation**](https://isolated-.github.io/xgsd-userdocs/) to lea
 ## Commands
 
 <!-- commands -->
-* [`xgsd call BLOCK`](#xgsd-call-block)
-* [`xgsd down`](#xgsd-down)
-* [`xgsd help [COMMAND]`](#xgsd-help-command)
-* [`xgsd run`](#xgsd-run)
-* [`xgsd server down`](#xgsd-server-down)
-* [`xgsd server start`](#xgsd-server-start)
-* [`xgsd server status`](#xgsd-server-status)
-* [`xgsd server stop`](#xgsd-server-stop)
-* [`xgsd server up`](#xgsd-server-up)
-* [`xgsd start`](#xgsd-start)
-* [`xgsd status`](#xgsd-status)
-* [`xgsd stop`](#xgsd-stop)
-* [`xgsd up`](#xgsd-up)
-* [`xgsd version`](#xgsd-version)
+
+- [`xgsd call BLOCK`](#xgsd-call-block)
+- [`xgsd down`](#xgsd-down)
+- [`xgsd help [COMMAND]`](#xgsd-help-command)
+- [`xgsd run`](#xgsd-run)
+- [`xgsd server down`](#xgsd-server-down)
+- [`xgsd server start`](#xgsd-server-start)
+- [`xgsd server status`](#xgsd-server-status)
+- [`xgsd server stop`](#xgsd-server-stop)
+- [`xgsd server up`](#xgsd-server-up)
+- [`xgsd start`](#xgsd-start)
+- [`xgsd status`](#xgsd-status)
+- [`xgsd stop`](#xgsd-stop)
+- [`xgsd up`](#xgsd-up)
+- [`xgsd version`](#xgsd-version)
 
 ## `xgsd call BLOCK`
 
@@ -482,6 +477,7 @@ FLAG DESCRIPTIONS
 ```
 
 _See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/2.2.42/src/commands/version.ts)_
+
 <!-- commandsstop -->
 
 ## Metrics

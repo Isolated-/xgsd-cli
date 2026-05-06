@@ -1,11 +1,12 @@
 {
   "compilerOptions": {
     "declaration": true,
-    "module": "commonjs",
+    "module": "nodenext",
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
-    "target": "es2022",
+    "target": "esnext",
+    "moduleResolution": "nodenext",
     "types": ["jest", "node"],
     "esModuleInterop": true
   },
