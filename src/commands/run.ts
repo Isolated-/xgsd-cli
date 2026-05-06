@@ -4,7 +4,7 @@ import {BaseCommand} from '../base'
 import {debugPreset} from '../presets/debug.preset'
 import {defaultPreset} from '../presets/default.preset'
 import {developmentPreset} from '../presets/development.preset'
-import * as path from 'path'
+import path from 'path'
 import {bundle, createValidationSchema, resolvePackageJson, resolveDependencyWithWarning} from '../util'
 import {pathExistsSync} from 'fs-extra'
 import {prettyMs} from '../plugins/debug.plugin'
@@ -105,6 +105,8 @@ export default class Run extends BaseCommand<typeof Command> {
   public async run(): Promise<any> {
     const flags = this.flags!
 
+    const spanStart = performance.now()
+
     const projectPath = this.flags.path ? path.resolve(this.flags.path) : process.cwd()
     const packageJson = resolvePackageJson(projectPath)
     const configPath = join(projectPath, flags.config)
@@ -160,6 +162,7 @@ export default class Run extends BaseCommand<typeof Command> {
           },
           presets,
         }),
+        spanStart,
       })
 
       if (flags.save) {

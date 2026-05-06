@@ -3338,21 +3338,10 @@
   resolved "https://registry.yarnpkg.com/@xgsd/engine/-/engine-1.0.0-stable.tgz#a7c2b121a9572f7c23297d588ceb569fc6eb71ca"
   integrity sha512-dUzQjUfMsY5KjomWMHZMSZTxwTNQUMKj7T6jpkjs4rroRYXXM0GF7O6kUoIf+3qiBhAmbYoGsL1QMRflOdASjA==
 
-"@xgsd/runtime@../xgsd-runtime":
-  version "0.1.0"
-  dependencies:
-    "@xgsd/engine" "1.0.0-stable"
-    dotenv "^17.4.2"
-    fs-extra "^11.3.4"
-    ms "^2.1.3"
-    ts-deepmerge "^7.0.3"
-    uuid "11.0.0"
-    yaml "^2.8.3"
-
-"@xgsd/runtime@0.1.2":
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/@xgsd/runtime/-/runtime-0.1.2.tgz#dafa2739f99d22b5311cf6c638ba8dbb4a51d39f"
-  integrity sha512-YdtXEXgX2sxydVjWxTFNQAbLF1v+iqZvHqHoE3cCv96EwL1QODNNkmPh1dfW/3GDInQoI9LgYO2ZXqUiAbg3EA==
+"@xgsd/runtime@0.1.3":
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/@xgsd/runtime/-/runtime-0.1.3.tgz#7d96955aaf3a2d5eb09c9371f4b18135ba90edff"
+  integrity sha512-oPTvWNKnHU8K72keLvDAaLsKW27NfSALMXuThHCEFhZSuAnLBdorS11Nr+cFbNS+P7SkPa3thadk7ei65kJIaA==
   dependencies:
     "@xgsd/engine" "1.0.0-stable"
     dotenv "^17.4.2"
@@ -4427,7 +4416,7 @@ es-to-primitive@^1.3.0:
     is-date-object "^1.0.5"
     is-symbol "^1.0.4"
 
-esbuild@^0.28.0:
+esbuild@0.28.0:
   version "0.28.0"
   resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.28.0.tgz#5dee347ffb3e3874212a35a69836b077b1ce6d96"
   integrity sha512-sNR9MHpXSUV/XB4zmsFKN+QgVG82Cc7+/aaxJ8Adi8hyOac+EXptIp45QBPaVyX3N70664wRbTcLTOemCAnyqw==
