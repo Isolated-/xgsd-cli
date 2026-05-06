@@ -2,7 +2,7 @@ import {pathExistsSync, readFileSync, readJsonSync} from 'fs-extra'
 import {load} from 'js-yaml'
 import {join} from 'path'
 
-export const XGSD_CONFIG_FILE_NAME: string = '.xgsd' as const
+export const XGSD_CONFIG_FILE_NAME: string = 'xgsd' as const
 export const XGSD_CONFIG_FILE_EXTS: string[] = ['json', 'yaml', 'yml'] as const
 
 export type ConfigOpts = {throw: boolean}
@@ -29,6 +29,21 @@ export type BundlerConfig = {
   }
 }
 
+export function resolveFilePath(file: string, exts: string[], cwd: string): string | null {
+  const base = join(cwd, file)
+
+  for (const ext of exts) {
+    const path = `${base}.${ext}`
+
+    // return first found
+    if (pathExistsSync(path)) {
+      return path
+    }
+  }
+
+  return null
+}
+
 export class ConfigFile {
   public _content!: Record<string, unknown>
 
@@ -40,13 +55,7 @@ export class ConfigFile {
   load() {
     const path = join(this.cwd, XGSD_CONFIG_FILE_NAME)
 
-    let found = undefined
-    for (const ext of XGSD_CONFIG_FILE_EXTS) {
-      let p = `${path}.${ext}`
-      if (pathExistsSync(p)) {
-        found = p
-      }
-    }
+    let found = resolveFilePath(XGSD_CONFIG_FILE_NAME, XGSD_CONFIG_FILE_EXTS, this.cwd)
 
     if (!found && this.opts.throw) {
       throw new Error(`${path} could not be found`)
@@ -56,14 +65,11 @@ export class ConfigFile {
       return this
     }
 
-    let content: Record<string, unknown>
-    try {
-      content = readJsonSync(found!)
-    } catch {
-      content = load(readFileSync(found!).toString()) as Record<string, unknown>
+    if (found?.endsWith('.json')) {
+      this._content = readJsonSync(found)
+    } else {
+      this._content = load(readFileSync(found!).toString()) as Record<string, unknown>
     }
-
-    this._content = content
 
     return this
   }

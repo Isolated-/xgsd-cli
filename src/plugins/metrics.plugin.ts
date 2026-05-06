@@ -114,7 +114,7 @@ export class MetricsPlugin implements Plugin {
       })
 
       if (this.opts.debug) {
-        console.log(`[MetricsPlugin]: sent metrics for activation ${activation}`)
+        console.log(`[MetricsPlugin]: sent metrics for "${activation}" activation.`)
       }
     } catch (error) {}
   }
