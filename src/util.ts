@@ -130,16 +130,14 @@ export function resolveDependencyWithWarning(module: string, projectRoot: string
 
   if (envVar) return mod.module
 
-  if (mod.source === 'cli') {
+  /*if (mod.source === 'cli') {
     warn(
-      `"${module}" should be installed locally, migrate by v${removal}. Set XGSD_NO_WARNINGS=1 to silence this warning.`,
+      `"${module} can be installed inside your project with \`yarn add ${module}\`. Set XGSD_NO_WARNINGS=1 to silence this warning.`,
     )
-  }
+  }*/
 
   return mod.module
 }
-
-let bundleCache = new Set()
 
 export async function bundle(options: {
   packageJsonPath: string
