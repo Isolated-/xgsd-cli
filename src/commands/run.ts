@@ -9,7 +9,7 @@ import {bundle, createValidationSchema, resolvePackageJson, resolveDependencyWit
 import {pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
 import {prettyMs} from '../plugins/debug.plugin'
 import {buildGraph, calculateModuleGraphHash} from '../graph/graph'
-import {SummaryGraphView} from '../graph/summary'
+import {BundlerGraphView, SummaryGraphView} from '../graph/summary'
 
 export async function createBundle({
   project,
@@ -33,6 +33,7 @@ export async function createBundle({
   const summaryPath = join(xgsd, 'summary.json')
   const graph = await buildGraph(entryFile)
   const summary = new SummaryGraphView(graph).build()
+  const bundlerView = new BundlerGraphView(graph).build()
 
   if (pathExistsSync(summaryPath) && cache) {
     const json = readJsonSync(summaryPath)
@@ -55,6 +56,7 @@ export async function createBundle({
       hash: summary.hash,
     },
     format: 'esm',
+    dependencies: bundlerView.uses,
   })
 
   writeJsonSync(summaryPath, summary, {spaces: 2})

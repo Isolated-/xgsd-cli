@@ -3,6 +3,7 @@ import * as path from 'path'
 import * as Joi from 'joi'
 import {warn} from '@oclif/core/errors'
 import {EnvVars, getEnvVarBool} from './constants'
+import {ModuleGraph} from './graph/graph'
 
 export function resolvePackageJson(input: string): string {
   try {
@@ -145,20 +146,14 @@ export async function bundle(options: {
   out: string
   format: 'esm' | 'cjs'
   banner: Record<string, string>
+  dependencies: string[]
 }) {
-  const {packageJsonPath} = options
+  const {packageJsonPath, dependencies} = options
   const json = readJsonSync(packageJsonPath)
 
   const esbuild = resolveDependencyWithWarning('esbuild', path.dirname(options.entry))
   if (esbuild.version) {
     console.log(`building with esbuild@${esbuild.version}`)
-  }
-
-  const dependencies = []
-  if (json.dependencies) {
-    for (const [item] of Object.entries(json.dependencies)) {
-      dependencies.push(item)
-    }
   }
 
   const outdir = path.dirname(options.out)
