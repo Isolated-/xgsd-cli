@@ -56,7 +56,7 @@ export async function runProjectHandler(
     },
   })
 
-  config.entry = await createBundle({project: projectPath, entry: config.entry ?? 'index.js'})
+  config.entry = await createBundle({project: projectPath, entry: config.entry ?? 'index.js', cache: true})
 
   try {
     const result = await bootstrap({

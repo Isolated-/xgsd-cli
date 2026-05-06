@@ -6,11 +6,31 @@ import {defaultPreset} from '../presets/default.preset'
 import {developmentPreset} from '../presets/development.preset'
 import * as path from 'path'
 import {bundle, createValidationSchema, resolvePackageJson, resolveDependencyWithWarning} from '../util'
+import {pathExistsSync} from 'fs-extra'
+import {prettyMs} from '../plugins/debug.plugin'
 
-export async function createBundle({project, entry}: {project: string; entry: string}): Promise<string> {
+export async function createBundle({
+  project,
+  entry,
+  cache,
+  log,
+}: {
+  project: string
+  entry: string
+  cache: boolean
+  log?: boolean
+}): Promise<string> {
   const out = join(project, '.xgsd', 'bundle.js')
   const entryFile = join(project, entry)
   const packageJsonPath = join(project, 'package.json')
+  const outPathRel = join('.xgsd', 'bundle.js')
+
+  if (pathExistsSync(out) && cache) {
+    if (log) console.log(`${outPathRel} loaded from cache (use --no-cache or delete it to force bundling)`)
+    return outPathRel
+  }
+
+  const start = performance.now()
 
   // for now let esbuild notify of errors
   await bundle({
@@ -23,7 +43,11 @@ export async function createBundle({project, entry}: {project: string; entry: st
     format: 'esm',
   })
 
-  return join('.xgsd', 'bundle.js')
+  const ms = performance.now() - start
+
+  if (log) console.log(`${entry} bundled to ${outPathRel} in ${prettyMs(ms)}`)
+
+  return outPathRel
 }
 
 export default class Run extends BaseCommand<typeof Command> {
@@ -65,8 +89,16 @@ export default class Run extends BaseCommand<typeof Command> {
     bundle: Flags.boolean({
       char: 'b',
       description: 'bundle your code before running your project (makes xGSD more portable)',
-      default: false,
+      default: true,
       allowNo: true,
+    }),
+
+    cache: Flags.boolean({
+      char: 'C',
+      description: 'cache built artifacts to speed up project runs',
+      default: true,
+      allowNo: true,
+      dependsOn: ['bundle'],
     }),
   }
 
@@ -96,7 +128,12 @@ export default class Run extends BaseCommand<typeof Command> {
     })
 
     if (flags.bundle) {
-      config.entry = await createBundle({project: projectPath, entry: flags.entry ?? config.entry})
+      config.entry = await createBundle({
+        project: projectPath,
+        entry: flags.entry ?? config.entry,
+        cache: flags.cache,
+        log: !flags.json,
+      })
     }
 
     const metrics = !flags.metrics ? false : (config.metrics?.enabled ?? flags.metrics)
@@ -125,9 +162,14 @@ export default class Run extends BaseCommand<typeof Command> {
         }),
       })
 
-      this.log(`finished running your project, use --json to view the result of runs.`)
       if (flags.save) {
         this.log(`saved result to ${join(projectPath, result.end + '.json')}`)
+      }
+
+      if (result.state === 'failed') {
+        this.warn(`your project ended in a failed state, check logs for more info`)
+      } else {
+        this.log(`finished running your project, use --json to view the result of runs`)
       }
 
       return result

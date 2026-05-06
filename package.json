@@ -15,7 +15,7 @@
     "@oclif/plugin-plugins": "^5.4.63",
     "@oclif/plugin-version": "^2.2.32",
     "@types/js-yaml": "^4.0.9",
-    "@xgsd/runtime": "0.1.2",
+    "@xgsd/runtime": "../xgsd-runtime",
     "chalk": "^5.6.0",
     "esbuild": "^0.28.0",
     "eventemitter2": "^6.4.9",

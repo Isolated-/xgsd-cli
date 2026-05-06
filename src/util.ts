@@ -139,6 +139,8 @@ export function resolveDependencyWithWarning(module: string, projectRoot: string
   return mod.module
 }
 
+let bundleCache = new Set()
+
 export async function bundle(options: {
   packageJsonPath: string
   entry: string
@@ -150,6 +152,9 @@ export async function bundle(options: {
   const json = readJsonSync(packageJsonPath)
 
   const esbuild = resolveDependencyWithWarning('esbuild', path.dirname(options.entry))
+  if (esbuild.version) {
+    console.log(`building with esbuild@${esbuild.version}`)
+  }
 
   const dependencies = []
   if (json.dependencies) {
