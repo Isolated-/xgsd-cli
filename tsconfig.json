@@ -6,9 +6,9 @@
     "rootDir": "src",
     "strict": true,
     "target": "esnext",
-    "moduleResolution": "nodenext",
     "types": ["jest", "node"],
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "isolatedModules": true
   },
   "include": ["src/**/*"]
 }
