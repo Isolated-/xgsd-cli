@@ -1,4 +1,7 @@
 import {Context, Plugin, ProjectEvent, BlockEvent, SystemEvent, FatalError, FatalErrorCode} from '@xgsd/runtime'
+import {prettyBytes, sizeOf} from './debug.plugin'
+import {warn} from '@oclif/core/errors'
+import {getLogger} from '@oclif/core'
 
 const eventToHookMap = {
   // project events
@@ -21,11 +24,12 @@ const eventToHookMap = {
 type ContextLike = {
   packagePath: string
   blockCount: number
+  entry: string
 }
 
 async function importUserModule<T extends ContextLike = ContextLike>(context: T) {
   try {
-    const mod = await import(context.packagePath)
+    const mod = await import(context.entry)
     return mod
   } catch (e: any) {
     // clean this up
@@ -42,7 +46,11 @@ export class UserHooksPlugin implements Plugin {
   constructor(private readonly opts: Record<string, unknown>) {}
 
   async init(context: Context): Promise<void> {
-    this.module = await importUserModule({packagePath: context.projectPath, blockCount: context.blockCount})
+    this.module = await importUserModule({
+      entry: context.entry,
+      packagePath: context.projectPath,
+      blockCount: context.blockCount,
+    })
   }
 
   private async callHook(data: {event: keyof typeof eventToHookMap; payload: unknown}) {
@@ -56,10 +64,13 @@ export class UserHooksPlugin implements Plugin {
     if (typeof fn !== 'function') return
 
     try {
+      if (this.opts.debug) {
+        console.log(`[UserHooksPlugin] dispatch ${event} to ${fnName} (${prettyBytes(sizeOf(payload))})`)
+      }
       await fn(payload)
     } catch (error: any) {
       // Don't crash the system — log instead
-      console.error(`[UserCodeHook] ${fnName} failed: ${error.message}`)
+      warn(`[UserHooksPlugin] ${fnName} failed: ${error.message}`)
     }
   }
 

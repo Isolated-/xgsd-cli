@@ -59,7 +59,7 @@ export class MetricsPlugin implements Plugin {
   private blocks = {total: 0, failed: 0}
   private url: string
 
-  constructor(private readonly opts: {metrics: boolean}) {
+  constructor(private readonly opts: {metrics: boolean; debug: boolean}) {
     const packageJson = require('../../package.json')
     this.url = packageJson.backend
   }
@@ -112,6 +112,10 @@ export class MetricsPlugin implements Plugin {
         reason: 'metrics_opt_in',
         projectPath,
       })
+
+      if (this.opts.debug) {
+        console.log(`[MetricsPlugin]: sent metrics for activation ${activation}`)
+      }
     } catch (error) {}
   }
 }
