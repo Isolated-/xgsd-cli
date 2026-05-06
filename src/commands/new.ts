@@ -97,11 +97,9 @@ export default class New extends Command {
     const builtins = readdirSync(builtInTemplatesPath).filter((s) => s !== 'README.md')
 
     let templatePath = ''
-    let usingBuiltIn = false
 
     // if its in templates/
     if (builtins.includes(template)) {
-      usingBuiltIn = true
       templatePath = join(builtInTemplatesPath, template)
     } else {
       // otherwise fall back to template = path
@@ -160,12 +158,6 @@ export default class New extends Command {
         this.error(`${detail.message}`)
       }
     }
-
-    /*if (!usingBuiltIn) {
-      cpSync(templatePath, destination, {recursive: true})
-      this.log(`copied ${templatePath} to ${destination}`)
-      return
-    }*/
 
     function move(source: string, destination: string) {
       ensureFileSync(destination)

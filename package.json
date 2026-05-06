@@ -67,6 +67,7 @@
   "files": [
     "./bin",
     "./dist",
+    "./templates",
     "./oclif.manifest.json"
   ],
   "homepage": "https://github.com/Isolated-/xgsd-cli",
