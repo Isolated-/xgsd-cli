@@ -1,13 +1,13 @@
 import {Args, Command, Flags} from '@oclif/core'
-import {readFileSync, rmdirSync, mkdirSync, writeFileSync} from 'fs'
-import {pathExistsSync} from 'fs-extra'
-import {join} from 'path'
-import {input, select} from '@inquirer/prompts'
+import {readFileSync, rmdirSync, mkdirSync, writeFileSync, readdirSync, cpSync, rmSync, statSync} from 'fs'
+import {ensureFileSync, pathExistsSync} from 'fs-extra'
+import {join, resolve} from 'path'
+import {input, select, confirm} from '@inquirer/prompts'
 import Joi from 'joi'
 import {prettyBytes, sizeOf} from '../plugins/debug.plugin'
 
-const TEMPLATE_RE = /\{\{([^}]+)\}\}/g
-const FULL_TEMPLATE_RE = /^\s*\{\{\s*(.*?)\s*\}\}\s*$/
+export const TEMPLATE_RE = /\{\{([^}]+)\}\}/g
+export const FULL_TEMPLATE_RE = /^\s*\{\{\s*(.*?)\s*\}\}\s*$/
 
 export function interpolate(template: string, ctx: any) {
   // FULL template: "{{ctx}}"
@@ -46,8 +46,14 @@ export default class New extends Command {
   static override examples = ['<%= config.bin %> <%= command.id %>']
   static override flags = {
     template: Flags.string({
-      options: ['greet'],
       default: 'greet',
+      description: 'blank/greet for built-ins or provide a path to a template project',
+    }),
+
+    recursive: Flags.boolean({
+      default: false,
+      char: 'r',
+      description: 'enable recursive mode (ignores node_modules)',
     }),
 
     description: Flags.string({
@@ -86,15 +92,32 @@ export default class New extends Command {
     let {template, version, entry, description, mode} = flags
     let name = args.name
 
-    const templatesPath = join(__dirname, '..', '..', 'templates')
-    const templatePath = join(templatesPath, template)
+    const builtInTemplatesPath = join(__dirname, '..', '..', 'templates')
+
+    const builtins = readdirSync(builtInTemplatesPath).filter((s) => s !== 'README.md')
+
+    let templatePath = ''
+    let usingBuiltIn = false
+
+    // if its in templates/
+    if (builtins.includes(template)) {
+      usingBuiltIn = true
+      templatePath = join(builtInTemplatesPath, template)
+    } else {
+      // otherwise fall back to template = path
+      templatePath = resolve(template)
+    }
 
     // sanity check
     if (!pathExistsSync(templatePath)) {
-      this.error('template path does not exist')
+      this.error(`${templatePath} does not exist`)
     }
 
     const destination = join(process.cwd(), name)
+
+    function cleanup() {
+      if (pathExistsSync(destination)) rmdirSync(destination)
+    }
 
     if (pathExistsSync(destination)) {
       this.error(`${destination} already exists - either delete it or choose a new name`)
@@ -108,8 +131,6 @@ export default class New extends Command {
     }
 
     mkdirSync(destination)
-
-    const paths = ['package.json', 'index.js', 'config.yaml', 'README.md']
 
     const ctx = {
       NAME: name,
@@ -129,19 +150,25 @@ export default class New extends Command {
       MODE: Joi.string().valid('async', 'chain'),
     })
 
+    const paths = readdirSync(templatePath, {recursive: flags.recursive})
+
     const validation = schema.validate(ctx)
     if (validation.error) {
-      rmdirSync(destination)
+      cleanup()
 
       for (const detail of validation.error.details) {
         this.error(`${detail.message}`)
       }
     }
 
+    /*if (!usingBuiltIn) {
+      cpSync(templatePath, destination, {recursive: true})
+      this.log(`copied ${templatePath} to ${destination}`)
+      return
+    }*/
+
     function move(source: string, destination: string) {
-      if (!pathExistsSync(source)) {
-        throw new Error(`${source} does not exist, can't move`)
-      }
+      ensureFileSync(destination)
 
       const str = readFileSync(source).toString()
       const template = interpolate(str, ctx)
@@ -151,10 +178,34 @@ export default class New extends Command {
       return sizeOf(template)
     }
 
-    for (const path of paths) {
+    if (paths.length > 100) {
+      this.warn(`trying to copy ${paths.length} files to ${destination}. Are you sure this is a template?`)
+
+      if (!flags.confirm) {
+        const conf = await confirm({message: 'continue?', default: false})
+        if (!conf) {
+          cleanup()
+
+          return
+        }
+      }
+    }
+
+    for (const path of paths as string[]) {
       const dest = join(destination, path)
+      const abs = join(templatePath, path)
+
+      if (abs.includes('node_modules')) {
+        continue
+      }
+
+      const stat = statSync(abs)
+      if (stat.isDirectory()) {
+        continue
+      }
 
       const bytes = move(join(templatePath, path), dest)
+
       this.log(`created ${dest} (${prettyBytes(bytes)})`)
     }
   }

@@ -1,0 +1,4 @@
+name: {{NAME}}
+description: {{DESCRIPTION}}
+version: {{VERSION}}
+mode: {{MODE}}
