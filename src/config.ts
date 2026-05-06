@@ -29,6 +29,17 @@ export type BundlerConfig = {
   }
 }
 
+export type RuntimeConfig = {
+  save?: boolean
+  debug?: boolean
+  process?: {
+    enabled?: boolean
+  }
+  resolve?: {
+    config?: 'auto' | string
+  }
+}
+
 export function resolveFilePath(file: string, exts: string[], cwd: string): string | null {
   const base = join(cwd, file)
 

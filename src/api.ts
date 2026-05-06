@@ -4,6 +4,8 @@ import {defaultPreset} from './presets/default.preset'
 import {createWriteStream, ensureDirSync, writeFileSync} from 'fs-extra'
 import {createValidationSchema, resolveDependencyWithWarning} from './util'
 import {createBundle} from './commands/run'
+import {BundlerConfig, configFile} from './config'
+import {developmentPreset} from './presets/development.preset'
 
 type Opts = {
   apiKey?: string
@@ -37,7 +39,23 @@ export async function runProjectHandler(
   // allow overriding these
   const packageJsonPath = join(projectPath, 'package.json')
   const configPath = join(projectPath, 'config.yaml')
-  const schema = createValidationSchema()
+
+  const cli = configFile(projectPath)
+  const schema = createValidationSchema(cli.get('defaults').config)
+
+  const bundler = cli.get<BundlerConfig>('bundler', {
+    enabled: true,
+    cache: {
+      strategy: 'change',
+    },
+  })
+
+  const metrics = cli.get<{enabled: boolean}>('metrics', {enabled: true})
+  const runtime = cli.get<{save: boolean; debug: boolean; process: {enabled: boolean}}>('runtime', {
+    debug: false,
+    save: true,
+    process: {enabled: true},
+  })
 
   const {bootstrap, createConfig, composePresetWithOpts} = resolveDependencyWithWarning('@xgsd/runtime', projectPath)
 
@@ -56,18 +74,29 @@ export async function runProjectHandler(
     },
   })
 
-  config.entry = await createBundle({project: projectPath, entry: config.entry ?? 'index.js', cache: true})
+  if (bundler.enabled) {
+    config.entry = await createBundle({
+      project: projectPath,
+      entry: config.entry ?? 'index.js',
+      cache: bundler.cache?.strategy !== 'never' ? true : false,
+    })
+  }
 
   try {
+    const presets = [defaultPreset]
+    if (!runtime.process.enabled) {
+      presets.push(developmentPreset)
+    }
+
     const result = await bootstrap({
       projectPath,
       config,
       activation: 'http',
       preset: composePresetWithOpts({
-        presets: [defaultPreset],
+        presets,
         opts: {
-          metrics: config.metrics?.enabled ?? true,
-          createReport: true,
+          metrics: metrics.enabled,
+          createReport: runtime.save,
         },
       }),
       data,

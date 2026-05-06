@@ -34,7 +34,6 @@ export function resolvePackageJson(input: string): string {
 export const bundledConfigDefaults = {
   options: {backoff: 'exponential', retries: 3, timeout: 5000},
   mode: 'async',
-  entry: 'index.js',
   concurrency: 4,
   env: null,
   data: null,
@@ -74,7 +73,7 @@ export function createValidationSchema(partialDefaults: any = bundledConfigDefau
     name: Joi.string(),
     description: Joi.string(),
     version: Joi.alt(Joi.string(), Joi.number()),
-    entry: Joi.string().default(defaults.entry),
+    entry: Joi.string(),
     mode: Joi.string().valid('async', 'chain').default(defaults.mode),
     metadata: Joi.object().default(defaults.metadata),
     metrics,

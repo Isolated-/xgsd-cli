@@ -10,7 +10,7 @@ import {pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
 import {prettyMs} from '../plugins/debug.plugin'
 import {buildGraph} from '../graph/graph'
 import {BundlerGraphView, SummaryGraphView} from '../graph/summary'
-import {BundlerConfig, configFile, ConfigFile} from '../config'
+import {BundlerConfig, configFile, ConfigFile, resolveFilePath, RuntimeConfig} from '../config'
 
 export async function createBundle({
   project,
@@ -129,6 +129,7 @@ export default class Run extends BaseCommand<typeof Run> {
 
     const projectPath = this.flags.path ? path.resolve(this.flags.path) : process.cwd()
     const packageJson = resolvePackageJson(projectPath)
+    // resolve this
     const configPath = join(projectPath, flags.config)
 
     const globalCli = configFile(this.config.configDir)
@@ -141,6 +142,20 @@ export default class Run extends BaseCommand<typeof Run> {
         strategy: flags.cache ? 'change' : 'never',
       },
     })
+
+    const runtime = cli.get<RuntimeConfig>('runtime', {
+      debug: flags.debug,
+      save: flags.save,
+      process: {enabled: flags.local === false},
+      resolve: {
+        config: 'auto',
+      },
+    })
+
+    const resolvedConfigPath =
+      runtime.resolve?.config === 'auto'
+        ? resolveFilePath('config', ['json', 'yaml', 'yml'], projectPath)
+        : runtime?.resolve?.config
 
     const validator = (input: any) => {
       const validation = createValidationSchema(cli.get('defaults')?.config).validate(input)
@@ -155,7 +170,7 @@ export default class Run extends BaseCommand<typeof Run> {
     const {bootstrap, createConfig, composePresetWithOpts} = resolveDependencyWithWarning('@xgsd/runtime', projectPath)
 
     const config = createConfig({
-      configPath,
+      configPath: resolvedConfigPath,
       packageJsonPath: packageJson,
       validator,
     })
@@ -172,11 +187,13 @@ export default class Run extends BaseCommand<typeof Run> {
     const metrics = cli.get<{enabled: boolean}>('metrics', {enabled: flags.metrics})
     const presets: any[] = [defaultPreset]
 
-    if (flags.debug) {
+    if (runtime.debug) {
+      this.log(`debug mode has been activated.`)
       presets.push(debugPreset)
     }
 
-    if (flags.local) {
+    if (!runtime.process?.enabled) {
+      if (flags.debug) this.log(`process execution has been disabled by flags/config.`)
       presets.push(developmentPreset)
     }
 
@@ -188,9 +205,9 @@ export default class Run extends BaseCommand<typeof Run> {
         config,
         preset: composePresetWithOpts({
           opts: {
-            createReport: flags.save,
+            createReport: runtime.save,
             metrics: metrics.enabled,
-            debug: flags.debug,
+            debug: runtime.debug,
           },
           presets,
         }),
