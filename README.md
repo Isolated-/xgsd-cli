@@ -65,7 +65,7 @@ Use NPM to install xGSD globally:
 npm install -g @xgsd/cli
 ```
 
-## Quickstart
+### Quickstart
 
 Create a new project:
 
@@ -74,15 +74,29 @@ xgsd new my-project
 cd my-project
 ```
 
-This creates a "greet" example project.
+Your project contains an `index.js` file with an exported function: `greet`.
 
-Now run it:
+You can call `greet` with:
 
 ```bash
-xgsd run -d '{"name": "Me"}'
+xgsd call greet -d '{"name": "World"}'
 ```
 
-View the results under `runs`.
+Which will output:
+
+```json
+{
+  "message": "Hello World!"
+}
+```
+
+You can also run this as a project with `xgsd run`:
+
+```bash
+xgsd run -d '{"name": "World"}'
+```
+
+Check the result file under `{project}/runs`.
 
 Check the [**Documentation**](https://isolated-.github.io/xgsd-userdocs/) to learn more.
 
