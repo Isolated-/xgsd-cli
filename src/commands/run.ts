@@ -6,8 +6,10 @@ import {defaultPreset} from '../presets/default.preset'
 import {developmentPreset} from '../presets/development.preset'
 import path from 'path'
 import {bundle, createValidationSchema, resolvePackageJson, resolveDependencyWithWarning} from '../util'
-import {pathExistsSync} from 'fs-extra'
+import {pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
 import {prettyMs} from '../plugins/debug.plugin'
+import {buildGraph, calculateModuleGraphHash} from '../graph/graph'
+import {SummaryGraphView} from '../graph/summary'
 
 export async function createBundle({
   project,
@@ -20,17 +22,28 @@ export async function createBundle({
   cache: boolean
   log?: boolean
 }): Promise<string> {
-  const out = join(project, '.xgsd', 'bundle.js')
+  const start = performance.now()
+
+  const xgsd = join(project, '.xgsd')
+  const out = join(xgsd, 'bundle.js')
   const entryFile = join(project, entry)
   const packageJsonPath = join(project, 'package.json')
   const outPathRel = join('.xgsd', 'bundle.js')
 
-  if (pathExistsSync(out) && cache) {
-    if (log) console.log(`${outPathRel} loaded from cache (use --no-cache or delete it to force bundling)`)
-    return outPathRel
-  }
+  const summaryPath = join(xgsd, 'summary.json')
+  const graph = await buildGraph(entryFile)
+  const summary = new SummaryGraphView(graph).build()
 
-  const start = performance.now()
+  if (pathExistsSync(summaryPath) && cache) {
+    const json = readJsonSync(summaryPath)
+
+    if (json.hash === summary.hash) {
+      if (log) console.log(`${outPathRel} loaded from cache (use --no-cache or delete it to force bundling)`)
+      return outPathRel
+    }
+
+    if (log) console.log(`${outPathRel} is out of date - rebuilding`)
+  }
 
   // for now let esbuild notify of errors
   await bundle({
@@ -39,9 +52,13 @@ export async function createBundle({
     out,
     banner: {
       generated: new Date().toISOString(),
+      hash: summary.hash,
     },
     format: 'esm',
   })
+
+  writeJsonSync(summaryPath, summary, {spaces: 2})
+  if (log) console.log(`code summary written to .xgsd/summary.json`)
 
   const ms = performance.now() - start
 
@@ -166,7 +183,7 @@ export default class Run extends BaseCommand<typeof Command> {
       })
 
       if (flags.save) {
-        this.log(`saved result to ${join(projectPath, result.end + '.json')}`)
+        this.log(`saved result to ${join('runs', result.end + '.json')}`)
       }
 
       if (result.state === 'failed') {
