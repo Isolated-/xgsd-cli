@@ -11,6 +11,7 @@ import {prettyMs} from '../plugins/debug.plugin'
 import {buildGraph} from '../graph/graph'
 import {BundlerGraphView, SummaryGraphView} from '../graph/summary'
 import {BundlerConfig, configFile, ConfigFile, resolveFilePath, RuntimeConfig} from '../config'
+import {ProjectRunner} from '../runner'
 
 export async function createBundle({
   project,
@@ -157,7 +158,7 @@ export default class Run extends BaseCommand<typeof Run> {
         ? resolveFilePath('config', ['json', 'yaml', 'yml'], projectPath)
         : runtime?.resolve?.config
 
-    const validator = (input: any) => {
+    /*const validator = (input: any) => {
       const validation = createValidationSchema(cli.get('defaults')?.config).validate(input)
 
       if (validation.error) {
@@ -165,7 +166,29 @@ export default class Run extends BaseCommand<typeof Run> {
       }
 
       return validation.value
+    }*/
+
+    const runner = new ProjectRunner({
+      mode: 'process',
+      projectPath,
+      entry: 'index.js',
+    })
+
+    const result = await runner.run()
+
+    if (flags.save) {
+      this.log(`saved result to ${join('runs', result.end + '.json')}`)
     }
+
+    if (result.state === 'failed') {
+      this.warn(`your project ended in a failed state, check logs for more info`)
+    } else {
+      this.log(`finished running your project, use --json to view the result of runs`)
+    }
+
+    return result
+
+    /*
 
     const {bootstrap, createConfig, composePresetWithOpts} = resolveDependencyWithWarning('@xgsd/runtime', projectPath)
 
@@ -195,8 +218,9 @@ export default class Run extends BaseCommand<typeof Run> {
     if (!runtime.process?.enabled) {
       if (flags.debug) this.log(`process execution has been disabled by flags/config.`)
       presets.push(developmentPreset)
-    }
+    }*/
 
+    /*
     try {
       const result = await bootstrap({
         data: this.data,
@@ -233,6 +257,6 @@ export default class Run extends BaseCommand<typeof Run> {
       } else {
         this.error('An unknown error occurred')
       }
-    }
+    }*/
   }
 }
