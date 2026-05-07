@@ -1,7 +1,7 @@
 {
   "name": "@xgsd/cli",
   "description": "Local workflow orchestration for solo-developers, built on top of xGSD. Get started in minutes. Create an action, define a workflow, and xgsd run it!",
-  "version": "0.6.3",
+  "version": "0.7.0-beta.0",
   "author": "Michael Palmer",
   "bin": {
     "xgsd": "./bin/run.js"
@@ -99,10 +99,7 @@
       "@oclif/plugin-version",
       "@oclif/plugin-plugins"
     ],
-    "topicSeparator": " ",
-    "hooks": {
-      "error": "./dist/hooks/error/error-handler"
-    }
+    "topicSeparator": " "
   },
   "repository": "https://github.com/Isolated-/xgsd-cli",
   "scripts": {

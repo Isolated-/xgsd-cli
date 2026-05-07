@@ -6,8 +6,6 @@ const projectPath = XGSD_PROJECT_PATH!
 const opts = JSON.parse(XGSD_PROCESS_CONFIG!)
 const activation = XGSD_ACTIVATION!
 
-console.log('bootstrap running in ' + process.pid)
-
 initialiseBootstrap(projectPath, opts, activation)
   .then(async (result) => {
     //console.log(result)

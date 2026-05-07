@@ -9,6 +9,7 @@ type Opts = {
   port?: number
   host?: string
   cwd?: string
+  detached?: boolean
   pidPath: string
 }
 
@@ -18,12 +19,13 @@ let running = 0
 
 export async function runProjectHandler(
   opts: {
+    detached: boolean
     projectPath: string
     data: Record<string, any>
   },
   res: FastifyReply,
 ) {
-  const {projectPath, data} = opts
+  const {projectPath} = opts
 
   // TODO: improve this (or remove it)
   if (running > 10) {
@@ -53,7 +55,7 @@ export async function runProjectHandler(
 }
 
 export async function startDaemon(opts: Opts) {
-  const app = createApi(opts)
+  const app = createApi({...opts, detached: true})
 
   const port = opts.port ? opts.port : 3010
 
@@ -116,12 +118,14 @@ export function createApi(opts: Opts) {
       return res.status(400).send({error: '"project" is missing and should be the absolute path to your project'})
     }
 
+    const detached = opts.detached ?? false
     const projectPath = opts.cwd ? join(opts.cwd, body.project) : body.project
 
     // then run the project
     return runProjectHandler(
       {
         projectPath,
+        detached,
         data: body.data,
       },
       res,
