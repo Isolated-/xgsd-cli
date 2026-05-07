@@ -78,7 +78,7 @@ export class ProjectRunner {
     }
 
     if (mode === 'in-process') {
-      return this.runInProcess(processOpts)
+      return this.runInProcess(processOpts) as any
     }
 
     return this.runInChildProcess(processOpts) as any
@@ -106,8 +106,6 @@ export class ProjectRunner {
       child.on('message', (msg: any) => {
         if (msg?.type === 'XGSD_DONE') {
           resolve(msg.result)
-
-          child.kill()
         }
       })
 

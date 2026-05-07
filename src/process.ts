@@ -15,9 +15,12 @@ initialiseBootstrap(projectPath, opts, activation)
 
     process.send?.({type: 'XGSD_DONE', result})
 
-    process.exit(0)
+    process.disconnect?.()
   })
   .catch((err) => {
     console.error(err)
-    process.exit(1)
+
+    process.exitCode = 1
+
+    process.disconnect?.()
   })

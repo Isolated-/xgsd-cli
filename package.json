@@ -6,7 +6,7 @@
   "bin": {
     "xgsd": "./bin/run.js"
   },
-  "backend": "https://backend.xgsd.io",
+  "backend": "https://backend-dev.xgsd.io",
   "bugs": "https://github.com/Isolated-/xgsd-cli/issues",
   "dependencies": {
     "@babel/parser": "^7.29.3",
