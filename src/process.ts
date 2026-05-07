@@ -1,43 +1,14 @@
-import {resolveDependencyWithWarning} from './util'
-import {defaultPreset} from './presets/default.preset'
-import {debugPreset} from './presets/debug.preset'
-import {developmentPreset} from './presets/development.preset'
+import {initialiseBootstrap} from './shared'
 
-const {XGSD_PROJECT_PATH, XGSD_PROCESS_CONFIG, XGSD_SPAN_START} = process.env
+const {XGSD_PROJECT_PATH, XGSD_PROCESS_CONFIG, XGSD_ACTIVATION} = process.env
 
 const projectPath = XGSD_PROJECT_PATH!
 const opts = JSON.parse(XGSD_PROCESS_CONFIG!)
+const activation = XGSD_ACTIVATION!
 
-async function main() {
-  const {bootstrap, composePresetWithOpts} = resolveDependencyWithWarning('@xgsd/runtime', projectPath)
+console.log('bootstrap running in ' + process.pid)
 
-  const presets = [defaultPreset]
-
-  if (opts.runtime?.debug) {
-    presets.push(debugPreset)
-  }
-
-  if (!opts.runtime?.process.enabled) {
-    presets.push(developmentPreset)
-  }
-
-  const result = await bootstrap({
-    projectPath,
-    config: opts.config,
-    activation: 'cli',
-    preset: composePresetWithOpts({
-      presets,
-      opts: {
-        metrics: opts.metrics?.enabled,
-        createReport: opts.runtime?.save,
-        debug: opts.runtime?.debug,
-      },
-    }),
-  })
-
-  return result
-}
-main()
+initialiseBootstrap(projectPath, opts, activation)
   .then(async (result) => {
     //console.log(result)
 
@@ -46,7 +17,7 @@ main()
 
     process.send?.({type: 'XGSD_DONE', result})
 
-    //process.exit(0)
+    process.exit(0)
   })
   .catch((err) => {
     console.error(err)

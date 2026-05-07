@@ -3,7 +3,40 @@ import {join} from 'path'
 import prettyMs from 'pretty-ms'
 import {buildGraph} from './graph/graph'
 import {SummaryGraphView, BundlerGraphView} from './graph/summary'
-import {bundle} from './util'
+import {bundle, resolveDependencyWithWarning} from './util'
+import {debugPreset} from './presets/debug.preset'
+import {defaultPreset} from './presets/default.preset'
+import {developmentPreset} from './presets/development.preset'
+
+export async function initialiseBootstrap(projectPath: string, opts: any, activation: string = 'cli') {
+  const {bootstrap, composePresetWithOpts} = resolveDependencyWithWarning('@xgsd/runtime', projectPath)
+
+  const presets = [defaultPreset]
+
+  if (opts.runtime?.debug) {
+    presets.push(debugPreset)
+  }
+
+  if (!opts.runtime?.process.enabled) {
+    presets.push(developmentPreset)
+  }
+
+  const result = await bootstrap({
+    projectPath,
+    config: opts.config,
+    activation,
+    preset: composePresetWithOpts({
+      presets,
+      opts: {
+        metrics: opts.metrics?.enabled,
+        createReport: opts.runtime?.save,
+        debug: opts.runtime?.debug,
+      },
+    }),
+  })
+
+  return result
+}
 
 export async function createBundle({
   project,

@@ -40,20 +40,24 @@ export default class Run extends BaseCommand<typeof Run> {
       aliases: ['project', 'projectPath'],
     }),
 
+    // TODO: move bundle/cache off of this interface
+    // and use xgsd.yaml in project file instead
     bundle: Flags.boolean({
       char: 'b',
       description: 'bundle your code before running your project (makes xGSD more portable)',
-      default: true,
+      default: false,
       allowNo: true,
     }),
 
     cache: Flags.boolean({
       char: 'C',
       description: 'cache built artifacts to speed up project runs',
-      default: true,
+      default: false,
       allowNo: true,
       dependsOn: ['bundle'],
     }),
+
+    legacy: Flags.boolean(),
   }
 
   public async run(): Promise<any> {
@@ -61,13 +65,32 @@ export default class Run extends BaseCommand<typeof Run> {
     const spanStart = performance.now()
 
     const projectPath = this.flags.path ? path.resolve(this.flags.path) : process.cwd()
+    const mode = flags.legacy ? 'in-process' : 'process'
+
+    if (flags.legacy && (flags.bundle || flags.cache || flags.local)) {
+      this.warn(`--bundle, --cache, and --local have no effect with --legacy`)
+    }
+
+    if (flags.bundle) {
+      this.warn(`--bundle flag will be removed by v1.0.0, create a xgsd.yaml in your project.`)
+    }
+
+    if (flags.cache) {
+      this.warn(`--cache flag will be removed by v1.0.0, create a xgsd.yaml in your project.`)
+    }
 
     const runner = new ProjectRunner({
       projectPath,
-      flags,
+      flags: {
+        ...flags,
+        bundle: flags.legacy ? false : flags.bundle,
+        cache: flags.legacy ? false : flags.cache,
+        local: flags.legacy ? false : flags.local,
+      },
       context: {
         spanStart,
       },
+      mode,
     })
 
     try {

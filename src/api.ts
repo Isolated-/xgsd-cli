@@ -35,6 +35,8 @@ export async function runProjectHandler(
 
   const runner = new ProjectRunner({
     projectPath,
+    mode: 'process',
+    activation: 'http',
   })
 
   try {
