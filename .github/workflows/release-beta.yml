@@ -35,7 +35,7 @@ jobs:
           name: dist-folder
           path: ./dist
 
-    release-npm:
+  release-npm:
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -57,7 +57,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: npm publish --access public --tag beta
-
 
 # # Package + upload tarballs
 # release-dist:
