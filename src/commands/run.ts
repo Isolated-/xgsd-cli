@@ -30,8 +30,9 @@ export default class Run extends BaseCommand<typeof Run> {
     save: Flags.boolean({
       char: 's',
       allowNo: true,
-      default: true,
+      default: false,
       description: 'when false/--no-save is used, no report will be saved to runs/{date}.json',
+      deprecated: true,
     }),
 
     path: Flags.string({
@@ -45,19 +46,24 @@ export default class Run extends BaseCommand<typeof Run> {
     bundle: Flags.boolean({
       char: 'b',
       description: 'bundle your code before running your project (makes xGSD more portable)',
-      default: false,
       allowNo: true,
+      deprecated: true,
     }),
 
     cache: Flags.boolean({
       char: 'C',
       description: 'cache built artifacts to speed up project runs',
-      default: false,
       allowNo: true,
       dependsOn: ['bundle'],
+      deprecated: true,
     }),
 
-    legacy: Flags.boolean(),
+    legacy: Flags.boolean({
+      char: 'L',
+      description:
+        'use legacy mode for projects created before v0.7 (removes per-project isolation, bundler, and caching)',
+      allowNo: true,
+    }),
   }
 
   public async run(): Promise<any> {
@@ -71,12 +77,20 @@ export default class Run extends BaseCommand<typeof Run> {
       this.warn(`--bundle, --cache, and --local have no effect with --legacy`)
     }
 
-    if (flags.bundle) {
-      this.warn(`--bundle flag will be removed by v1.0.0, create a xgsd.yaml in your project.`)
+    if (flags.bundle !== undefined) {
+      this.warn(
+        `--bundle flag will be removed by v1.0.0, create a xgsd.yaml in your project with bundler.enabled = true.`,
+      )
     }
 
-    if (flags.cache) {
-      this.warn(`--cache flag will be removed by v1.0.0, create a xgsd.yaml in your project.`)
+    if (flags.cache !== undefined) {
+      this.warn(
+        `--cache flag will be removed by v1.0.0, create a xgsd.yaml in your project with bundler.cache.strategy = auto|change|never.`,
+      )
+    }
+
+    if (flags.save !== undefined) {
+      this.warn(`--save flag will be removed by v1.0.0, create a xgsd.yaml in your project with runtime.save = true.`)
     }
 
     const runner = new ProjectRunner({

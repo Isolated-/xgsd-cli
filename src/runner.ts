@@ -61,14 +61,15 @@ export class ProjectRunner {
     const metrics = cli.get<{enabled: boolean}>('metrics', {enabled: config.metrics?.enabled ?? flags.metrics ?? false})
 
     if (bundler?.enabled) {
-      config.entry = !flags.bundle
-        ? config.entry
-        : await createBundle({
-            project: this.opts.projectPath,
-            entry: config.entry!,
-            cache: !flags.cache ? false : bundler.cache?.strategy !== 'never' ? true : false,
-            log: true,
-          })
+      config.entry =
+        flags.bundle === false
+          ? config.entry
+          : await createBundle({
+              project: this.opts.projectPath,
+              entry: config.entry!,
+              cache: flags.cache === false ? false : bundler.cache?.strategy !== 'never' ? true : false,
+              log: flags.debug || !flags.json,
+            })
     }
 
     const processOpts = {
