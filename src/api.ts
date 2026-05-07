@@ -1,11 +1,7 @@
 import Fastify, {FastifyReply, FastifyRequest} from 'fastify'
 import {join} from 'path'
-import {defaultPreset} from './presets/default.preset'
 import {createWriteStream, ensureDirSync, writeFileSync} from 'fs-extra'
-import {createValidationSchema, resolveDependencyWithWarning} from './util'
-import {createBundle} from './commands/run'
-import {BundlerConfig, configFile} from './config'
-import {developmentPreset} from './presets/development.preset'
+import {ProjectRunner} from './runner'
 
 type Opts = {
   apiKey?: string
@@ -29,6 +25,7 @@ export async function runProjectHandler(
 ) {
   const {projectPath, data} = opts
 
+  // TODO: improve this (or remove it)
   if (running > 10) {
     return res.status(429).send({error: 'too many running projects'})
   }
@@ -36,77 +33,19 @@ export async function runProjectHandler(
   runs++
   running++
 
-  // allow overriding these
-  const packageJsonPath = join(projectPath, 'package.json')
-  const configPath = join(projectPath, 'config.yaml')
-
-  const cli = configFile(projectPath)
-  const schema = createValidationSchema(cli.get('defaults').config)
-
-  const bundler = cli.get<BundlerConfig>('bundler', {
-    enabled: true,
-    cache: {
-      strategy: 'change',
-    },
+  const runner = new ProjectRunner({
+    projectPath,
   })
-
-  const metrics = cli.get<{enabled: boolean}>('metrics', {enabled: true})
-  const runtime = cli.get<{save: boolean; debug: boolean; process: {enabled: boolean}}>('runtime', {
-    debug: false,
-    save: true,
-    process: {enabled: true},
-  })
-
-  const {bootstrap, createConfig, composePresetWithOpts} = resolveDependencyWithWarning('@xgsd/runtime', projectPath)
-
-  // cache this carefully
-  const config = createConfig({
-    packageJsonPath,
-    configPath,
-    validator: (input: unknown) => {
-      const validation = schema.validate(input)
-
-      if (validation.error) {
-        return res.status(400).send({error: 'invalid config', errors: validation.error.details.map((d) => d.message)})
-      }
-
-      return validation.value
-    },
-  })
-
-  if (bundler.enabled) {
-    config.entry = await createBundle({
-      project: projectPath,
-      entry: config.entry ?? 'index.js',
-      cache: bundler.cache?.strategy !== 'never' ? true : false,
-    })
-  }
 
   try {
-    const presets = [defaultPreset]
-    if (!runtime.process.enabled) {
-      presets.push(developmentPreset)
-    }
-
-    const result = await bootstrap({
-      projectPath,
-      config,
-      activation: 'http',
-      preset: composePresetWithOpts({
-        presets,
-        opts: {
-          metrics: metrics.enabled,
-          createReport: runtime.save,
-        },
-      }),
-      data,
-    })
+    const result = await runner.run()
 
     running--
     return res.status(200).send(result)
   } catch (error) {
     running--
     errors++
+
     return res.status(500).send(error)
   }
 }
