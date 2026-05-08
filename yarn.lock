@@ -3285,10 +3285,10 @@
   resolved "https://registry.yarnpkg.com/@xgsd/engine/-/engine-1.0.0-stable.tgz#a7c2b121a9572f7c23297d588ceb569fc6eb71ca"
   integrity sha512-dUzQjUfMsY5KjomWMHZMSZTxwTNQUMKj7T6jpkjs4rroRYXXM0GF7O6kUoIf+3qiBhAmbYoGsL1QMRflOdASjA==
 
-"@xgsd/runtime@0.1.4":
-  version "0.1.4"
-  resolved "https://registry.yarnpkg.com/@xgsd/runtime/-/runtime-0.1.4.tgz#6c6d0016bcfa9cdec8384762adccbee0fcba29d4"
-  integrity sha512-Wxojtu9wcx9ZM7D1FJB/5N2Uy16nU7fovK1XI5QLv2l/umdYzr0E7qcduspFQEhF6PMkuEelESU3g+WXocGlOA==
+"@xgsd/runtime@0.1.5":
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/@xgsd/runtime/-/runtime-0.1.5.tgz#c477a9d003835f8d4e4913026bdc18581953c925"
+  integrity sha512-ef6ByKEOaMMc2OGUsehzHJtnfAu6MBn8GeFnR1C+ZD9kmefL+uE6UYki9DmfPgPweTGi2ueYj4fe6MqnrthHeg==
   dependencies:
     "@xgsd/engine" "1.0.0-stable"
     dotenv "^17.4.2"

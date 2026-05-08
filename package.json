@@ -15,7 +15,7 @@
     "@oclif/plugin-plugins": "^5.4.63",
     "@oclif/plugin-version": "^2.2.32",
     "@types/js-yaml": "^4.0.9",
-    "@xgsd/runtime": "0.1.4",
+    "@xgsd/runtime": "0.1.5",
     "chalk": "^5.6.0",
     "esbuild": "0.28.0",
     "eventemitter2": "^6.4.9",
@@ -51,14 +51,11 @@
     "typescript": "^5"
   },
   "peerDependencies": {
-    "@xgsd/runtime": "^0.1.2",
+    "@xgsd/runtime": "^0.1.5",
     "esbuild": "^0.28.0"
   },
   "peerDependenciesMeta": {
     "esbuild": {
-      "optional": true
-    },
-    "@xgsd/runtime": {
       "optional": true
     }
   },
