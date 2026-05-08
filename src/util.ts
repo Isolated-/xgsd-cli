@@ -1,9 +1,7 @@
-import {ensureDirSync, pathExistsSync, readJsonSync, writeJsonSync} from 'fs-extra'
+import {pathExistsSync} from 'fs-extra'
 import * as path from 'path'
 import * as Joi from 'joi'
-import {warn} from '@oclif/core/errors'
 import {EnvVars, getEnvVarBool} from './constants'
-import {ModuleGraph} from './graph/graph'
 
 export function resolvePackageJson(input: string): string {
   try {
@@ -151,27 +149,18 @@ export function resolveDependencyWithWarning(module: string, projectRoot: string
 }
 
 export async function bundle(options: {
-  packageJsonPath: string
   entry: string
   out: string
   format: 'esm' | 'cjs'
   banner: Record<string, string>
   dependencies: string[]
 }) {
-  const {packageJsonPath, dependencies} = options
-  const json = readJsonSync(packageJsonPath)
+  const {dependencies} = options
 
   const esbuild = resolveDependencyWithWarning('esbuild', path.dirname(options.entry))
   if (esbuild.version) {
     console.log(`building with esbuild@${esbuild.version}`)
   }
-
-  const outdir = path.dirname(options.out)
-  ensureDirSync(outdir)
-  writeJsonSync(path.join(outdir, 'package.json'), {
-    ...json,
-    type: options.format === 'esm' ? 'module' : 'commonjs',
-  })
 
   return esbuild.build({
     keepNames: true,

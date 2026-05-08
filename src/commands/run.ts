@@ -1,7 +1,6 @@
 import {Flags} from '@oclif/core'
-import {join} from 'path'
 import {BaseCommand} from '../base'
-import path from 'path'
+import path, {join} from 'path'
 import {ProjectRunner} from '../runner'
 
 export default class Run extends BaseCommand<typeof Run> {
@@ -109,10 +108,6 @@ export default class Run extends BaseCommand<typeof Run> {
 
     try {
       const result = await runner.run()
-
-      if (flags.save) {
-        this.log(`saved result to ${join('runs', result.end + '.json')}`)
-      }
 
       if (result.state === 'failed') {
         this.warn(`your project ended in a failed state, check logs for more info`)
