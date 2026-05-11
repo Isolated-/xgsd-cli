@@ -5,6 +5,14 @@
 [![Downloads/week](https://img.shields.io/npm/dw/@xgsd/cli.svg)](https://npmjs.org/package/@xgsd/cli)  
 [![CI & Release](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml/badge.svg)](https://github.com/Isolated-/xgsd-cli/actions/workflows/release.yml)
 
+## Use xGSD Workers
+
+Use **Workers** instead of `@xgsd/cli` and `@xgsd/runtime` - it's faster, lighter, and more predictable.
+
+Support for `@xgsd/cli`, and `@xgsd/runtime` has been discontinued.
+
+[**Learn about Workers**](https://isolated-.github.io/xgsd-userdocs/workers/).
+
 ## Overview
 
 xGSD is a runtime for your Node.js functions that removes the usual glue code.
@@ -108,31 +116,32 @@ Check the [**Documentation**](https://isolated-.github.io/xgsd-userdocs/) to lea
 ## Commands
 
 <!-- commands -->
-* [`xgsd call BLOCK`](#xgsd-call-block)
-* [`xgsd down`](#xgsd-down)
-* [`xgsd help [COMMAND]`](#xgsd-help-command)
-* [`xgsd new NAME`](#xgsd-new-name)
-* [`xgsd plugins`](#xgsd-plugins)
-* [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
-* [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
-* [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
-* [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
-* [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
-* [`xgsd plugins reset`](#xgsd-plugins-reset)
-* [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
-* [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
-* [`xgsd plugins update`](#xgsd-plugins-update)
-* [`xgsd run`](#xgsd-run)
-* [`xgsd server down`](#xgsd-server-down)
-* [`xgsd server start`](#xgsd-server-start)
-* [`xgsd server status`](#xgsd-server-status)
-* [`xgsd server stop`](#xgsd-server-stop)
-* [`xgsd server up`](#xgsd-server-up)
-* [`xgsd start`](#xgsd-start)
-* [`xgsd status`](#xgsd-status)
-* [`xgsd stop`](#xgsd-stop)
-* [`xgsd up`](#xgsd-up)
-* [`xgsd version`](#xgsd-version)
+
+- [`xgsd call BLOCK`](#xgsd-call-block)
+- [`xgsd down`](#xgsd-down)
+- [`xgsd help [COMMAND]`](#xgsd-help-command)
+- [`xgsd new NAME`](#xgsd-new-name)
+- [`xgsd plugins`](#xgsd-plugins)
+- [`xgsd plugins add PLUGIN`](#xgsd-plugins-add-plugin)
+- [`xgsd plugins:inspect PLUGIN...`](#xgsd-pluginsinspect-plugin)
+- [`xgsd plugins install PLUGIN`](#xgsd-plugins-install-plugin)
+- [`xgsd plugins link PATH`](#xgsd-plugins-link-path)
+- [`xgsd plugins remove [PLUGIN]`](#xgsd-plugins-remove-plugin)
+- [`xgsd plugins reset`](#xgsd-plugins-reset)
+- [`xgsd plugins uninstall [PLUGIN]`](#xgsd-plugins-uninstall-plugin)
+- [`xgsd plugins unlink [PLUGIN]`](#xgsd-plugins-unlink-plugin)
+- [`xgsd plugins update`](#xgsd-plugins-update)
+- [`xgsd run`](#xgsd-run)
+- [`xgsd server down`](#xgsd-server-down)
+- [`xgsd server start`](#xgsd-server-start)
+- [`xgsd server status`](#xgsd-server-status)
+- [`xgsd server stop`](#xgsd-server-stop)
+- [`xgsd server up`](#xgsd-server-up)
+- [`xgsd start`](#xgsd-start)
+- [`xgsd status`](#xgsd-status)
+- [`xgsd stop`](#xgsd-stop)
+- [`xgsd up`](#xgsd-up)
+- [`xgsd version`](#xgsd-version)
 
 ## `xgsd call BLOCK`
 
@@ -825,6 +834,7 @@ FLAG DESCRIPTIONS
 ```
 
 _See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/2.2.42/src/commands/version.ts)_
+
 <!-- commandsstop -->
 
 ## Metrics

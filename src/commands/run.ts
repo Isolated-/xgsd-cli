@@ -114,8 +114,6 @@ export default class Run extends BaseCommand<typeof Run> {
       } else {
         this.log(`finished running your project, use --json to view the result of runs`)
       }
-
-      return result
     } catch (error: any) {
       if (error.stack) this.error(error.stack)
 
